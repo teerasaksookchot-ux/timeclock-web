@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ระบบลงเวลา · เว็บแอดมิน HR</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--ink:#1C1A17;--ink2:#3A352E;--muted:#8C8479;--tan:#B26A2B;--tan2:#9A5A22;
+    --tan-soft:#EBDCC8;--paper:#F2EEE8;--card:#FFF;--line:#E4DDD2;
+    --green:#1E7D52;--green-bg:#E4F0E9;--red:#C2391F;--red-bg:#F6E0DB;
+    --font:'IBM Plex Sans Thai','Sarabun',-apple-system,'Segoe UI',sans-serif;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font);background:var(--paper);color:var(--ink);line-height:1.5}
+  .top{background:var(--ink);color:#fff;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  .brand{font-weight:700;font-size:18px;display:flex;align-items:center;gap:10px}
+  .brand .mk{width:30px;height:30px;border-radius:8px;background:var(--tan);display:grid;place-items:center}
+  .who{font-size:13px;display:flex;align-items:center;gap:12px}
+  .logout{background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:var(--font);font-size:13px}
+  .wrap{max-width:1000px;margin:0 auto;padding:22px}
+  .tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+  .tab{padding:9px 18px;border:1px solid var(--line);background:var(--card);border-radius:10px;cursor:pointer;font-weight:600;font-size:14px}
+  .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .panel{display:none}.panel.on{display:block}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:0 1px 2px rgba(28,26,23,.06)}
+  h2{font-size:17px;margin-bottom:14px}
+  label{display:block;font-size:12px;color:var(--ink2);font-weight:500;margin:10px 0 4px}
+  input,select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-family:var(--font);font-size:14px;background:var(--paper)}
+  input:focus,select:focus{outline:2px solid var(--tan);outline-offset:1px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn{margin-top:14px;background:var(--ink);color:#fff;border:none;padding:12px 20px;border-radius:10px;font-weight:600;font-size:15px;cursor:pointer;font-family:var(--font);width:100%}
+  .btn:hover{background:#000}
+  table{width:100%;border-collapse:collapse;margin-top:6px;font-size:13.5px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:12px}
+  .msg{padding:11px 14px;border-radius:9px;font-size:13.5px;margin-top:12px;display:none}
+  .msg.ok{background:var(--green-bg);color:var(--green);display:block}
+  .msg.err{background:var(--red-bg);color:var(--red);display:block}
+  .empty{color:var(--muted);font-size:13px;padding:14px 0}
+  /* login */
+  .login{position:fixed;inset:0;background:var(--paper);display:flex;align-items:center;justify-content:center;z-index:10;padding:20px}
+  .loginbox{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:34px;max-width:380px;width:100%;box-shadow:0 12px 40px rgba(28,26,23,.12)}
+  .loginbox .mk{width:48px;height:48px;border-radius:12px;background:var(--ink);color:var(--tan);display:grid;place-items:center;font-size:24px;margin-bottom:16px}
+  .loginbox h1{font-size:20px;margin-bottom:4px}
+  .loginbox p{color:var(--muted);font-size:13px;margin-bottom:18px}
+  .config{background:#FFF6D6;border:1px solid #E0C24A;border-radius:10px;padding:14px;font-size:13px;color:#5a4a00;margin-top:14px;display:none}
+</style>
+</head>
+<body>
+
+<!-- ============ ⬇️ ใส่ค่า 2 บรรทัดนี้ก่อนใช้งาน (ดูคู่มือ) ============ -->
+<script>
+  const SUPABASE_URL = "https://vafjdsizrfevziwhtktr.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhZmpkc2l6cmZldnppd2h0a3RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1OTY2ODQsImV4cCI6MjA5NzE3MjY4NH0.F8rhOVF1ZjE4i-yvmuOLh9DJt0YundEmxwlJMoshY24";
+</script>
+<!-- ================================================================ -->
+
+<!-- LOGIN -->
+<div class="login" id="login">
+  <div class="loginbox">
+    <div class="mk">⏱️</div>
+    <h1>เข้าสู่ระบบ — ผู้ดูแล HR</h1>
+    <p>กรอกอีเมลและรหัสผ่านที่ตั้งไว้</p>
+    <label>อีเมล</label>
+    <input id="l_email" type="email" placeholder="hr@yourshop.com">
+    <label>รหัสผ่าน</label>
+    <input id="l_pw" type="password" placeholder="••••••••">
+    <button class="btn" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <div id="l_msg" class="msg"></div>
+    <div id="configMsg" class="config">⚠️ ยังไม่ได้ตั้งค่าการเชื่อมต่อ — เปิดไฟล์นี้ด้วยโปรแกรมแก้ข้อความ แล้วใส่ Project URL และ anon key (ดูคู่มือขั้นที่ 4)</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appshell" style="display:none">
+  <div class="top">
+    <div class="brand"><span class="mk">⏱️</span> ระบบลงเวลา · เว็บแอดมิน HR</div>
+    <div class="who"><span id="whoami"></span> <button class="logout" onclick="doLogout()">ออกจากระบบ</button></div>
+  </div>
+  <div class="wrap">
+    <div class="tabs">
+      <div class="tab on" data-t="branches">🏪 สาขา</div>
+      <div class="tab" data-t="employees">👥 พนักงาน</div>
+    </div>
+
+    <div class="panel on" id="p-branches">
+      <div class="card">
+        <h2>เพิ่มสาขาใหม่</h2>
+        <label>ชื่อสาขา</label><input id="b_name" placeholder="เช่น ปั๊ม ปตท. ขอนแก่น 2">
+        <div class="grid2">
+          <div><label>ภูมิภาค</label><select id="b_region"></select></div>
+          <div><label>รัศมีเข้างาน (เมตร)</label><input id="b_radius" type="number" value="100"></div>
+        </div>
+        <div class="grid2">
+          <div><label>Latitude</label><input id="b_lat" placeholder="16.4419"></div>
+          <div><label>Longitude</label><input id="b_lng" placeholder="102.8360"></div>
+        </div>
+        <button class="btn" onclick="addBranch()">บันทึกสาขา</button>
+        <div id="b_msg" class="msg"></div>
+      </div>
+      <div class="card"><h2>รายการสาขา</h2><div id="b_list"><div class="empty">กำลังโหลด…</div></div></div>
+    </div>
+
+    <div class="panel" id="p-employees">
+      <div class="card">
+        <h2>เพิ่มพนักงานใหม่</h2>
+        <div class="grid2"><div><label>ชื่อจริง</label><input id="e_first"></div><div><label>นามสกุล</label><input id="e_last"></div></div>
+        <div class="grid2"><div><label>ชื่อเล่น</label><input id="e_nick"></div><div><label>เบอร์โทร</label><input id="e_phone"></div></div>
+        <label>สาขาประจำ</label><select id="e_branch"></select>
+        <button class="btn" onclick="addEmployee()">บันทึกพนักงาน</button>
+        <div id="e_msg" class="msg"></div>
+      </div>
+      <div class="card"><h2>รายชื่อพนักงาน</h2><div id="e_list"><div class="empty">กำลังโหลด…</div></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let db=null;
+function lmsg(ok,t){const m=document.getElementById('l_msg');m.className='msg '+(ok?'ok':'err');m.textContent=t;}
+function showMsg(id,ok,t){const m=document.getElementById(id);m.className='msg '+(ok?'ok':'err');m.textContent=t;}
+
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');document.getElementById('p-'+t.dataset.t).classList.add('on');
+});
+
+async function init(){
+  if(!SUPABASE_URL||SUPABASE_URL.includes('ใส่_')||SUPABASE_ANON_KEY.includes('ใส่_')){
+    document.getElementById('configMsg').style.display='block';return;
+  }
+  db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { data:{ session } } = await db.auth.getSession();
+  if(session) await afterLogin();
+}
+
+async function doLogin(){
+  const email=document.getElementById('l_email').value.trim();
+  const pw=document.getElementById('l_pw').value;
+  if(!db){ lmsg(false,'ยังไม่ได้ตั้งค่าการเชื่อมต่อ'); return; }
+  const { error } = await db.auth.signInWithPassword({ email, password:pw });
+  if(error){ lmsg(false,'อีเมลหรือรหัสผ่านไม่ถูกต้อง'); return; }
+  await afterLogin();
+}
+
+async function afterLogin(){
+  const { data:{ user } } = await db.auth.getUser();
+  const { data: emp, error } = await db.from('employees').select('role,first_name').eq('auth_user_id',user.id).maybeSingle();
+  if(error){ lmsg(false,'ตรวจสิทธิ์ไม่ได้: '+error.message); return; }
+  if(!emp || !['hr','owner'].includes(emp.role)){
+    lmsg(false,'บัญชีนี้ยังไม่มีสิทธิ์ผู้ดูแล (ต้องผูกเป็น HR/Owner ก่อน — ดูคู่มือ Phase B)');
+    await db.auth.signOut(); return;
+  }
+  document.getElementById('login').style.display='none';
+  document.getElementById('appshell').style.display='block';
+  document.getElementById('whoami').textContent='สวัสดี, '+(emp.first_name||user.email);
+  await loadRegions(); await loadBranches(); await loadEmployees();
+}
+async function doLogout(){ await db.auth.signOut(); location.reload(); }
+
+async function loadRegions(){
+  const { data } = await db.from('regions').select('*').eq('is_active',true).order('name');
+  const s=document.getElementById('b_region'); s.innerHTML='<option value="">— เลือกภูมิภาค —</option>';
+  (data||[]).forEach(r=>s.innerHTML+=`<option value="${r.region_id}">${r.name}</option>`);
+}
+async function loadBranches(){
+  const { data, error } = await db.from('branches').select('*, regions(name)').eq('status','active').order('name');
+  const box=document.getElementById('b_list'), sel=document.getElementById('e_branch');
+  sel.innerHTML='<option value="">— เลือกสาขา —</option>';
+  if(error){box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>';return;}
+  if(!data||!data.length){box.innerHTML='<div class="empty">ยังไม่มีสาขา</div>';return;}
+  let h='<table><tr><th>ชื่อสาขา</th><th>ภูมิภาค</th><th>รัศมี</th></tr>';
+  data.forEach(b=>{h+=`<tr><td>${b.name}</td><td>${b.regions?b.regions.name:'-'}</td><td>${b.geofence_radius} ม.</td></tr>`;
+    sel.innerHTML+=`<option value="${b.branch_id}">${b.name}</option>`;});
+  box.innerHTML=h+'</table>';
+}
+async function addBranch(){
+  const name=document.getElementById('b_name').value.trim();
+  const region=document.getElementById('b_region').value||null;
+  const lat=parseFloat(document.getElementById('b_lat').value), lng=parseFloat(document.getElementById('b_lng').value);
+  const radius=parseInt(document.getElementById('b_radius').value)||100;
+  if(!name||isNaN(lat)||isNaN(lng)){showMsg('b_msg',false,'กรุณากรอกชื่อ + ละติจูด + ลองจิจูด');return;}
+  const { error } = await db.from('branches').insert({name,region_id:region,latitude:lat,longitude:lng,geofence_radius:radius});
+  if(error){showMsg('b_msg',false,'บันทึกไม่ได้: '+error.message);return;}
+  showMsg('b_msg',true,'✅ บันทึกสาขา "'+name+'" แล้ว');
+  document.getElementById('b_name').value='';document.getElementById('b_lat').value='';document.getElementById('b_lng').value='';
+  await loadBranches();
+}
+async function loadEmployees(){
+  const { data, error } = await db.from('employees').select('*, branches:home_branch_id(name)').order('employee_code');
+  const box=document.getElementById('e_list');
+  if(error){box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>';return;}
+  if(!data||!data.length){box.innerHTML='<div class="empty">ยังไม่มีพนักงาน</div>';return;}
+  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เบอร์</th><th>สาขา</th></tr>';
+  data.forEach(e=>h+=`<tr><td>${e.employee_code}</td><td>${e.first_name} ${e.last_name} (${e.nickname||''})</td><td>${e.phone}</td><td>${e.branches?e.branches.name:'-'}</td></tr>`);
+  box.innerHTML=h+'</table>';
+}
+async function addEmployee(){
+  const first=document.getElementById('e_first').value.trim(), last=document.getElementById('e_last').value.trim();
+  const nick=document.getElementById('e_nick').value.trim(), phone=document.getElementById('e_phone').value.trim();
+  const branch=document.getElementById('e_branch').value||null;
+  if(!first||!last||!phone){showMsg('e_msg',false,'กรุณากรอก ชื่อ นามสกุล และเบอร์โทร');return;}
+  const { count } = await db.from('employees').select('*',{count:'exact',head:true});
+  const code='EMP'+String((count||0)+1).padStart(6,'0');
+  const { error } = await db.from('employees').insert({employee_code:code,first_name:first,last_name:last,nickname:nick,phone,home_branch_id:branch,role:'staff'});
+  if(error){showMsg('e_msg',false,'บันทึกไม่ได้: '+(error.message.includes('uq_employees_phone')?'เบอร์นี้ซ้ำกับพนักงานที่ยังทำงานอยู่':error.message));return;}
+  showMsg('e_msg',true,'✅ บันทึกพนักงาน "'+first+'" (รหัส '+code+') แล้ว');
+  ['e_first','e_last','e_nick','e_phone'].forEach(i=>document.getElementById(i).value='');
+  await loadEmployees();
+}
+init();
+</script>
+</body>
+</html>
