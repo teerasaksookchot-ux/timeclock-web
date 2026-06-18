@@ -58,8 +58,8 @@
 
 <!-- ============ ⬇️ ใส่ค่า 2 บรรทัดนี้ก่อนใช้งาน (ดูคู่มือ) ============ -->
 <script>
-  const SUPABASE_URL = "https://vafjdsizrfevziwhtktr.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhZmpkc2l6cmZldnppd2h0a3RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1OTY2ODQsImV4cCI6MjA5NzE3MjY4NH0.F8rhOVF1ZjE4i-yvmuOLh9DJt0YundEmxwlJMoshY24";
+  const SUPABASE_URL = "ใส่_PROJECT_URL_ที่นี่";
+  const SUPABASE_ANON_KEY = "ใส่_ANON_KEY_ที่นี่";
 </script>
 <!-- ================================================================ -->
 
@@ -362,12 +362,16 @@ async function manageAuth(employee_id, action){
   const el=document.getElementById('auth_result');
   el.innerHTML='<span style="color:#8C8479">กำลังดำเนินการ…</span>';
   try{
-    const { data, error } = await db.functions.invoke('manage-staff-auth', { body:{ action, employee_id } });
-    if(error){
-      let msg = error.message || 'เรียกใช้ไม่สำเร็จ';
-      try{ const ctx = await error.context.json(); if(ctx && ctx.error) msg = ctx.error; }catch(_){}
-      el.innerHTML='<span style="color:#C2391F">ไม่สำเร็จ: '+msg+'</span>'; return;
-    }
+    let { data:{ session } } = await db.auth.getSession();
+    if(!session){ const r = await db.auth.refreshSession(); session = r.data ? r.data.session : null; }
+    if(!session || !session.access_token){ el.innerHTML='<span style="color:#C2391F">เซสชันหมดอายุ — กรุณากด "ออกจากระบบ" แล้วเข้าใหม่ แล้วลองอีกครั้ง</span>'; return; }
+    const res = await fetch(SUPABASE_URL+'/functions/v1/manage-staff-auth', {
+      method:'POST',
+      headers:{ 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json' },
+      body: JSON.stringify({ action, employee_id })
+    });
+    const data = await res.json();
+    if(!res.ok){ el.innerHTML='<span style="color:#C2391F">ไม่สำเร็จ: '+(data.error||'')+'</span>'; return; }
     el.innerHTML='<div style="background:#E4F0E9;padding:12px;border-radius:10px">'+
       `<b>${action==='create'?'✅ สร้างบัญชีแล้ว':'✅ รีเซตรหัสแล้ว'}</b><br>`+
       `เบอร์เข้าระบบ: <b>${data.login_phone}</b><br>`+
