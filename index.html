@@ -30,6 +30,14 @@
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .btn{margin-top:14px;background:var(--ink);color:#fff;border:none;padding:12px 20px;border-radius:10px;font-weight:600;font-size:15px;cursor:pointer;font-family:var(--font);width:100%}
   .btn:hover{background:#000}
+  .ebtn{padding:4px 12px;border:1px solid var(--line);background:var(--paper);border-radius:7px;cursor:pointer;font-family:var(--font);font-size:12px;color:var(--tan2);font-weight:600}
+  .ebtn:hover{background:var(--tan-soft)}
+  .ebtn.del{color:var(--red);border-color:#e8c4ba}
+  .ebtn.del:hover{background:var(--red-bg)}
+  .kpis{display:flex;flex-wrap:wrap;gap:12px}
+  .kpi{flex:1;min-width:120px;background:var(--paper);border:1px solid var(--line);border-radius:13px;padding:15px 17px}
+  .kpi .n{font-weight:700;font-size:30px;color:var(--tan2)}
+  .kpi .l{font-size:12.5px;color:var(--muted);margin-top:2px}
   table{width:100%;border-collapse:collapse;margin-top:6px;font-size:13.5px}
   th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
   th{color:var(--muted);font-weight:600;font-size:12px}
@@ -79,23 +87,33 @@
   </div>
   <div class="wrap">
     <div class="tabs">
-      <div class="tab on" data-t="branches">🏪 สาขา</div>
+      <div class="tab on" data-t="dash">📊 ภาพรวม</div>
+      <div class="tab" data-t="branches">🏪 สาขา</div>
       <div class="tab" data-t="employees">👥 พนักงาน</div>
+      <div class="tab" data-t="roles">🔑 สิทธิ์</div>
     </div>
 
-    <div class="panel on" id="p-branches">
+    <div class="panel on" id="p-dash">
+      <div class="card"><h2>ภาพรวมระบบ <button class="ebtn" style="float:right" onclick="loadDashboard()">🔄 รีเฟรช</button></h2><div class="kpis" id="dash_kpis"></div></div>
+      <div class="card"><h2>พนักงานแยกตามสาขา</h2><div id="dash_by_branch"><div class="empty">กำลังโหลด…</div></div></div>
+      <div class="card"><h2>สาขาแยกตามจังหวัด</h2><div id="dash_by_province"><div class="empty">กำลังโหลด…</div></div></div>
+    </div>
+
+    <div class="panel" id="p-branches">
       <div class="card">
         <h2>เพิ่มสาขาใหม่</h2>
         <label>ชื่อสาขา</label><input id="b_name" placeholder="เช่น ปั๊ม ปตท. ขอนแก่น 2">
         <div class="grid2">
           <div><label>ภูมิภาค</label><select id="b_region"></select></div>
-          <div><label>รัศมีเข้างาน (เมตร)</label><input id="b_radius" type="number" value="100"></div>
+          <div><label>จังหวัด</label><select id="b_province"></select></div>
         </div>
+        <label>รัศมีเข้างาน (เมตร)</label><input id="b_radius" type="number" value="100">
         <div class="grid2">
           <div><label>Latitude</label><input id="b_lat" placeholder="16.4419"></div>
           <div><label>Longitude</label><input id="b_lng" placeholder="102.8360"></div>
         </div>
-        <button class="btn" onclick="addBranch()">บันทึกสาขา</button>
+        <button class="btn" id="b_savebtn" onclick="addBranch()">บันทึกสาขา</button>
+        <button class="btn" id="b_cancelbtn" onclick="cancelBranchEdit()" style="display:none;background:#8C8479;margin-top:8px">ยกเลิกการแก้ไข</button>
         <div id="b_msg" class="msg"></div>
       </div>
       <div class="card"><h2>รายการสาขา</h2><div id="b_list"><div class="empty">กำลังโหลด…</div></div></div>
@@ -107,16 +125,59 @@
         <div class="grid2"><div><label>ชื่อจริง</label><input id="e_first"></div><div><label>นามสกุล</label><input id="e_last"></div></div>
         <div class="grid2"><div><label>ชื่อเล่น</label><input id="e_nick"></div><div><label>เบอร์โทร</label><input id="e_phone"></div></div>
         <label>สาขาประจำ</label><select id="e_branch"></select>
-        <button class="btn" onclick="addEmployee()">บันทึกพนักงาน</button>
+        <label>สิทธิ์ (Role)</label><select id="e_role"></select>
+        <div id="e_rolehint" style="font-size:11.5px;color:#8C8479;margin-top:4px"></div>
+        <button class="btn" id="e_savebtn" onclick="addEmployee()">บันทึกพนักงาน</button>
+        <button class="btn" id="e_cancelbtn" onclick="cancelEmpEdit()" style="display:none;background:#8C8479;margin-top:8px">ยกเลิกการแก้ไข</button>
         <div id="e_msg" class="msg"></div>
       </div>
-      <div class="card"><h2>รายชื่อพนักงาน</h2><div id="e_list"><div class="empty">กำลังโหลด…</div></div></div>
+      <div class="card"><h2>เจ้าของ (Owner)</h2><div id="e_list_owner"><div class="empty">กำลังโหลด…</div></div></div>
+      <div class="card"><h2>ผู้ดูแล HR</h2><div id="e_list_hr"><div class="empty">กำลังโหลด…</div></div></div>
+      <div class="card"><h2>พนักงาน</h2><div id="e_list_staff"><div class="empty">กำลังโหลด…</div></div></div>
+    </div>
+
+    <div class="panel" id="p-roles">
+      <div class="card">
+        <h2>สิทธิ์การเข้าถึงของแต่ละ Role</h2>
+        <table>
+          <tr><th>ความสามารถ</th><th>พนักงาน</th><th>ผู้ดูแล HR</th><th>เจ้าของ</th></tr>
+          <tr><td>เข้างาน / ดูข้อมูลของตัวเอง</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td>ดู/เพิ่ม/แก้ไขพนักงานทุกคน</td><td>❌</td><td>✅</td><td>✅</td></tr>
+          <tr><td>เพิ่ม/แก้ไข/ปิดสาขา</td><td>❌</td><td>✅</td><td>✅</td></tr>
+          <tr><td>ดูภาพรวม (Dashboard) ทุกสาขา</td><td>❌</td><td>✅</td><td>✅</td></tr>
+          <tr><td>ออกไฟล์เงินเดือน (Payroll)</td><td>❌</td><td>✅</td><td>✅</td></tr>
+          <tr><td>ตั้ง Role เป็น HR / เจ้าของ</td><td>❌</td><td>❌</td><td>✅ เท่านั้น</td></tr>
+          <tr><td>อนุมัติเคสค้างเกิน 60 วัน</td><td>❌</td><td>❌</td><td>✅</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h2>วิธีเปลี่ยน Role</h2>
+        <p style="font-size:13.5px;color:var(--ink2)">ไปที่แท็บ <b>"พนักงาน"</b> → กด <b>"แก้ไข"</b> ที่คนนั้น → เลือก <b>สิทธิ์ (Role)</b> → บันทึก<br><br>
+        🔒 <b>เฉพาะเจ้าของ (Owner)</b> เท่านั้นที่ตั้ง Role เป็น HR หรือ Owner ได้ · ผู้ดูแล HR ตั้งได้แค่ "พนักงาน"</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="detail_modal" style="display:none;position:fixed;inset:0;background:rgba(28,26,23,.45);align-items:center;justify-content:center;z-index:20;padding:20px">
+    <div style="background:#fff;border-radius:16px;max-width:420px;width:100%;padding:24px;box-shadow:0 16px 50px rgba(0,0,0,.25);max-height:85vh;overflow:auto">
+      <h2 style="margin-bottom:12px">ข้อมูลพนักงาน</h2>
+      <div id="detail_body" style="font-size:14px;line-height:1.9"></div>
+      <button class="btn" onclick="closeDetail()" style="margin-top:16px">ปิด</button>
     </div>
   </div>
 </div>
 
 <script>
-let db=null;
+let db=null, branchesData=[], editBranchId=null, employeesData=[], editEmpId=null, currentRole='staff', currentEmpId=null;
+function roleLabel(r){return {owner:'เจ้าของ (Owner)',hr:'ผู้ดูแล HR',staff:'พนักงาน (Staff)'}[r]||r;}
+function fillRoleOptions(curr){
+  const sel=document.getElementById('e_role');
+  let opts = currentRole==='owner' ? ['staff','hr','owner'] : ['staff'];
+  if(curr && !opts.includes(curr)) opts=[curr,...opts];      // ให้เห็น role เดิมตอนแก้ไข
+  sel.innerHTML=''; opts.forEach(r=>sel.innerHTML+=`<option value="${r}">${roleLabel(r)}</option>`);
+  document.getElementById('e_rolehint').textContent =
+    currentRole==='owner' ? 'คุณเป็นเจ้าของ — ตั้ง Role ได้ทุกระดับ' : 'ผู้ดูแล HR ตั้งได้เฉพาะ "พนักงาน" (เปลี่ยนเป็น HR/เจ้าของ ต้องให้เจ้าของทำ)';
+}
 function lmsg(ok,t){const m=document.getElementById('l_msg');m.className='msg '+(ok?'ok':'err');m.textContent=t;}
 function showMsg(id,ok,t){const m=document.getElementById(id);m.className='msg '+(ok?'ok':'err');m.textContent=t;}
 
@@ -124,6 +185,7 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));
   t.classList.add('on');document.getElementById('p-'+t.dataset.t).classList.add('on');
+  if(t.dataset.t==='dash') loadDashboard();
 });
 
 async function init(){
@@ -146,23 +208,59 @@ async function doLogin(){
 
 async function afterLogin(){
   const { data:{ user } } = await db.auth.getUser();
-  const { data: emp, error } = await db.from('employees').select('role,first_name').eq('auth_user_id',user.id).maybeSingle();
+  const { data: emp, error } = await db.from('employees').select('role,first_name,employee_id').eq('auth_user_id',user.id).maybeSingle();
   if(error){ lmsg(false,'ตรวจสิทธิ์ไม่ได้: '+error.message); return; }
   if(!emp || !['hr','owner'].includes(emp.role)){
     lmsg(false,'บัญชีนี้ยังไม่มีสิทธิ์ผู้ดูแล (ต้องผูกเป็น HR/Owner ก่อน — ดูคู่มือ Phase B)');
     await db.auth.signOut(); return;
   }
+  currentRole=emp.role; currentEmpId=emp.employee_id; fillRoleOptions();
   document.getElementById('login').style.display='none';
   document.getElementById('appshell').style.display='block';
-  document.getElementById('whoami').textContent='สวัสดี, '+(emp.first_name||user.email);
-  await loadRegions(); await loadBranches(); await loadEmployees();
+  document.getElementById('whoami').textContent='สวัสดี, '+(emp.first_name||user.email)+' · '+roleLabel(emp.role);
+  await loadRegions(); await loadBranches(); await loadEmployees(); loadDashboard();
+}
+async function loadDashboard(){
+  const staff = employeesData.filter(e=>e.role==='staff');   // แสดงแค่พนักงาน (ไม่รวมเจ้าของ/HR)
+  const provinces=[...new Set(branchesData.map(b=>b.province).filter(Boolean))];
+  const regions=[...new Set(branchesData.map(b=>b.regions?b.regions.name:null).filter(Boolean))];
+  document.getElementById('dash_kpis').innerHTML=
+    `<div class="kpi"><div class="n">${branchesData.length}</div><div class="l">สาขา</div></div>`+
+    `<div class="kpi"><div class="n">${staff.length}</div><div class="l">พนักงาน</div></div>`+
+    `<div class="kpi"><div class="n">${provinces.length}</div><div class="l">จังหวัด</div></div>`+
+    `<div class="kpi"><div class="n">${regions.length}</div><div class="l">ภูมิภาค</div></div>`;
+  // แยกตามสาขา (เฉพาะพนักงาน)
+  const byBranch={};
+  staff.forEach(e=>{const n=e.branches?e.branches.name:'(ยังไม่ระบุสาขา)';byBranch[n]=(byBranch[n]||0)+1;});
+  let h1='<table><tr><th>สาขา</th><th>จำนวนพนักงาน</th></tr>';
+  Object.keys(byBranch).sort().forEach(k=>h1+=`<tr><td>${k}</td><td>${byBranch[k]} คน</td></tr>`);
+  document.getElementById('dash_by_branch').innerHTML = staff.length? h1+'</table>' : '<div class="empty">ยังไม่มีพนักงาน</div>';
+  // แยกตามจังหวัด
+  const byProv={};
+  branchesData.forEach(b=>{const p=b.province||'(ยังไม่ระบุจังหวัด)';byProv[p]=(byProv[p]||0)+1;});
+  let h2='<table><tr><th>จังหวัด</th><th>จำนวนสาขา</th></tr>';
+  Object.keys(byProv).sort().forEach(k=>h2+=`<tr><td>${k}</td><td>${byProv[k]} สาขา</td></tr>`);
+  document.getElementById('dash_by_province').innerHTML = branchesData.length? h2+'</table>' : '<div class="empty">ยังไม่มีสาขา</div>';
 }
 async function doLogout(){ await db.auth.signOut(); location.reload(); }
 
+const PROVINCES = {
+  'ภาคอีสาน': ['กาฬสินธุ์','ขอนแก่น','ชัยภูมิ','นครพนม','นครราชสีมา','บึงกาฬ','บุรีรัมย์','มหาสารคาม','มุกดาหาร','ยโสธร','ร้อยเอ็ด','เลย','ศรีสะเกษ','สกลนคร','สุรินทร์','หนองคาย','หนองบัวลำภู','อุดรธานี','อุบลราชธานี','อำนาจเจริญ'],
+  'ภาคเหนือ': ['เชียงราย','เชียงใหม่','น่าน','พะเยา','แพร่','แม่ฮ่องสอน','ลำปาง','ลำพูน','อุตรดิตถ์','ตาก','สุโขทัย','พิษณุโลก','เพชรบูรณ์','กำแพงเพชร','นครสวรรค์','อุทัยธานี','พิจิตร']
+};
+function fillProvinces(){
+  const regSel=document.getElementById('b_region');
+  const regName=regSel.options[regSel.selectedIndex]?.text||'';
+  const p=document.getElementById('b_province');
+  const list=PROVINCES[regName]||[];
+  p.innerHTML = list.length ? '<option value="">— เลือกจังหวัด —</option>' : '<option value="">— เลือกภูมิภาคก่อน —</option>';
+  list.forEach(n=>p.innerHTML+=`<option value="${n}">${n}</option>`);
+}
 async function loadRegions(){
   const { data } = await db.from('regions').select('*').eq('is_active',true).order('name');
   const s=document.getElementById('b_region'); s.innerHTML='<option value="">— เลือกภูมิภาค —</option>';
   (data||[]).forEach(r=>s.innerHTML+=`<option value="${r.region_id}">${r.name}</option>`);
+  s.onchange=fillProvinces; fillProvinces();
 }
 async function loadBranches(){
   const { data, error } = await db.from('branches').select('*, regions(name)').eq('status','active').order('name');
@@ -170,8 +268,9 @@ async function loadBranches(){
   sel.innerHTML='<option value="">— เลือกสาขา —</option>';
   if(error){box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>';return;}
   if(!data||!data.length){box.innerHTML='<div class="empty">ยังไม่มีสาขา</div>';return;}
-  let h='<table><tr><th>ชื่อสาขา</th><th>ภูมิภาค</th><th>รัศมี</th></tr>';
-  data.forEach(b=>{h+=`<tr><td>${b.name}</td><td>${b.regions?b.regions.name:'-'}</td><td>${b.geofence_radius} ม.</td></tr>`;
+  branchesData=data;
+  let h='<table><tr><th>ชื่อสาขา</th><th>จังหวัด</th><th>ภูมิภาค</th><th>รัศมี</th><th></th></tr>';
+  data.forEach(b=>{h+=`<tr><td>${b.name}</td><td>${b.province||'-'}</td><td>${b.regions?b.regions.name:'-'}</td><td>${b.geofence_radius} ม.</td><td><button class="ebtn" onclick="showBranchDetail('${b.branch_id}')">ดูข้อมูล</button> <button class="ebtn" onclick="editBranch('${b.branch_id}')">แก้ไข</button> <button class="ebtn del" onclick="deactivateBranch('${b.branch_id}')">ปิดใช้งาน</button></td></tr>`;
     sel.innerHTML+=`<option value="${b.branch_id}">${b.name}</option>`;});
   box.innerHTML=h+'</table>';
 }
@@ -180,34 +279,182 @@ async function addBranch(){
   const region=document.getElementById('b_region').value||null;
   const lat=parseFloat(document.getElementById('b_lat').value), lng=parseFloat(document.getElementById('b_lng').value);
   const radius=parseInt(document.getElementById('b_radius').value)||100;
+  const province=document.getElementById('b_province').value||null;
   if(!name||isNaN(lat)||isNaN(lng)){showMsg('b_msg',false,'กรุณากรอกชื่อ + ละติจูด + ลองจิจูด');return;}
-  const { error } = await db.from('branches').insert({name,region_id:region,latitude:lat,longitude:lng,geofence_radius:radius});
+  const payload={name,region_id:region,province,latitude:lat,longitude:lng,geofence_radius:radius};
+  let error;
+  if(editBranchId){ payload.updated_at=new Date().toISOString(); payload.updated_by=currentEmpId; ({ error } = await db.from('branches').update(payload).eq('branch_id',editBranchId)); }
+  else { payload.created_by=currentEmpId; payload.updated_by=currentEmpId; ({ error } = await db.from('branches').insert(payload)); }
   if(error){showMsg('b_msg',false,'บันทึกไม่ได้: '+error.message);return;}
-  showMsg('b_msg',true,'✅ บันทึกสาขา "'+name+'" แล้ว');
-  document.getElementById('b_name').value='';document.getElementById('b_lat').value='';document.getElementById('b_lng').value='';
-  await loadBranches();
+  showMsg('b_msg',true, editBranchId ? '✅ แก้ไขสาขา "'+name+'" แล้ว' : '✅ บันทึกสาขา "'+name+'" แล้ว');
+  cancelBranchEdit();
+  await loadBranches(); loadDashboard();
+}
+function editBranch(id){
+  const b=branchesData.find(x=>x.branch_id===id); if(!b)return;
+  editBranchId=id;
+  document.getElementById('b_name').value=b.name||'';
+  document.getElementById('b_region').value=b.region_id||'';
+  fillProvinces();
+  document.getElementById('b_province').value=b.province||'';
+  document.getElementById('b_radius').value=b.geofence_radius||100;
+  document.getElementById('b_lat').value=b.latitude||'';
+  document.getElementById('b_lng').value=b.longitude||'';
+  document.getElementById('b_savebtn').textContent='บันทึกการแก้ไข';
+  document.getElementById('b_cancelbtn').style.display='block';
+  document.getElementById('b_name').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function cancelBranchEdit(){
+  editBranchId=null;
+  ['b_name','b_lat','b_lng'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('b_province').value=''; document.getElementById('b_radius').value=100;
+  document.getElementById('b_savebtn').textContent='บันทึกสาขา';
+  document.getElementById('b_cancelbtn').style.display='none';
 }
 async function loadEmployees(){
-  const { data, error } = await db.from('employees').select('*, branches:home_branch_id(name)').order('employee_code');
-  const box=document.getElementById('e_list');
-  if(error){box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>';return;}
-  if(!data||!data.length){box.innerHTML='<div class="empty">ยังไม่มีพนักงาน</div>';return;}
-  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เบอร์</th><th>สาขา</th></tr>';
-  data.forEach(e=>h+=`<tr><td>${e.employee_code}</td><td>${e.first_name} ${e.last_name} (${e.nickname||''})</td><td>${e.phone}</td><td>${e.branches?e.branches.name:'-'}</td></tr>`);
+  const { data, error } = await db.from('employees').select('*, branches:home_branch_id(name)').eq('status','active').order('employee_code');
+  if(error){ ['e_list_owner','e_list_hr','e_list_staff'].forEach(id=>document.getElementById(id).innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'); return; }
+  employeesData=data||[];
+  renderRoleList('owner','e_list_owner');
+  renderRoleList('hr','e_list_hr');
+  renderRoleList('staff','e_list_staff');
+}
+function empRow(e){
+  return `<tr><td>${e.employee_code}</td><td>${e.first_name} ${e.last_name} (${e.nickname||''})</td><td>${e.phone}</td><td>${e.branches?e.branches.name:'-'}</td><td>`+
+    `<button class="ebtn" onclick="showDetail('${e.employee_id}')">ดูข้อมูล</button> `+
+    `<button class="ebtn" onclick="editEmployee('${e.employee_id}')">แก้ไข</button> `+
+    `<button class="ebtn del" onclick="deactivateEmployee('${e.employee_id}')">ปิดใช้งาน</button></td></tr>`;
+}
+function renderRoleList(role, elId){
+  const list=employeesData.filter(e=>e.role===role);
+  const box=document.getElementById(elId);
+  if(!list.length){box.innerHTML='<div class="empty">— ไม่มี —</div>';return;}
+  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เบอร์</th><th>สาขา</th><th></th></tr>';
+  list.forEach(e=>h+=empRow(e));
   box.innerHTML=h+'</table>';
 }
+function whoName(uid){ if(!uid)return '—'; const p=employeesData.find(x=>x.employee_id===uid); return p?`${p.first_name} (${p.nickname||''})`:'(บัญชีที่ไม่อยู่ในรายชื่อ)'; }
+function fmtTime(t){ return t? new Date(t).toLocaleString('th-TH') : '—'; }
+function showDetail(id){
+  const e=employeesData.find(x=>x.employee_id===id); if(!e)return;
+  let authSection;
+  if(e.auth_user_id){
+    authSection = `<p style="color:#1E7D52"><b>✓ มีบัญชี login แล้ว</b> (เข้าด้วยเบอร์ ${e.phone})</p>`+
+      `<button class="btn" style="background:#B26A2B" onclick="manageAuth('${e.employee_id}','reset')">🔄 รีเซตรหัสผ่าน</button>`;
+  } else {
+    authSection = `<p style="color:#8C8479">ยังไม่มีบัญชี login สำหรับเข้าแอป</p>`+
+      `<button class="btn" onclick="manageAuth('${e.employee_id}','create')">➕ สร้างบัญชี login</button>`;
+  }
+  document.getElementById('detail_body').innerHTML=
+    `<b>ชื่อ:</b> ${e.first_name} ${e.last_name} (${e.nickname||''})<br>`+
+    `<b>รหัส:</b> ${e.employee_code} · <b>สิทธิ์:</b> ${roleLabel(e.role)}<br>`+
+    `<hr style="border:none;border-top:1px solid #E4DDD2;margin:8px 0">`+
+    `<b>สร้างเมื่อ:</b> ${fmtTime(e.created_at)}<br>`+
+    `<b>ผู้สร้าง:</b> ${whoName(e.created_by)}<br>`+
+    `<b>แก้ไขล่าสุด:</b> ${fmtTime(e.updated_at)}<br>`+
+    `<b>ผู้แก้ไข:</b> ${whoName(e.updated_by)}`+
+    `<hr style="border:none;border-top:1px solid #E4DDD2;margin:8px 0">`+
+    `<b>บัญชีเข้าแอป (login)</b><br>`+ authSection +
+    `<div id="auth_result" style="margin-top:10px"></div>`;
+  document.getElementById('detail_modal').style.display='flex';
+}
+async function manageAuth(employee_id, action){
+  const el=document.getElementById('auth_result');
+  el.innerHTML='<span style="color:#8C8479">กำลังดำเนินการ…</span>';
+  try{
+    const { data, error } = await db.functions.invoke('manage-staff-auth', { body:{ action, employee_id } });
+    if(error){
+      let msg = error.message || 'เรียกใช้ไม่สำเร็จ';
+      try{ const ctx = await error.context.json(); if(ctx && ctx.error) msg = ctx.error; }catch(_){}
+      el.innerHTML='<span style="color:#C2391F">ไม่สำเร็จ: '+msg+'</span>'; return;
+    }
+    el.innerHTML='<div style="background:#E4F0E9;padding:12px;border-radius:10px">'+
+      `<b>${action==='create'?'✅ สร้างบัญชีแล้ว':'✅ รีเซตรหัสแล้ว'}</b><br>`+
+      `เบอร์เข้าระบบ: <b>${data.login_phone}</b><br>`+
+      `รหัสผ่านชั่วคราว: <b style="font-size:18px;color:#9A5A22">${data.temp_password}</b><br>`+
+      '<span style="font-size:12px;color:#3A352E">แจ้งรหัสนี้ให้พนักงาน → ใช้เข้าครั้งแรก → ระบบจะให้เปลี่ยนรหัสเอง</span></div>';
+    await loadEmployees();
+  }catch(err){ el.innerHTML='<span style="color:#C2391F">เกิดข้อผิดพลาด: '+err+'</span>'; }
+}
+function showBranchDetail(id){
+  const b=branchesData.find(x=>x.branch_id===id); if(!b)return;
+  document.getElementById('detail_body').innerHTML=
+    `<b>ชื่อสาขา:</b> ${b.name}<br>`+
+    `<b>จังหวัด:</b> ${b.province||'-'} · <b>ภูมิภาค:</b> ${b.regions?b.regions.name:'-'}<br>`+
+    `<b>รัศมีเข้างาน:</b> ${b.geofence_radius} เมตร<br>`+
+    `<hr style="border:none;border-top:1px solid #E4DDD2;margin:8px 0">`+
+    `<b>สร้างเมื่อ:</b> ${fmtTime(b.created_at)}<br>`+
+    `<b>ผู้สร้าง:</b> ${whoName(b.created_by)}<br>`+
+    `<b>แก้ไขล่าสุด:</b> ${fmtTime(b.updated_at)}<br>`+
+    `<b>ผู้แก้ไข:</b> ${whoName(b.updated_by)}`;
+  document.getElementById('detail_modal').style.display='flex';
+}
+function closeDetail(){ document.getElementById('detail_modal').style.display='none'; }
 async function addEmployee(){
   const first=document.getElementById('e_first').value.trim(), last=document.getElementById('e_last').value.trim();
   const nick=document.getElementById('e_nick').value.trim(), phone=document.getElementById('e_phone').value.trim();
   const branch=document.getElementById('e_branch').value||null;
+  const role=document.getElementById('e_role').value||'staff';
   if(!first||!last||!phone){showMsg('e_msg',false,'กรุณากรอก ชื่อ นามสกุล และเบอร์โทร');return;}
-  const { count } = await db.from('employees').select('*',{count:'exact',head:true});
-  const code='EMP'+String((count||0)+1).padStart(6,'0');
-  const { error } = await db.from('employees').insert({employee_code:code,first_name:first,last_name:last,nickname:nick,phone,home_branch_id:branch,role:'staff'});
-  if(error){showMsg('e_msg',false,'บันทึกไม่ได้: '+(error.message.includes('uq_employees_phone')?'เบอร์นี้ซ้ำกับพนักงานที่ยังทำงานอยู่':error.message));return;}
-  showMsg('e_msg',true,'✅ บันทึกพนักงาน "'+first+'" (รหัส '+code+') แล้ว');
+  if(editEmpId && editEmpId===currentEmpId){
+    const me=employeesData.find(x=>x.employee_id===currentEmpId);
+    if(me && me.role!==role){showMsg('e_msg',false,'ห้ามเปลี่ยน Role ของตัวเอง (ให้เจ้าของอีกคนเปลี่ยนให้)');return;}
+  }
+  let error, code;
+  if(editEmpId){
+    ({ error } = await db.from('employees').update({first_name:first,last_name:last,nickname:nick,phone,home_branch_id:branch,role,updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('employee_id',editEmpId));
+  } else {
+    const { count } = await db.from('employees').select('*',{count:'exact',head:true});
+    code='EMP'+String((count||0)+1).padStart(6,'0');
+    ({ error } = await db.from('employees').insert({employee_code:code,first_name:first,last_name:last,nickname:nick,phone,home_branch_id:branch,role,created_by:currentEmpId,updated_by:currentEmpId}));
+  }
+  if(error){
+    let m=error.message;
+    if(/uq_employees_phone/.test(m)) m='เบอร์นี้ซ้ำกับพนักงานที่ยังทำงานอยู่';
+    else if(/row-level security|policy|violates/i.test(m)) m='เฉพาะเจ้าของ (Owner) เท่านั้นที่ตั้ง Role เป็น HR/เจ้าของได้';
+    showMsg('e_msg',false,'บันทึกไม่ได้: '+m);return;
+  }
+  showMsg('e_msg',true, editEmpId ? '✅ แก้ไขพนักงาน "'+first+'" แล้ว' : '✅ บันทึกพนักงาน "'+first+'" (รหัส '+code+') แล้ว');
+  cancelEmpEdit();
+  await loadEmployees(); loadDashboard();
+}
+function editEmployee(id){
+  const e=employeesData.find(x=>x.employee_id===id); if(!e)return;
+  editEmpId=id;
+  document.getElementById('e_first').value=e.first_name||'';
+  document.getElementById('e_last').value=e.last_name||'';
+  document.getElementById('e_nick').value=e.nickname||'';
+  document.getElementById('e_phone').value=e.phone||'';
+  document.getElementById('e_branch').value=e.home_branch_id||'';
+  fillRoleOptions(e.role);
+  document.getElementById('e_role').value=e.role||'staff';
+  document.getElementById('e_savebtn').textContent='บันทึกการแก้ไข';
+  document.getElementById('e_cancelbtn').style.display='block';
+  document.getElementById('e_first').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function cancelEmpEdit(){
+  editEmpId=null;
   ['e_first','e_last','e_nick','e_phone'].forEach(i=>document.getElementById(i).value='');
-  await loadEmployees();
+  document.getElementById('e_branch').value='';
+  fillRoleOptions();
+  document.getElementById('e_savebtn').textContent='บันทึกพนักงาน';
+  document.getElementById('e_cancelbtn').style.display='none';
+}
+async function deactivateBranch(id){
+  const b=branchesData.find(x=>x.branch_id===id); if(!b)return;
+  if(!confirm('ปิดใช้งานสาขา "'+b.name+'" ?\n(ข้อมูลไม่ถูกลบจริง ยังกู้คืนได้ แต่จะไม่แสดงในรายการ)'))return;
+  const { error } = await db.from('branches').update({status:'deactivated',updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('branch_id',id);
+  if(error){showMsg('b_msg',false,'ปิดใช้งานไม่ได้: '+error.message);return;}
+  showMsg('b_msg',true,'✅ ปิดใช้งานสาขา "'+b.name+'" แล้ว');
+  await loadBranches(); loadDashboard();
+}
+async function deactivateEmployee(id){
+  const e=employeesData.find(x=>x.employee_id===id); if(!e)return;
+  if(!confirm('ปิดใช้งานพนักงาน "'+e.first_name+' '+e.last_name+'" ?\n(เช่น ลาออก — ข้อมูลไม่ถูกลบจริง)'))return;
+  const { error } = await db.from('employees').update({status:'inactive',updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('employee_id',id);
+  if(error){showMsg('e_msg',false,'ปิดใช้งานไม่ได้: '+error.message);return;}
+  showMsg('e_msg',true,'✅ ปิดใช้งานพนักงาน "'+e.first_name+'" แล้ว');
+  await loadEmployees(); loadDashboard();
 }
 init();
 </script>
