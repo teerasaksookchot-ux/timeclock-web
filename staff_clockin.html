@@ -390,13 +390,13 @@ async function processClockIn(blob, gps){
   }
 
   // 2) อัปรูปเซลฟี่ไป Storage (โฟลเดอร์ของตัวเอง)
-  let selfiePath=null;
+  let selfiePath=null, selfieErr=null;
   try{
     const path = authUser.id + '/' + bkkDate() + '.jpg';
     const { error:uerr } = await db.storage.from('selfies')
       .upload(path, blob, { contentType:'image/jpeg', upsert:true });
-    if(!uerr) selfiePath = path;
-  }catch(e){ /* ถ้าอัปรูปไม่ได้ ยังเข้างานต่อได้ (รูปคือหลักฐานเสริม) */ }
+    if(uerr){ selfieErr = uerr.message || String(uerr); } else { selfiePath = path; }
+  }catch(e){ selfieErr = String(e); }
 
   // 3) บันทึกเข้างานผ่าน fn_clock_in (เวลาเซิร์ฟเวอร์)
   const { data:rec, error } = await db.rpc('fn_clock_in', {
@@ -429,6 +429,7 @@ async function processClockIn(blob, gps){
     ['สาขา', br? br.name : '-'],
     ['มาสาย', row.late_minutes>0 ? (row.late_minutes+' นาที') : 'ตรงเวลา']
   ];
+  rows.push(['รูปเซลฟี่', selfieErr ? ('อัปไม่สำเร็จ: '+selfieErr) : 'บันทึกแล้ว']);
   if(passed){
     showResult('ok','✅','เข้างานสำเร็จ','บันทึกเรียบร้อยแล้ว', rows);
   }else{
