@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>ระบบลงเวลา · เข้างานพนักงาน</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--ink:#1C1A17;--ink2:#3A352E;--muted:#8C8479;--tan:#B26A2B;--tan2:#9A5A22;
+    --tan-soft:#EBDCC8;--paper:#F2EEE8;--card:#FFF;--line:#E4DDD2;
+    --green:#1E7D52;--green-bg:#E4F0E9;--red:#C2391F;--red-bg:#F6E0DB;
+    --amber:#9A6A00;--amber-bg:#FBF1D6;
+    --font:'IBM Plex Sans Thai','Sarabun',-apple-system,'Segoe UI',sans-serif;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font);background:var(--paper);color:var(--ink);line-height:1.55;
+    min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:18px}
+  .app{max-width:440px;width:100%}
+  .screen{display:none}
+  .screen.on{display:block}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:26px;box-shadow:0 10px 34px rgba(28,26,23,.10);margin-bottom:16px}
+  .mk{width:52px;height:52px;border-radius:14px;background:var(--ink);color:var(--tan);
+    display:grid;place-items:center;font-size:26px;margin-bottom:14px}
+  h1{font-size:21px;margin-bottom:4px}
+  h2{font-size:17px;margin-bottom:10px}
+  p.sub{color:var(--muted);font-size:13.5px;margin-bottom:16px}
+  label{display:block;font-size:12.5px;color:var(--ink2);font-weight:500;margin:12px 0 5px}
+  input,select{width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:10px;
+    font-family:var(--font);font-size:15px;background:var(--paper)}
+  input:focus,select:focus{outline:2px solid var(--tan);outline-offset:1px}
+  .btn{margin-top:18px;background:var(--ink);color:#fff;border:none;padding:14px 20px;
+    border-radius:12px;font-weight:700;font-size:16px;cursor:pointer;font-family:var(--font);width:100%}
+  .btn:hover{background:#000}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.ghost{background:var(--paper);color:var(--ink2);border:1px solid var(--line)}
+  .btn.big{padding:20px;font-size:19px;background:var(--tan);}
+  .btn.big:hover{background:var(--tan2)}
+  .msg{padding:12px 14px;border-radius:10px;font-size:13.5px;margin-top:14px;display:none}
+  .msg.ok{background:var(--green-bg);color:var(--green);display:block}
+  .msg.err{background:var(--red-bg);color:var(--red);display:block}
+  .msg.warn{background:var(--amber-bg);color:var(--amber);display:block}
+  .config{background:#FFF6D6;border:1px solid #E0C24A;border-radius:10px;padding:14px;
+    font-size:13px;color:#5a4a00;margin-top:14px;display:none}
+  .hi{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .hi .who{font-size:14px;font-weight:600}
+  .hi .lo{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;
+    font-family:var(--font);text-decoration:underline}
+  .clock{text-align:center;padding:8px 0 4px}
+  .clock .t{font-size:40px;font-weight:800;letter-spacing:1px;color:var(--ink)}
+  .clock .d{font-size:14px;color:var(--muted);margin-top:2px}
+  .branch{background:var(--paper);border:1px solid var(--line);border-radius:12px;
+    padding:13px 15px;margin:14px 0;font-size:14px}
+  .branch b{color:var(--tan2)}
+  video,canvas{width:100%;border-radius:14px;background:#000;aspect-ratio:3/4;object-fit:cover}
+  .consent-item{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;
+    color:var(--ink2);margin:10px 0}
+  .consent-item .ic{font-size:18px;line-height:1.2}
+  .result-ic{font-size:60px;text-align:center;margin:6px 0}
+  .rbig{text-align:center;font-size:22px;font-weight:800;margin-bottom:4px}
+  .rsub{text-align:center;color:var(--muted);font-size:14px;margin-bottom:8px}
+  .rrow{display:flex;justify-content:space-between;font-size:14px;padding:8px 0;
+    border-bottom:1px solid var(--line)}
+  .rrow b{color:var(--ink)}
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-top-color:transparent;
+    border-radius:50%;animation:sp .7s linear infinite;vertical-align:-3px;margin-right:6px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- ============ ⬇️ ใส่ค่า 2 บรรทัดนี้ก่อนใช้งาน (ค่าเดียวกับเว็บ HR) ============ -->
+<script>
+  const SUPABASE_URL = "ใส่_PROJECT_URL_ที่นี่";
+  const SUPABASE_ANON_KEY = "ใส่_ANON_KEY_ที่นี่";
+</script>
+<!-- ============================================================================ -->
+
+<div class="app">
+
+  <!-- 1) LOGIN -->
+  <div class="screen on" id="s-login">
+    <div class="card">
+      <div class="mk">⏱️</div>
+      <h1>เข้างาน — พนักงาน</h1>
+      <p class="sub">กรอกเบอร์โทรและรหัสผ่านที่ได้รับจาก HR</p>
+      <label>เบอร์โทร</label>
+      <input id="l_phone" type="tel" inputmode="numeric" placeholder="08xxxxxxxx">
+      <label>รหัสผ่าน</label>
+      <input id="l_pw" type="password" placeholder="••••••••">
+      <button class="btn" id="l_btn" onclick="doLogin()">เข้าสู่ระบบ</button>
+      <div id="l_msg" class="msg"></div>
+      <div id="configMsg" class="config">⚠️ ยังไม่ได้ตั้งค่าการเชื่อมต่อ — เปิดไฟล์นี้ด้วยโปรแกรมแก้ข้อความ แล้วใส่ Project URL และ anon key (ดูคู่มือ)</div>
+    </div>
+  </div>
+
+  <!-- 2) เปลี่ยนรหัสครั้งแรก -->
+  <div class="screen" id="s-changepw">
+    <div class="card">
+      <div class="mk">🔑</div>
+      <h1>ตั้งรหัสผ่านใหม่</h1>
+      <p class="sub">เข้าครั้งแรก ต้องตั้งรหัสของคุณเองก่อนใช้งาน (อย่างน้อย 6 ตัวอักษร)</p>
+      <label>รหัสผ่านใหม่</label>
+      <input id="c_pw1" type="password" placeholder="รหัสใหม่">
+      <label>พิมพ์รหัสใหม่อีกครั้ง</label>
+      <input id="c_pw2" type="password" placeholder="พิมพ์ซ้ำให้ตรงกัน">
+      <button class="btn" id="c_btn" onclick="doChangePw()">บันทึกรหัสใหม่</button>
+      <div id="c_msg" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- 3) ยินยอม consent -->
+  <div class="screen" id="s-consent">
+    <div class="card">
+      <div class="mk">🔒</div>
+      <h1>ขออนุญาตก่อนใช้งาน</h1>
+      <p class="sub">ระบบจำเป็นต้องใช้สิ่งต่อไปนี้เพื่อยืนยันการเข้างานตามสัญญาจ้าง</p>
+      <div class="consent-item"><span class="ic">📷</span><div><b>กล้องถ่ายเซลฟี่</b> — ถ่ายรูปยืนยันตัวตนตอนกดเข้างาน</div></div>
+      <div class="consent-item"><span class="ic">📍</span><div><b>ตำแหน่งที่ตั้ง (GPS)</b> — ตรวจว่าอยู่ที่สาขาจริง</div></div>
+      <div class="consent-item"><span class="ic">🗂️</span><div><b>เก็บข้อมูลการเข้างาน</b> — เพื่อเตรียมข้อมูลเงินเดือน</div></div>
+      <button class="btn" id="cs_btn" onclick="doConsent()">ยอมรับและเริ่มใช้งาน</button>
+      <div id="cs_msg" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- 4) หน้าหลัก: กดเข้างาน -->
+  <div class="screen" id="s-home">
+    <div class="card">
+      <div class="hi">
+        <span class="who" id="h_who">—</span>
+        <button class="lo" onclick="doLogout()">ออกจากระบบ</button>
+      </div>
+      <div class="clock">
+        <div class="t" id="h_time">--:--</div>
+        <div class="d" id="h_date">—</div>
+      </div>
+      <div class="branch">🏪 สาขาประจำ: <b id="h_branch">—</b></div>
+      <div id="h_status" class="msg"></div>
+      <button class="btn big" id="h_btn" onclick="startClockIn()">📸 กดเข้างาน</button>
+    </div>
+  </div>
+
+  <!-- 4b) เลือกสาขา (กรณีอยู่ในรัศมีหลายสาขา) -->
+  <div class="screen" id="s-pick">
+    <div class="card">
+      <div class="mk">🏪</div>
+      <h1>เลือกสาขาที่เข้างาน</h1>
+      <p class="sub">คุณอยู่ในรัศมีของหลายสาขา — กรุณาเลือกสาขาที่กำลังทำงาน</p>
+      <label>สาขา</label>
+      <select id="pk_sel"></select>
+      <button class="btn" onclick="confirmPick()">ยืนยันสาขานี้</button>
+    </div>
+  </div>
+
+  <!-- 5) กล้องถ่ายเซลฟี่ -->
+  <div class="screen" id="s-camera">
+    <div class="card">
+      <h2>📸 ถ่ายเซลฟี่ยืนยันตัวตน</h2>
+      <p class="sub" id="cam_hint">หันหน้าเข้ากล้องให้ชัด แล้วกดถ่ายรูป</p>
+      <video id="cam_video" autoplay playsinline muted></video>
+      <canvas id="cam_canvas" style="display:none"></canvas>
+      <button class="btn" id="cap_btn" onclick="capture()">ถ่ายรูปและเข้างาน</button>
+      <button class="btn ghost" onclick="cancelCamera()">ยกเลิก</button>
+      <div id="cam_msg" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- 6) ผลลัพธ์ -->
+  <div class="screen" id="s-result">
+    <div class="card">
+      <div class="result-ic" id="r_ic">✅</div>
+      <div class="rbig" id="r_big">เข้างานสำเร็จ</div>
+      <div class="rsub" id="r_sub"></div>
+      <div id="r_rows" style="margin-top:10px"></div>
+      <button class="btn" onclick="backHome()">เสร็จสิ้น</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let db=null, me=null, authUser=null, branches=[], gpsPromise=null, camStream=null, pickResolve=null;
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+function msg(id,kind,t){const m=document.getElementById(id);m.className='msg '+kind;m.textContent=t;}
+function clrmsg(id){const m=document.getElementById(id);m.className='msg';m.textContent='';}
+
+// ---------- เริ่มระบบ ----------
+async function init(){
+  if(!SUPABASE_URL||SUPABASE_URL.includes('ใส่_')||SUPABASE_ANON_KEY.includes('ใส่_')){
+    document.getElementById('configMsg').style.display='block'; return;
+  }
+  db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  startClockTick();
+  const { data:{ session } } = await db.auth.getSession();
+  if(session){ await loadMe(); await route(); }
+}
+
+// ---------- นาฬิกาบนหน้าจอ ----------
+function startClockTick(){
+  const upd=()=>{
+    const now=new Date();
+    document.getElementById('h_time').textContent =
+      now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
+    document.getElementById('h_date').textContent =
+      now.toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Bangkok'});
+  };
+  upd(); setInterval(upd,1000*15);
+}
+function bkkDate(){ return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'}); } // YYYY-MM-DD
+
+// ---------- Login (เบอร์ → อีเมลภายใน) ----------
+async function doLogin(){
+  const phone=document.getElementById('l_phone').value.trim();
+  const pw=document.getElementById('l_pw').value;
+  if(!db){ msg('l_msg','err','ยังไม่ได้ตั้งค่าการเชื่อมต่อ'); return; }
+  if(!phone||!pw){ msg('l_msg','err','กรุณากรอกเบอร์โทรและรหัสผ่าน'); return; }
+  const btn=document.getElementById('l_btn'); btn.disabled=true; clrmsg('l_msg');
+  const email = phone + '@staff.timeclock.local';
+  const { error } = await db.auth.signInWithPassword({ email, password:pw });
+  btn.disabled=false;
+  if(error){ msg('l_msg','err','เบอร์โทรหรือรหัสผ่านไม่ถูกต้อง'); return; }
+  await loadMe(); await route();
+}
+
+async function loadMe(){
+  const { data:{ user } } = await db.auth.getUser();
+  authUser = user;
+  const { data, error } = await db.from('employees')
+    .select('employee_id,first_name,last_name,nickname,role,status,home_branch_id,must_change_password')
+    .eq('auth_user_id', user.id).maybeSingle();
+  if(error||!data){ msg('l_msg','err','ไม่พบข้อมูลพนักงาน — ติดต่อ HR'); await db.auth.signOut(); return; }
+  me = data;
+}
+
+// ---------- จัดเส้นทางหลัง login ----------
+async function route(){
+  if(!me){ show('s-login'); return; }
+  if(me.role!=='staff'){
+    msg('l_msg','warn','บัญชีนี้เป็นผู้ดูแล (HR/เจ้าของ) — กรุณาใช้เว็บแอดมิน HR');
+    await db.auth.signOut(); show('s-login'); return;
+  }
+  if(me.status!=='active'){
+    msg('l_msg','err','บัญชีนี้ถูกปิดใช้งาน — ติดต่อ HR'); await db.auth.signOut(); show('s-login'); return;
+  }
+  if(me.must_change_password){ show('s-changepw'); return; }
+  const hasConsent = await checkConsent();
+  if(!hasConsent){ show('s-consent'); return; }
+  await enterHome();
+}
+
+// ---------- เปลี่ยนรหัสครั้งแรก ----------
+async function doChangePw(){
+  const p1=document.getElementById('c_pw1').value, p2=document.getElementById('c_pw2').value;
+  if(p1.length<6){ msg('c_msg','err','รหัสใหม่ต้องยาวอย่างน้อย 6 ตัวอักษร'); return; }
+  if(p1!==p2){ msg('c_msg','err','รหัสใหม่สองช่องไม่ตรงกัน'); return; }
+  const btn=document.getElementById('c_btn'); btn.disabled=true; clrmsg('c_msg');
+  const { error } = await db.auth.updateUser({ password:p1 });
+  if(error){ btn.disabled=false; msg('c_msg','err','เปลี่ยนรหัสไม่สำเร็จ: '+error.message); return; }
+  const { error:rerr } = await db.rpc('fn_complete_first_login');
+  btn.disabled=false;
+  if(rerr){ msg('c_msg','err','บันทึกสถานะไม่สำเร็จ: '+rerr.message); return; }
+  me.must_change_password=false;
+  await route();
+}
+
+// ---------- Consent ----------
+async function checkConsent(){
+  const { data } = await db.from('consents').select('id')
+    .eq('employee_id', me.employee_id).is('withdrawn_at', null).limit(1);
+  return !!(data && data.length);
+}
+async function doConsent(){
+  const btn=document.getElementById('cs_btn'); btn.disabled=true; clrmsg('cs_msg');
+  const { error } = await db.from('consents')
+    .insert({ employee_id:me.employee_id, camera:true, face:true, gps:true });
+  btn.disabled=false;
+  if(error){ msg('cs_msg','err','บันทึกไม่สำเร็จ: '+error.message); return; }
+  await enterHome();
+}
+
+// ---------- หน้าหลัก ----------
+async function enterHome(){
+  const name = me.nickname || me.first_name || '';
+  document.getElementById('h_who').textContent = 'สวัสดี, ' + name;
+  await loadBranches();
+  const hb = branches.find(b=>b.branch_id===me.home_branch_id);
+  document.getElementById('h_branch').textContent = hb ? hb.name : '(ยังไม่ระบุสาขา)';
+  show('s-home');
+  await refreshTodayStatus();
+}
+async function loadBranches(){
+  const { data } = await db.from('branches')
+    .select('branch_id,name,latitude,longitude,geofence_radius')
+    .eq('status','active');
+  branches = data || [];
+}
+async function refreshTodayStatus(){
+  const { data } = await db.from('attendance_records')
+    .select('clock_in_time,status,late_minutes')
+    .eq('employee_id', me.employee_id).eq('work_date', bkkDate()).maybeSingle();
+  const st=document.getElementById('h_status'), btn=document.getElementById('h_btn');
+  if(data){
+    const t = new Date(data.clock_in_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
+    const lateTxt = data.late_minutes>0 ? (' · สาย '+data.late_minutes+' นาที') : '';
+    const pend = data.status==='pending' ? ' (รอ HR ยืนยัน)' : '';
+    st.className='msg ok'; st.textContent='วันนี้เข้างานแล้วเมื่อ '+t+' น.'+lateTxt+pend;
+    btn.disabled=true; btn.textContent='✅ เข้างานวันนี้แล้ว';
+  }else{
+    st.className='msg'; st.textContent='';
+    btn.disabled=false; btn.textContent='📸 กดเข้างาน';
+  }
+}
+
+// ---------- เริ่มเข้างาน: เปิดกล้อง + ยิง GPS พร้อมกัน ----------
+async function startClockIn(){
+  clrmsg('cam_msg');
+  document.getElementById('cap_btn').disabled=false;
+  document.getElementById('cap_btn').textContent='ถ่ายรูปและเข้างาน';
+  gpsPromise = getGPS();            // เริ่มจับพิกัดเบื้องหลัง
+  show('s-camera');
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user' }, audio:false });
+    document.getElementById('cam_video').srcObject = camStream;
+  }catch(e){
+    msg('cam_msg','err','เปิดกล้องไม่ได้ — กรุณาอนุญาตการใช้กล้องในเบราว์เซอร์ แล้วลองใหม่');
+    document.getElementById('cap_btn').disabled=true;
+  }
+}
+function stopCamera(){
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
+}
+function cancelCamera(){ stopCamera(); show('s-home'); }
+
+// ---------- GPS ----------
+function getGPS(){
+  return new Promise(resolve=>{
+    if(!navigator.geolocation){ resolve({ ok:false, reason:'disabled' }); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos=>resolve({ ok:true, lat:pos.coords.latitude, lng:pos.coords.longitude, acc:pos.coords.accuracy }),
+      err=>{
+        const map={1:'denied',2:'network',3:'network'};
+        resolve({ ok:false, reason: map[err.code] || 'unknown' });
+      },
+      { enableHighAccuracy:true, timeout:12000, maximumAge:0 }
+    );
+  });
+}
+function distM(lat1,lng1,lat2,lng2){
+  const R=6371000, toR=x=>x*Math.PI/180;
+  const dLat=toR(lat2-lat1), dLng=toR(lng2-lng1);
+  const a=Math.sin(dLat/2)**2 + Math.cos(toR(lat1))*Math.cos(toR(lat2))*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+
+// ---------- ถ่ายรูป → ประมวลผลเข้างาน ----------
+async function capture(){
+  if(!camStream){ msg('cam_msg','err','กล้องยังไม่พร้อม'); return; }
+  const v=document.getElementById('cam_video'), c=document.getElementById('cam_canvas');
+  c.width=v.videoWidth||480; c.height=v.videoHeight||640;
+  c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+  const blob = await new Promise(r=>c.toBlob(r,'image/jpeg',0.82));
+  stopCamera();
+  const btn=document.getElementById('cap_btn'); btn.disabled=true;
+  btn.innerHTML='<span class="spin"></span>กำลังบันทึก…';
+  msg('cam_msg','warn','กำลังตรวจตำแหน่งและบันทึกการเข้างาน…');
+  const gps = await gpsPromise;
+  await processClockIn(blob, gps);
+}
+
+async function processClockIn(blob, gps){
+  // 1) หาสาขาตามรัศมี (geofence)
+  let passed=false, failReason=null, branchId=me.home_branch_id;
+  if(gps.ok){
+    const inRange = branches
+      .filter(b=>b.latitude!=null && b.longitude!=null)
+      .map(b=>({ b, d:distM(gps.lat,gps.lng,b.latitude,b.longitude) }))
+      .filter(x=>x.d <= (x.b.geofence_radius||100))
+      .sort((a,b)=>a.d-b.d);
+    if(inRange.length===0){ passed=false; failReason='outside'; branchId=me.home_branch_id; }
+    else if(inRange.length===1){ passed=true; branchId=inRange[0].b.branch_id; }
+    else {
+      const chosen = await askBranch(inRange.map(x=>x.b));
+      passed=true; branchId=chosen;
+    }
+  }else{
+    passed=false; failReason=gps.reason; branchId=me.home_branch_id;
+  }
+
+  // 2) อัปรูปเซลฟี่ไป Storage (โฟลเดอร์ของตัวเอง)
+  let selfiePath=null;
+  try{
+    const path = authUser.id + '/' + bkkDate() + '.jpg';
+    const { error:uerr } = await db.storage.from('selfies')
+      .upload(path, blob, { contentType:'image/jpeg', upsert:true });
+    if(!uerr) selfiePath = path;
+  }catch(e){ /* ถ้าอัปรูปไม่ได้ ยังเข้างานต่อได้ (รูปคือหลักฐานเสริม) */ }
+
+  // 3) บันทึกเข้างานผ่าน fn_clock_in (เวลาเซิร์ฟเวอร์)
+  const { data:rec, error } = await db.rpc('fn_clock_in', {
+    p_employee: me.employee_id, p_working_branch: branchId,
+    p_gps_passed: passed, p_gps_fail: failReason, p_selfie_path: selfiePath
+  });
+  if(error){
+    if((error.code==='23505') || /duplicate|unique/i.test(error.message||'')){
+      showResult('warn','📌','วันนี้เข้างานไปแล้ว','ระบบบันทึกได้วันละครั้ง',[]);
+    }else{
+      msg('cam_msg','err','บันทึกไม่สำเร็จ: '+error.message);
+      const b=document.getElementById('cap_btn'); b.disabled=false; b.textContent='ลองอีกครั้ง';
+    }
+    return;
+  }
+  const row = Array.isArray(rec) ? rec[0] : rec;
+
+  // 4) เก็บ log พิกัด GPS
+  await db.from('gps_logs').insert({
+    attendance_id: row.id,
+    latitude: gps.ok? gps.lat : null, longitude: gps.ok? gps.lng : null,
+    accuracy: gps.ok? gps.acc : null, passed, fail_reason: failReason
+  });
+
+  // 5) แสดงผล
+  const t=new Date(row.clock_in_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
+  const br=branches.find(b=>b.branch_id===branchId);
+  const rows=[
+    ['เวลาเข้างาน', t+' น.'],
+    ['สาขา', br? br.name : '-'],
+    ['มาสาย', row.late_minutes>0 ? (row.late_minutes+' นาที') : 'ตรงเวลา']
+  ];
+  if(passed){
+    showResult('ok','✅','เข้างานสำเร็จ','บันทึกเรียบร้อยแล้ว', rows);
+  }else{
+    rows.push(['สถานะ','รอ HR ยืนยัน (GPS ไม่ผ่าน)']);
+    showResult('warn','⏳','บันทึกแล้ว — รอ HR ยืนยัน','ระบบจับตำแหน่งไม่ได้/อยู่นอกรัศมีสาขา', rows);
+  }
+}
+
+// ---------- เลือกสาขา (รัศมีซ้อน) ----------
+function askBranch(list){
+  return new Promise(resolve=>{
+    const sel=document.getElementById('pk_sel');
+    sel.innerHTML=''; list.forEach(b=>sel.innerHTML+='<option value="'+b.branch_id+'">'+b.name+'</option>');
+    pickResolve=resolve; show('s-pick');
+  });
+}
+function confirmPick(){
+  const v=document.getElementById('pk_sel').value;
+  show('s-camera');
+  if(pickResolve){ pickResolve(v); pickResolve=null; }
+}
+
+// ---------- ผลลัพธ์ ----------
+function showResult(kind, ic, big, sub, rows){
+  document.getElementById('r_ic').textContent=ic;
+  document.getElementById('r_big').textContent=big;
+  document.getElementById('r_sub').textContent=sub;
+  document.getElementById('r_rows').innerHTML =
+    rows.map(r=>'<div class="rrow"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('');
+  show('s-result');
+}
+async function backHome(){ show('s-home'); await refreshTodayStatus(); }
+
+async function doLogout(){ stopCamera(); await db.auth.signOut(); location.reload(); }
+
+init();
+</script>
+</body>
+</html>
