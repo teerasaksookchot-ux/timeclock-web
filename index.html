@@ -88,6 +88,7 @@
   <div class="wrap">
     <div class="tabs">
       <div class="tab on" data-t="dash">📊 ภาพรวม</div>
+      <div class="tab" data-t="attend">🕐 เข้างานวันนี้</div>
       <div class="tab" data-t="branches">🏪 สาขา</div>
       <div class="tab" data-t="employees">👥 พนักงาน</div>
       <div class="tab" data-t="roles">🔑 สิทธิ์</div>
@@ -97,6 +98,19 @@
       <div class="card"><h2>ภาพรวมระบบ <button class="ebtn" style="float:right" onclick="loadDashboard()">🔄 รีเฟรช</button></h2><div class="kpis" id="dash_kpis"></div></div>
       <div class="card"><h2>พนักงานแยกตามสาขา</h2><div id="dash_by_branch"><div class="empty">กำลังโหลด…</div></div></div>
       <div class="card"><h2>สาขาแยกตามจังหวัด</h2><div id="dash_by_province"><div class="empty">กำลังโหลด…</div></div></div>
+    </div>
+
+    <div class="panel" id="p-attend">
+      <div class="card">
+        <h2>การเข้างาน
+          <span style="float:right;display:flex;gap:8px;align-items:center">
+            <input id="at_date" type="date" style="width:auto;padding:6px 10px">
+            <button class="ebtn" onclick="loadAttendance()">🔄 ดู</button>
+          </span>
+        </h2>
+        <div class="kpis" id="at_kpis" style="margin-bottom:14px"></div>
+        <div id="at_list"><div class="empty">เลือกวันที่แล้วกด "ดู"</div></div>
+      </div>
     </div>
 
     <div class="panel" id="p-branches">
@@ -186,6 +200,7 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));
   t.classList.add('on');document.getElementById('p-'+t.dataset.t).classList.add('on');
   if(t.dataset.t==='dash') loadDashboard();
+  if(t.dataset.t==='attend'){ const d=document.getElementById('at_date'); if(!d.value) d.value=bkkToday(); loadAttendance(); }
 });
 
 async function init(){
@@ -241,6 +256,46 @@ async function loadDashboard(){
   let h2='<table><tr><th>จังหวัด</th><th>จำนวนสาขา</th></tr>';
   Object.keys(byProv).sort().forEach(k=>h2+=`<tr><td>${k}</td><td>${byProv[k]} สาขา</td></tr>`);
   document.getElementById('dash_by_province').innerHTML = branchesData.length? h2+'</table>' : '<div class="empty">ยังไม่มีสาขา</div>';
+}
+function bkkToday(){ return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'}); }
+async function makeSignedSelfie(path){
+  if(!path) return null;
+  const { data } = await db.storage.from('selfies').createSignedUrl(path, 300);
+  return data ? data.signedUrl : null;
+}
+async function loadAttendance(){
+  const day = document.getElementById('at_date').value || bkkToday();
+  const box=document.getElementById('at_list'), kpi=document.getElementById('at_kpis');
+  box.innerHTML='<div class="empty">กำลังโหลด…</div>'; kpi.innerHTML='';
+  const { data, error } = await db.from('attendance_records')
+    .select('id,clock_in_time,status,late_minutes,selfie_path,employees(employee_code,first_name,last_name,nickname),branches(name)')
+    .eq('work_date', day).order('clock_in_time',{ascending:true});
+  if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
+  if(!data||!data.length){ box.innerHTML='<div class="empty">วันนี้ยังไม่มีใครเข้างาน</div>'; return; }
+  const total=data.length, pend=data.filter(r=>r.status==='pending').length, late=data.filter(r=>r.late_minutes>0).length;
+  kpi.innerHTML=
+    `<div class="kpi"><div class="n">${total}</div><div class="l">เข้างานแล้ว</div></div>`+
+    `<div class="kpi"><div class="n">${late}</div><div class="l">มาสาย</div></div>`+
+    `<div class="kpi"><div class="n">${pend}</div><div class="l">รอ HR ยืนยัน</div></div>`;
+  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เวลาเข้า</th><th>สาขา</th><th>สถานะ</th><th>รูป</th></tr>';
+  data.forEach(r=>{
+    const e=r.employees||{}; const name=(e.first_name||'')+' '+(e.last_name||'');
+    const t=r.clock_in_time? new Date(r.clock_in_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}):'-';
+    const lateTxt=r.late_minutes>0? ' (สาย '+r.late_minutes+' น.)':'';
+    const stTxt = r.status==='pending' ? '<span style="color:var(--red)">รอยืนยัน</span>'
+                : r.status==='absent' ? '<span style="color:var(--red)">ขาด</span>'
+                : '<span style="color:var(--green)">ปกติ</span>';
+    const photo = r.selfie_path ? `<button class="ebtn" onclick="viewSelfie('${r.selfie_path}')">ดูรูป</button>` : '-';
+    h+=`<tr><td>${e.employee_code||'-'}</td><td>${name}</td><td>${t}${lateTxt}</td><td>${r.branches?r.branches.name:'-'}</td><td>${stTxt}</td><td>${photo}</td></tr>`;
+  });
+  box.innerHTML=h+'</table>';
+}
+async function viewSelfie(path){
+  const url=await makeSignedSelfie(path);
+  if(!url){ alert('เปิดรูปไม่ได้'); return; }
+  document.getElementById('detail_body').innerHTML='<img src="'+url+'" style="width:100%;border-radius:12px">';
+  document.querySelector('#detail_modal h2').textContent='รูปเซลฟี่ตอนเข้างาน';
+  document.getElementById('detail_modal').style.display='flex';
 }
 async function doLogout(){ await db.auth.signOut(); location.reload(); }
 
@@ -393,7 +448,7 @@ function showBranchDetail(id){
     `<b>ผู้แก้ไข:</b> ${whoName(b.updated_by)}`;
   document.getElementById('detail_modal').style.display='flex';
 }
-function closeDetail(){ document.getElementById('detail_modal').style.display='none'; }
+function closeDetail(){ document.getElementById('detail_modal').style.display='none'; document.querySelector('#detail_modal h2').textContent='ข้อมูลพนักงาน'; }
 async function addEmployee(){
   const first=document.getElementById('e_first').value.trim(), last=document.getElementById('e_last').value.trim();
   const nick=document.getElementById('e_nick').value.trim(), phone=document.getElementById('e_phone').value.trim();
