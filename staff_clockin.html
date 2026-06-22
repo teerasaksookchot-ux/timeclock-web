@@ -371,28 +371,37 @@ async function capture(){
 }
 
 async function processClockIn(blob, gps){
-  // 1) หาสาขาตามรัศมี (geofence)
+  // 1) หาสาขาตามรัศมี (geofence) — DL-64 แบบผสม:
+  //    "ได้พิกัด + มั่นใจว่านอกรัศมี" → บล็อก · "GPS เสีย/พิกัดไม่ชัวร์" → Pending
   let passed=false, failReason=null, branchId=me.home_branch_id;
   if(gps.ok){
-    const inRange = branches
+    const ranked = branches
       .filter(b=>b.latitude!=null && b.longitude!=null)
-      .map(b=>({ b, d:distM(gps.lat,gps.lng,b.latitude,b.longitude) }))
-      .filter(x=>x.d <= (x.b.geofence_radius||100))
+      .map(b=>({ b, d:distM(gps.lat,gps.lng,b.latitude,b.longitude), r:(b.geofence_radius||100) }))
       .sort((a,b)=>a.d-b.d);
-    if(inRange.length===0){ passed=false; failReason='outside'; branchId=me.home_branch_id; }
-    else if(inRange.length===1){ passed=true; branchId=inRange[0].b.branch_id; }
+    const inRange = ranked.filter(x=>x.d <= x.r);
+    if(inRange.length===1){ passed=true; branchId=inRange[0].b.branch_id; }
+    else if(inRange.length>1){ const chosen=await askBranch(inRange.map(x=>x.b)); passed=true; branchId=chosen; }
     else {
-      const chosen = await askBranch(inRange.map(x=>x.b));
-      passed=true; branchId=chosen;
+      const near = ranked[0];
+      // นอกรัศมีแบบ "มั่นใจ" = เผื่อความคลาดเคลื่อน GPS แล้วยังไกลเกินรัศมี → บล็อก ไม่บันทึก
+      if(near && (near.d - gps.acc) > near.r){
+        showBlock(Math.round(near.d), near.b.name);
+        return;
+      }
+      // นอกรัศมีแต่ไม่ชัวร์ (พิกัดคลาด/ใกล้ขอบ) → บันทึก Pending ให้ HR ตรวจ (กันคนจริงเสียสิทธิ์)
+      passed=false; branchId=me.home_branch_id;
+      failReason = (near && gps.acc > near.r) ? 'low_accuracy' : 'outside';
     }
   }else{
-    passed=false; failReason=gps.reason; branchId=me.home_branch_id;
+    passed=false; failReason=gps.reason; branchId=me.home_branch_id;   // GPS เสีย = Pending
   }
 
   // 2) อัปรูปเซลฟี่ไป Storage (โฟลเดอร์ของตัวเอง)
   let selfiePath=null, selfieErr=null;
   try{
-    const path = authUser.id + '/' + bkkDate() + '.jpg';
+    const stamp = new Date().toISOString().replace(/[:.]/g,'-');   // ชื่อไฟล์ไม่ซ้ำ กันชนกัน
+    const path = authUser.id + '/' + bkkDate() + '_' + stamp + '.jpg';
     const { error:uerr } = await db.storage.from('selfies')
       .upload(path, blob, { contentType:'image/jpeg', upsert:true });
     if(uerr){ selfieErr = uerr.message || String(uerr); } else { selfiePath = path; }
@@ -459,6 +468,16 @@ function showResult(kind, ic, big, sub, rows){
   document.getElementById('r_sub').textContent=sub;
   document.getElementById('r_rows').innerHTML =
     rows.map(r=>'<div class="rrow"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('');
+  show('s-result');
+}
+// แสดงผลกรณีถูกบล็อก (อยู่นอกพื้นที่สาขาแบบมั่นใจ — ไม่บันทึกอะไร)
+function showBlock(distMeters, branchName){
+  document.getElementById('r_ic').textContent='⛔';
+  document.getElementById('r_big').textContent='เข้างานไม่ได้ — อยู่นอกพื้นที่สาขา';
+  document.getElementById('r_sub').textContent='กรุณากดเข้างานเมื่ออยู่ที่หน้าสาขาจริง';
+  document.getElementById('r_rows').innerHTML =
+    [['สาขาที่ใกล้สุด', branchName||'-'], ['ระยะห่างโดยประมาณ', distMeters+' เมตร']]
+    .map(r=>'<div class="rrow"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('');
   show('s-result');
 }
 async function backHome(){ show('s-home'); await refreshTodayStatus(); }
