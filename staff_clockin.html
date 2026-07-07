@@ -137,6 +137,12 @@
       <div id="h_status" class="msg"></div>
       <button class="btn big" id="h_btn" onclick="startClockIn()">📸 กดเข้างาน</button>
     </div>
+    <div class="card" id="h_extra" style="display:none">
+      <h2 style="font-size:15px">⏱️ ล่วงเวลา (OT)</h2>
+      <div id="ot_box"></div>
+      <h2 style="font-size:15px;margin-top:18px">🚶 ออกไปทำธุระ</h2>
+      <div id="leave_box"></div>
+    </div>
   </div>
 
   <!-- 4b) เลือกสาขา (กรณีอยู่ในรัศมีหลายสาขา) -->
@@ -179,6 +185,7 @@
 
 <script>
 let db=null, me=null, authUser=null, branches=[], gpsPromise=null, camStream=null, pickResolve=null;
+let camMode='clockin', todayAttendance=null, todayLeave=null, todayWaiver=null;
 
 function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
@@ -210,6 +217,11 @@ function startClockTick(){
   upd(); setInterval(upd,1000*15);
 }
 function bkkDate(){ return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'}); } // YYYY-MM-DD
+function bkkMinutesNow(){   // นาทีนับจากเที่ยงคืน ตามเวลาไทย (กัน DL-06: เข้างานได้เร็วสุด 06:30)
+  const parts = new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Bangkok'}).formatToParts(new Date());
+  const h = +parts.find(p=>p.type==='hour').value, m = +parts.find(p=>p.type==='minute').value;
+  return h*60+m;
+}
 
 // ---------- Login (เบอร์ → อีเมลภายใน) ----------
 async function doLogin(){
@@ -299,8 +311,9 @@ async function loadBranches(){
 }
 async function refreshTodayStatus(){
   const { data } = await db.from('attendance_records')
-    .select('clock_in_time,status,late_minutes')
+    .select('id,clock_in_time,status,late_minutes')
     .eq('employee_id', me.employee_id).eq('work_date', bkkDate()).maybeSingle();
+  todayAttendance = data || null;
   const st=document.getElementById('h_status'), btn=document.getElementById('h_btn');
   if(data){
     const t = new Date(data.clock_in_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
@@ -308,18 +321,66 @@ async function refreshTodayStatus(){
     const pend = data.status==='pending' ? ' (รอ HR ยืนยัน)' : '';
     st.className='msg ok'; st.textContent='วันนี้เข้างานแล้วเมื่อ '+t+' น.'+lateTxt+pend;
     btn.disabled=true; btn.textContent='✅ เข้างานวันนี้แล้ว';
+  }else if(bkkMinutesNow() < 390){   // 06:30 = 6*60+30 = 390 (DL-06)
+    st.className='msg warn'; st.textContent='ยังไม่ถึงเวลาเข้างาน — เปิดให้กดได้ตั้งแต่ 06:30 น.';
+    btn.disabled=true; btn.textContent='📸 กดเข้างาน';
   }else{
     st.className='msg'; st.textContent='';
     btn.disabled=false; btn.textContent='📸 กดเข้างาน';
   }
+  await renderExtra();
 }
 
-// ---------- เริ่มเข้างาน: เปิดกล้อง + ยิง GPS พร้อมกัน ----------
-async function startClockIn(){
+// ---------- ส่วน OT + ออกไปทำธุระ (แสดงหลังเข้างานแล้วเท่านั้น) ----------
+async function renderExtra(){
+  const box=document.getElementById('h_extra');
+  if(!todayAttendance){ box.style.display='none'; return; }
+  box.style.display='block';
+
+  // --- OT (DL-13..19) ---
+  const { data: otRec } = await db.from('ot_records')
+    .select('ot_hours,ot_status').eq('attendance_id', todayAttendance.id).maybeSingle();
+  const { data: waiver } = await db.from('ot_waiver_requests')
+    .select('status').eq('employee_id', me.employee_id).eq('request_date', bkkDate()).maybeSingle();
+  todayWaiver = waiver || null;
+  const otBox=document.getElementById('ot_box');
+  if(otRec){
+    otBox.innerHTML = `<div class="msg ok">ออกงาน OT แล้ว · ${otRec.ot_hours} ชม. (${otRec.ot_status})</div>`;
+  }else{
+    let waiverHtml='';
+    if(waiver){
+      const lbl={pending:'⏳ รอ HR อนุมัติ',approved:'✅ อนุมัติแล้ว — ออกก่อน 19:00 ได้โดยไม่ติด Pending',rejected:'❌ ไม่อนุมัติ'}[waiver.status]||waiver.status;
+      waiverHtml = `<div class="msg" style="display:block;margin-bottom:10px">คำขอไม่ทำ OT วันนี้: ${lbl}</div>`;
+    }else{
+      waiverHtml = `<button class="btn ghost" onclick="requestOtWaiver()">🙋 ขอไม่ทำ OT วันนี้</button>`;
+    }
+    const canExit = bkkMinutesNow() >= 990;   // 16:30 = 16*60+30 = 990 (DL-13)
+    otBox.innerHTML = waiverHtml + (canExit
+      ? `<button class="btn" style="margin-top:10px" onclick="startOtClockOut()">📸 ออกงาน (OT)</button>`
+      : `<div class="msg" style="display:block;margin-top:10px">ปุ่มออกงาน OT จะเปิดให้กดตั้งแต่ 16:30 น.</div>`);
+  }
+
+  // --- Personal Leave (DL-20..24) ---
+  const { data: leave } = await db.from('personal_leaves')
+    .select('id,leave_out_time,return_time,status').eq('employee_id', me.employee_id).eq('leave_date', bkkDate()).maybeSingle();
+  todayLeave = (leave && leave.status==='open') ? leave : null;
+  const leaveBox=document.getElementById('leave_box');
+  if(leave && leave.status==='open'){
+    const t=new Date(leave.leave_out_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
+    leaveBox.innerHTML = `<div class="msg warn">ออกไปทำธุระตั้งแต่ ${t} น.</div><button class="btn" onclick="returnFromLeave()">🔙 กลับมาแล้ว</button>`;
+  }else if(leave && leave.status!=='open'){
+    const t=leave.return_time? new Date(leave.return_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}) : '-';
+    leaveBox.innerHTML = `<div class="msg ok">วันนี้ใช้สิทธิ์ออกไปทำธุระแล้ว (กลับมาเมื่อ ${t} น.)</div>`;
+  }else{
+    leaveBox.innerHTML = `<button class="btn ghost" onclick="startLeaveOut()">🚶 ออกไปทำธุระ (1 ครั้ง/วัน)</button>`;
+  }
+}
+
+// ---------- เปิดกล้อง (ใช้ร่วมกันทั้งเข้างาน/ออก OT/ออกไปทำธุระ) ----------
+async function openCameraScreen(btnText){
   clrmsg('cam_msg');
   document.getElementById('cap_btn').disabled=false;
-  document.getElementById('cap_btn').textContent='ถ่ายรูปและเข้างาน';
-  gpsPromise = getGPS();            // เริ่มจับพิกัดเบื้องหลัง
+  document.getElementById('cap_btn').textContent=btnText;
   show('s-camera');
   try{
     camStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user' }, audio:false });
@@ -328,6 +389,24 @@ async function startClockIn(){
     msg('cam_msg','err','เปิดกล้องไม่ได้ — กรุณาอนุญาตการใช้กล้องในเบราว์เซอร์ แล้วลองใหม่');
     document.getElementById('cap_btn').disabled=true;
   }
+}
+// ---------- เริ่มเข้างาน: เปิดกล้อง + ยิง GPS พร้อมกัน ----------
+async function startClockIn(){
+  if(bkkMinutesNow() < 390){ msg('h_status','warn','ยังไม่ถึงเวลาเข้างาน — เปิดให้กดได้ตั้งแต่ 06:30 น.'); return; }  // DL-06 กันซ้ำฝั่ง client
+  camMode='clockin';
+  gpsPromise = getGPS();            // เริ่มจับพิกัดเบื้องหลัง
+  await openCameraScreen('ถ่ายรูปและเข้างาน');
+}
+// ---------- ออกงาน OT (DL-18: ต้อง Face Verify ทุกครั้ง ไม่ต้องเช็ค GPS) ----------
+async function startOtClockOut(){
+  camMode='ot_out';
+  await openCameraScreen('ถ่ายรูปและออกงาน (OT)');
+}
+// ---------- ออกไปทำธุระ (DL-22: Face + GPS Verify เหมือนเข้างาน) ----------
+async function startLeaveOut(){
+  camMode='leave_out';
+  gpsPromise = getGPS();
+  await openCameraScreen('ถ่ายรูปและออกไปทำธุระ');
 }
 function stopCamera(){
   if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
@@ -355,7 +434,7 @@ function distM(lat1,lng1,lat2,lng2){
   return 2*R*Math.asin(Math.sqrt(a));
 }
 
-// ---------- ถ่ายรูป → ประมวลผลเข้างาน ----------
+// ---------- ถ่ายรูป → ประมวลผลตาม camMode (เข้างาน / ออก OT / ออกไปทำธุระ) ----------
 async function capture(){
   if(!camStream){ msg('cam_msg','err','กล้องยังไม่พร้อม'); return; }
   const v=document.getElementById('cam_video'), c=document.getElementById('cam_canvas');
@@ -365,9 +444,97 @@ async function capture(){
   stopCamera();
   const btn=document.getElementById('cap_btn'); btn.disabled=true;
   btn.innerHTML='<span class="spin"></span>กำลังบันทึก…';
-  msg('cam_msg','warn','กำลังตรวจตำแหน่งและบันทึกการเข้างาน…');
-  const gps = await gpsPromise;
-  await processClockIn(blob, gps);
+  if(camMode==='ot_out'){
+    msg('cam_msg','warn','กำลังบันทึกออกงาน OT…');
+    await processOtClockOut(blob);
+  }else if(camMode==='leave_out'){
+    msg('cam_msg','warn','กำลังตรวจตำแหน่งและบันทึกออกไปทำธุระ…');
+    const gps = await gpsPromise;
+    await processLeaveOut(blob, gps);
+  }else{
+    msg('cam_msg','warn','กำลังตรวจตำแหน่งและบันทึกการเข้างาน…');
+    const gps = await gpsPromise;
+    await processClockIn(blob, gps);
+  }
+}
+
+// ---------- อัปโหลดเซลฟี่ตัวช่วย (ใช้ร่วมกัน) ----------
+async function uploadSelfie(prefix, blob){
+  try{
+    const stamp = new Date().toISOString().replace(/[:.]/g,'-');
+    const path = authUser.id + '/' + prefix + '_' + bkkDate() + '_' + stamp + '.jpg';
+    const { error } = await db.storage.from('selfies').upload(path, blob, { contentType:'image/jpeg', upsert:true });
+    return error ? { path:null, err: error.message||String(error) } : { path, err:null };
+  }catch(e){ return { path:null, err:String(e) }; }
+}
+
+// ---------- ออกงาน OT (DL-13..19) ----------
+async function processOtClockOut(blob){
+  const { err:selfieErr } = await uploadSelfie('ot', blob);
+  const { data:rec, error } = await db.rpc('fn_ot_clock_out', { p_attendance: todayAttendance.id, p_face_verified: true });
+  if(error){
+    msg('cam_msg','err','บันทึกไม่สำเร็จ: '+error.message);
+    const b=document.getElementById('cap_btn'); b.disabled=false; b.textContent='ลองอีกครั้ง';
+    return;
+  }
+  const approved = todayWaiver && todayWaiver.status==='approved';
+  const early = bkkMinutesNow() < 1140 && !approved;   // 19:00 = 1140 (DL-16)
+  if(early){
+    await db.from('pending_cases').insert({ employee_id: me.employee_id, source:'anomaly', related_attendance_id: todayAttendance.id });
+  }
+  const rows=[
+    ['ชั่วโมง OT', rec.ot_hours+' ชม.'],
+    ['สถานะ OT', rec.ot_status],
+    ['รูปเซลฟี่', selfieErr ? ('อัปไม่สำเร็จ: '+selfieErr) : 'บันทึกแล้ว']
+  ];
+  if(early) rows.push(['หมายเหตุ','ออกก่อน 19:00 โดยไม่ได้รับอนุมัติ — รอ HR ตรวจ (DL-16)']);
+  showResult('ok','✅','ออกงาน OT สำเร็จ','บันทึกเรียบร้อยแล้ว', rows);
+}
+async function requestOtWaiver(){
+  const { error } = await db.from('ot_waiver_requests').insert({ employee_id: me.employee_id, request_date: bkkDate() });
+  if(error){
+    alert(/duplicate|unique/i.test(error.message||'') ? 'วันนี้ขอไปแล้ว รอ HR อนุมัติ' : ('ขอไม่สำเร็จ: '+error.message));
+    return;
+  }
+  await renderExtra();
+}
+
+// ---------- ออกไปทำธุระ (DL-20..24) ----------
+async function processLeaveOut(blob, gps){
+  const { err:selfieErr } = await uploadSelfie('leave', blob);
+  const { data:rec, error } = await db.from('personal_leaves').insert({
+    attendance_id: todayAttendance.id, employee_id: me.employee_id,
+    leave_date: bkkDate(), leave_out_time: new Date().toISOString()
+  }).select().single();
+  if(error){
+    if(/duplicate|unique/i.test(error.message||'')){
+      showResult('warn','📌','วันนี้ใช้สิทธิ์ไปแล้ว','ออกไปทำธุระได้วันละ 1 ครั้ง (DL-21)',[]);
+    }else{
+      msg('cam_msg','err','บันทึกไม่สำเร็จ: '+error.message);
+      const b=document.getElementById('cap_btn'); b.disabled=false; b.textContent='ลองอีกครั้ง';
+    }
+    return;
+  }
+  await db.from('gps_logs').insert({
+    attendance_id: todayAttendance.id,
+    latitude: gps.ok? gps.lat:null, longitude: gps.ok? gps.lng:null,
+    accuracy: gps.ok? gps.acc:null, passed: gps.ok, fail_reason: gps.ok?null:gps.reason
+  });
+  if(!gps.ok){
+    await db.from('pending_cases').insert({ employee_id: me.employee_id, source:'anomaly', related_attendance_id: todayAttendance.id });
+  }
+  const rows=[
+    ['เวลาออก', new Date(rec.leave_out_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' น.'],
+    ['รูปเซลฟี่', selfieErr ? ('อัปไม่สำเร็จ: '+selfieErr) : 'บันทึกแล้ว']
+  ];
+  if(!gps.ok) rows.push(['ตำแหน่ง','ตรวจไม่ได้ — แจ้ง HR ตรวจสอบแล้ว']);
+  showResult('ok','✅','ออกไปทำธุระแล้ว','อย่าลืมกด "กลับมาแล้ว" เมื่อกลับถึงที่ทำงาน', rows);
+}
+async function returnFromLeave(){
+  if(!todayLeave) return;
+  const { error } = await db.rpc('fn_leave_return', { p_leave: todayLeave.id });
+  if(error){ alert('บันทึกกลับไม่สำเร็จ: '+error.message); return; }
+  await renderExtra();
 }
 
 async function processClockIn(blob, gps){
@@ -398,14 +565,7 @@ async function processClockIn(blob, gps){
   }
 
   // 2) อัปรูปเซลฟี่ไป Storage (โฟลเดอร์ของตัวเอง)
-  let selfiePath=null, selfieErr=null;
-  try{
-    const stamp = new Date().toISOString().replace(/[:.]/g,'-');   // ชื่อไฟล์ไม่ซ้ำ กันชนกัน
-    const path = authUser.id + '/' + bkkDate() + '_' + stamp + '.jpg';
-    const { error:uerr } = await db.storage.from('selfies')
-      .upload(path, blob, { contentType:'image/jpeg', upsert:true });
-    if(uerr){ selfieErr = uerr.message || String(uerr); } else { selfiePath = path; }
-  }catch(e){ selfieErr = String(e); }
+  const { path:selfiePath, err:selfieErr } = await uploadSelfie('clockin', blob);
 
   // 3) บันทึกเข้างานผ่าน fn_clock_in (เวลาเซิร์ฟเวอร์)
   const { data:rec, error } = await db.rpc('fn_clock_in', {
@@ -415,6 +575,8 @@ async function processClockIn(blob, gps){
   if(error){
     if((error.code==='23505') || /duplicate|unique/i.test(error.message||'')){
       showResult('warn','📌','วันนี้เข้างานไปแล้ว','ระบบบันทึกได้วันละครั้ง',[]);
+    }else if(/EARLY_CLOCKIN/.test(error.message||'')){
+      showResult('warn','⏰','ยังไม่ถึงเวลาเข้างาน','เปิดให้กดได้ตั้งแต่ 06:30 น.',[]);
     }else{
       msg('cam_msg','err','บันทึกไม่สำเร็จ: '+error.message);
       const b=document.getElementById('cap_btn'); b.disabled=false; b.textContent='ลองอีกครั้ง';

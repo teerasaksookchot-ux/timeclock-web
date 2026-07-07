@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ระบบลงเวลา · เว็บแอดมิน HR</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root{--ink:#1C1A17;--ink2:#3A352E;--muted:#8C8479;--tan:#B26A2B;--tan2:#9A5A22;
     --tan-soft:#EBDCC8;--paper:#F2EEE8;--card:#FFF;--line:#E4DDD2;
@@ -92,6 +93,7 @@
       <div class="tab" data-t="branches">🏪 สาขา</div>
       <div class="tab" data-t="employees">👥 พนักงาน</div>
       <div class="tab" data-t="roles">🔑 สิทธิ์</div>
+      <div class="tab" data-t="payroll">💰 ส่งออกเงินเดือน</div>
     </div>
 
     <div class="panel on" id="p-dash">
@@ -168,6 +170,29 @@
         <h2>วิธีเปลี่ยน Role</h2>
         <p style="font-size:13.5px;color:var(--ink2)">ไปที่แท็บ <b>"พนักงาน"</b> → กด <b>"แก้ไข"</b> ที่คนนั้น → เลือก <b>สิทธิ์ (Role)</b> → บันทึก<br><br>
         🔒 <b>เฉพาะเจ้าของ (Owner)</b> เท่านั้นที่ตั้ง Role เป็น HR หรือ Owner ได้ · ผู้ดูแล HR ตั้งได้แค่ "พนักงาน"</p>
+      </div>
+    </div>
+
+    <div class="panel" id="p-payroll">
+      <div class="card">
+        <h2>เตรียมข้อมูลเงินเดือน</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:10px">เลือกช่วงวันที่ → ระบบรวมข้อมูลเข้างาน/OT/ลากิจให้ · <b>ไม่คำนวณเงินจริง</b> (ไม่มีเงินเดือนฐาน/คอมมิชชัน) เอาไฟล์นี้ไปคิดต่อเองได้ (DL-46/DL-48)</p>
+        <div class="grid2">
+          <div><label>ตั้งแต่วันที่</label><input id="pr_start" type="date"></div>
+          <div><label>ถึงวันที่</label><input id="pr_end" type="date"></div>
+        </div>
+        <button class="btn" id="pr_prepbtn" onclick="preparePayroll()">🔄 เตรียมข้อมูล</button>
+        <div id="pr_msg" class="msg"></div>
+      </div>
+      <div class="card" id="pr_resultcard" style="display:none">
+        <h2>ผลลัพธ์
+          <span style="float:right;display:flex;gap:8px">
+            <button class="ebtn" onclick="downloadPayroll('xlsx')">⬇️ XLSX</button>
+            <button class="ebtn" onclick="downloadPayroll('csv')">⬇️ CSV</button>
+          </span>
+        </h2>
+        <div class="kpis" id="pr_kpis" style="margin-bottom:14px"></div>
+        <div id="pr_table"></div>
       </div>
     </div>
   </div>
@@ -512,9 +537,144 @@ async function deactivateEmployee(id){
   if(!confirm('ปิดใช้งานพนักงาน "'+e.first_name+' '+e.last_name+'" ?\n(เช่น ลาออก — ข้อมูลไม่ถูกลบจริง)'))return;
   const { error } = await db.from('employees').update({status:'inactive',updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('employee_id',id);
   if(error){showMsg('e_msg',false,'ปิดใช้งานไม่ได้: '+error.message);return;}
+  // ปิดบัญชี login ด้วย (กันเบอร์นี้ชนตอนคนใหม่สร้างบัญชี — DL-02/DL-03)
+  if(e.auth_user_id){
+    try{
+      let { data:{ session } } = await db.auth.getSession();
+      if(session && session.access_token){
+        const res = await fetch(SUPABASE_URL+'/functions/v1/manage-staff-auth', {
+          method:'POST',
+          headers:{ 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json' },
+          body: JSON.stringify({ action:'deactivate', employee_id:id })
+        });
+        if(!res.ok){ const d=await res.json().catch(()=>({})); showMsg('e_msg',true,'✅ ปิดใช้งานพนักงาน "'+e.first_name+'" แล้ว (แต่ปิดบัญชี login ไม่สำเร็จ: '+(d.error||'')+' — เบอร์นี้อาจใช้ซ้ำไม่ได้ทันที)'); await loadEmployees(); loadDashboard(); return; }
+      }
+    }catch(err){ /* ไม่บล็อกการปิดใช้งานพนักงาน แม้ปิดบัญชี login จะพลาด */ }
+  }
   showMsg('e_msg',true,'✅ ปิดใช้งานพนักงาน "'+e.first_name+'" แล้ว');
   await loadEmployees(); loadDashboard();
 }
+// ---------- Payroll Export (DL-45..48) ----------
+let payrollRows=[], payrollPeriod=null;
+const PR_HEADERS=['รหัสพนักงาน','ชื่อ-สกุล','สาขาประจำ','สาขาที่ทำงาน','วันทำงาน','ชั่วโมงทำงาน','สถานะ OT','ชั่วโมง OT','สายรวม (นาที)','ลากิจรวม (นาที)'];
+
+async function preparePayroll(){
+  const start=document.getElementById('pr_start').value, end=document.getElementById('pr_end').value;
+  if(!start||!end){ showMsg('pr_msg',false,'กรุณาเลือกวันที่เริ่มและสิ้นสุด'); return; }
+  if(start>end){ showMsg('pr_msg',false,'วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด'); return; }
+  const btn=document.getElementById('pr_prepbtn'); btn.disabled=true; btn.textContent='กำลังเตรียมข้อมูล…';
+  document.getElementById('pr_resultcard').style.display='none';
+  try{
+    const { data: att, error: aerr } = await db.from('attendance_records')
+      .select('id,employee_id,work_date,status,late_minutes,work_hours,working_branch_id')
+      .gte('work_date', start).lte('work_date', end);
+    if(aerr) throw aerr;
+    const attIds = (att||[]).map(a=>a.id);
+    let ot=[];
+    if(attIds.length){
+      const { data: otData, error: oerr } = await db.from('ot_records')
+        .select('attendance_id,ot_hours').in('attendance_id', attIds);
+      if(oerr) throw oerr;
+      ot = otData||[];
+    }
+    const { data: leaves, error: lerr } = await db.from('personal_leaves')
+      .select('employee_id,leave_minutes,leave_date').gte('leave_date', start).lte('leave_date', end);
+    if(lerr) throw lerr;
+
+    const branchName = id => { const b=branchesData.find(x=>x.branch_id===id); return b?b.name:'-'; };
+    const empById = {}; employeesData.forEach(e=>empById[e.employee_id]=e);
+
+    const agg={};
+    (att||[]).forEach(a=>{
+      const g = agg[a.employee_id] || (agg[a.employee_id] = { workDays:0, workHours:0, lateMin:0, otHours:0, leaveMin:0, branchSet:new Set() });
+      if(a.status!=='absent') g.workDays++;
+      g.workHours += Number(a.work_hours)||0;
+      g.lateMin += Number(a.late_minutes)||0;
+      if(a.working_branch_id) g.branchSet.add(a.working_branch_id);
+    });
+    ot.forEach(o=>{
+      const att1 = (att||[]).find(a=>a.id===o.attendance_id); if(!att1) return;
+      const g = agg[att1.employee_id]; if(!g) return;
+      g.otHours += Number(o.ot_hours)||0;
+    });
+    (leaves||[]).forEach(l=>{
+      const g = agg[l.employee_id] || (agg[l.employee_id] = { workDays:0, workHours:0, lateMin:0, otHours:0, leaveMin:0, branchSet:new Set() });
+      g.leaveMin += Number(l.leave_minutes)||0;
+    });
+
+    const rows = Object.keys(agg).map(empId=>{
+      const e = empById[empId];
+      const g = agg[empId];
+      const branches = [...g.branchSet].map(branchName).join(' / ') || '-';
+      return {
+        code: e? e.employee_code : empId,
+        name: e? (e.first_name+' '+e.last_name) : '(ไม่พบชื่อ)',
+        homeBranch: e? branchName(e.home_branch_id) : '-',
+        workingBranch: branches,
+        workDays: g.workDays,
+        workHours: Math.round(g.workHours*100)/100,
+        otStatus: g.otHours>0 ? 'YES' : 'NO',
+        otHours: Math.round(g.otHours*10)/10,
+        lateMin: g.lateMin,
+        leaveMin: g.leaveMin
+      };
+    }).sort((a,b)=> a.code.localeCompare(b.code));
+
+    payrollRows = rows; payrollPeriod = { start, end };
+    renderPayrollPreview(rows);
+    showMsg('pr_msg', true, '✅ เตรียมข้อมูลสำเร็จ '+rows.length+' คน (ช่วง '+start+' ถึง '+end+')');
+  }catch(err){
+    showMsg('pr_msg', false, 'เตรียมข้อมูลไม่สำเร็จ: '+(err.message||err));
+  }
+  btn.disabled=false; btn.textContent='🔄 เตรียมข้อมูล';
+}
+
+function renderPayrollPreview(rows){
+  document.getElementById('pr_resultcard').style.display='block';
+  const totalDays = rows.reduce((s,r)=>s+r.workDays,0);
+  const totalOT = rows.reduce((s,r)=>s+(r.otHours>0?1:0),0);
+  document.getElementById('pr_kpis').innerHTML =
+    `<div class="kpi"><div class="n">${rows.length}</div><div class="l">พนักงาน</div></div>`+
+    `<div class="kpi"><div class="n">${totalDays}</div><div class="l">วันทำงานรวม</div></div>`+
+    `<div class="kpi"><div class="n">${totalOT}</div><div class="l">คนมี OT</div></div>`;
+  if(!rows.length){ document.getElementById('pr_table').innerHTML='<div class="empty">ไม่พบข้อมูลในช่วงวันที่นี้</div>'; return; }
+  let h='<table><tr>'+PR_HEADERS.map(x=>'<th>'+x+'</th>').join('')+'</tr>';
+  rows.forEach(r=>{
+    h+=`<tr><td>${r.code}</td><td>${r.name}</td><td>${r.homeBranch}</td><td>${r.workingBranch}</td><td>${r.workDays}</td><td>${r.workHours}</td><td>${r.otStatus}</td><td>${r.otHours}</td><td>${r.lateMin}</td><td>${r.leaveMin}</td></tr>`;
+  });
+  document.getElementById('pr_table').innerHTML = h+'</table>';
+}
+
+function rowsToAOA(rows){
+  return [PR_HEADERS, ...rows.map(r=>[r.code,r.name,r.homeBranch,r.workingBranch,r.workDays,r.workHours,r.otStatus,r.otHours,r.lateMin,r.leaveMin])];
+}
+function csvEscape(v){
+  const s = (v===null||v===undefined) ? '' : String(v);
+  return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+async function downloadPayroll(fmt){
+  if(!payrollPeriod){ showMsg('pr_msg',false,'กรุณากด "เตรียมข้อมูล" ก่อนดาวน์โหลด'); return; }
+  const fname = 'payroll_'+payrollPeriod.start+'_to_'+payrollPeriod.end+'.'+fmt;
+  if(fmt==='xlsx'){
+    const ws = XLSX.utils.aoa_to_sheet(rowsToAOA(payrollRows));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Payroll');
+    XLSX.writeFile(wb, fname);
+  }else{
+    const aoa = rowsToAOA(payrollRows);
+    const bom = String.fromCharCode(0xFEFF);
+    const csv = bom+aoa.map(row=>row.map(csvEscape).join(',')).join('\r\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download=fname; a.click();
+    URL.revokeObjectURL(url);
+  }
+  await db.from('payroll_exports').insert({
+    exported_by: currentEmpId, period_start: payrollPeriod.start, period_end: payrollPeriod.end,
+    format: fmt, file_ref: fname
+  });
+}
+
 init();
 </script>
 </body>
