@@ -581,8 +581,12 @@ async function preparePayroll(){
       .select('employee_id,leave_minutes,leave_date').gte('leave_date', start).lte('leave_date', end);
     if(lerr) throw lerr;
 
-    const branchName = id => { const b=branchesData.find(x=>x.branch_id===id); return b?b.name:'-'; };
-    const empById = {}; employeesData.forEach(e=>empById[e.employee_id]=e);
+    // ดึงพนักงาน+สาขา "ทุกสถานะ" (รวมคนลาออก/สาขาที่ปิดแล้ว) เพื่อให้ชื่อในรอบย้อนหลังไม่หาย
+    const { data: allEmp } = await db.from('employees').select('employee_id,employee_code,first_name,last_name,home_branch_id');
+    const { data: allBr } = await db.from('branches').select('branch_id,name');
+    const brNameById = {}; (allBr||[]).forEach(b=>brNameById[b.branch_id]=b.name);
+    const branchName = id => brNameById[id] || '-';
+    const empById = {}; (allEmp||[]).forEach(e=>empById[e.employee_id]=e);
 
     const agg={};
     (att||[]).forEach(a=>{
