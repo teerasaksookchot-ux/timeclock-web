@@ -90,6 +90,7 @@
     <div class="tabs">
       <div class="tab on" data-t="dash">📊 ภาพรวม</div>
       <div class="tab" data-t="attend">🕐 เข้างานวันนี้</div>
+      <div class="tab" data-t="approvals">✅ อนุมัติ/เคสค้าง</div>
       <div class="tab" data-t="branches">🏪 สาขา</div>
       <div class="tab" data-t="employees">👥 พนักงาน</div>
       <div class="tab" data-t="roles">🔑 สิทธิ์</div>
@@ -112,6 +113,28 @@
         </h2>
         <div class="kpis" id="at_kpis" style="margin-bottom:14px"></div>
         <div id="at_list"><div class="empty">เลือกวันที่แล้วกด "ดู"</div></div>
+      </div>
+      <div class="card" id="at_backdate_card" style="display:none">
+        <h2>เพิ่มบันทึกย้อนหลัง (ลืมกดเข้างานทั้งที่มาจริง)</h2>
+        <p style="font-size:12.5px;color:var(--muted);margin:-6px 0 10px">สำหรับพนักงานที่ "ยังไม่มีบันทึกเลย" ในวันที่เลือก · ถ้ามีบันทึก(เช่นขึ้นขาด)อยู่แล้ว ให้กด "แก้ไข" ในตารางด้านบนแทน · แก้ย้อนหลังได้ไม่เกิน 60 วัน</p>
+        <div class="grid2">
+          <div><label>พนักงาน</label><select id="bd_emp"></select></div>
+          <div><label>เวลาเข้างาน</label><input id="bd_time" type="time"></div>
+        </div>
+        <button class="btn" onclick="addBackdated()">บันทึกย้อนหลัง</button>
+        <div id="bd_msg" class="msg"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="p-approvals">
+      <div class="card">
+        <h2>ขอไม่ทำ OT (รออนุมัติ) <button class="ebtn" style="float:right" onclick="loadApprovals()">🔄 รีเฟรช</button></h2>
+        <div id="wv_list"><div class="empty">กำลังโหลด…</div></div>
+      </div>
+      <div class="card">
+        <h2>เคสค้าง (Pending Cases)</h2>
+        <p style="font-size:12.5px;color:var(--muted);margin:-6px 0 10px">เคสที่ระบบตั้งให้ตรวจ เช่น GPS ไม่ผ่าน, ลืมกดออก OT, ออกก่อนเวลา · เคสค้างเกิน 60 วัน เฉพาะเจ้าของปิดได้</p>
+        <div id="pc_list"><div class="empty">กำลังโหลด…</div></div>
       </div>
     </div>
 
@@ -204,6 +227,23 @@
       <button class="btn" onclick="closeDetail()" style="margin-top:16px">ปิด</button>
     </div>
   </div>
+
+  <div id="att_modal" style="display:none;position:fixed;inset:0;background:rgba(28,26,23,.45);align-items:center;justify-content:center;z-index:20;padding:20px">
+    <div style="background:#fff;border-radius:16px;max-width:400px;width:100%;padding:24px;box-shadow:0 16px 50px rgba(0,0,0,.25)">
+      <h2 style="margin-bottom:4px">แก้ไขการเข้างาน</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:6px" id="ae_who"></p>
+      <label>สถานะ</label>
+      <select id="ae_status" onchange="aeToggleTime()">
+        <option value="normal">ปกติ</option>
+        <option value="pending">รอยืนยัน</option>
+        <option value="absent">ขาด (ไม่มาทำงาน)</option>
+      </select>
+      <div id="ae_timewrap"><label>เวลาเข้างาน</label><input id="ae_time" type="time"><div style="font-size:11.5px;color:var(--muted);margin-top:4px">ระบบคิดสายอัตโนมัติจากเวลานี้ (เริ่มนับ 07:00)</div></div>
+      <button class="btn" onclick="saveAttEdit()">บันทึกการแก้ไข</button>
+      <button class="btn" onclick="closeAttEdit()" style="background:#8C8479;margin-top:8px">ยกเลิก</button>
+      <div id="ae_msg" class="msg"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -226,6 +266,7 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   t.classList.add('on');document.getElementById('p-'+t.dataset.t).classList.add('on');
   if(t.dataset.t==='dash') loadDashboard();
   if(t.dataset.t==='attend'){ const d=document.getElementById('at_date'); if(!d.value) d.value=bkkToday(); loadAttendance(); }
+  if(t.dataset.t==='approvals') loadApprovals();
 });
 
 async function init(){
@@ -288,21 +329,28 @@ async function makeSignedSelfie(path){
   const { data } = await db.storage.from('selfies').createSignedUrl(path, 300);
   return data ? data.signedUrl : null;
 }
+let attendanceData=[], attEditId=null;
+function daysBetween(dstr){ const d=new Date(dstr+'T00:00:00+07:00'), today=new Date(bkkToday()+'T00:00:00+07:00'); return Math.round((today-d)/86400000); }
 async function loadAttendance(){
   const day = document.getElementById('at_date').value || bkkToday();
   const box=document.getElementById('at_list'), kpi=document.getElementById('at_kpis');
   box.innerHTML='<div class="empty">กำลังโหลด…</div>'; kpi.innerHTML='';
   const { data, error } = await db.from('attendance_records')
-    .select('id,clock_in_time,status,late_minutes,selfie_path,employees(employee_code,first_name,last_name,nickname),branches(name)')
+    .select('id,clock_in_time,status,late_minutes,selfie_path,employee_id,employees(employee_code,first_name,last_name,nickname),branches(name)')
     .eq('work_date', day).order('clock_in_time',{ascending:true});
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
+  attendanceData = data||[];
+  // แก้ย้อนหลังได้ไม่เกิน 60 วัน และไม่ใช่วันในอนาคต (DL-51)
+  const diff = daysBetween(day);
+  const editable = diff>=0 && diff<=60;
+  document.getElementById('at_backdate_card').style.display = editable ? 'block' : 'none';
   if(!data||!data.length){ box.innerHTML='<div class="empty">วันนี้ยังไม่มีใครเข้างาน</div>'; return; }
   const total=data.length, pend=data.filter(r=>r.status==='pending').length, late=data.filter(r=>r.late_minutes>0).length;
   kpi.innerHTML=
     `<div class="kpi"><div class="n">${total}</div><div class="l">เข้างานแล้ว</div></div>`+
     `<div class="kpi"><div class="n">${late}</div><div class="l">มาสาย</div></div>`+
     `<div class="kpi"><div class="n">${pend}</div><div class="l">รอ HR ยืนยัน</div></div>`;
-  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เวลาเข้า</th><th>สาขา</th><th>สถานะ</th><th>รูป</th></tr>';
+  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เวลาเข้า</th><th>สาขา</th><th>สถานะ</th><th>รูป</th><th></th></tr>';
   data.forEach(r=>{
     const e=r.employees||{}; const name=(e.first_name||'')+' '+(e.last_name||'');
     const t=r.clock_in_time? new Date(r.clock_in_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}):'-';
@@ -311,9 +359,69 @@ async function loadAttendance(){
                 : r.status==='absent' ? '<span style="color:var(--red)">ขาด</span>'
                 : '<span style="color:var(--green)">ปกติ</span>';
     const photo = r.selfie_path ? `<button class="ebtn" onclick="viewSelfie('${r.selfie_path}')">ดูรูป</button>` : '-';
-    h+=`<tr><td>${e.employee_code||'-'}</td><td>${name}</td><td>${t}${lateTxt}</td><td>${r.branches?r.branches.name:'-'}</td><td>${stTxt}</td><td>${photo}</td></tr>`;
+    const editBtn = editable ? `<button class="ebtn" onclick="openAttEdit('${r.id}')">แก้ไข</button>` : '';
+    h+=`<tr><td>${e.employee_code||'-'}</td><td>${name}</td><td>${t}${lateTxt}</td><td>${r.branches?r.branches.name:'-'}</td><td>${stTxt}</td><td>${photo}</td><td>${editBtn}</td></tr>`;
   });
   box.innerHTML=h+'</table>';
+}
+// สร้าง timestamp ISO จาก work_date + เวลา HH:MM (ยึด Asia/Bangkok)
+function bkkTimestamp(day, hhmm){ return new Date(day+'T'+hhmm+':00+07:00').toISOString(); }
+function calcLate(day, hhmm){ const t=new Date(day+'T'+hhmm+':00+07:00'), seven=new Date(day+'T07:00:00+07:00'); return Math.max(0, Math.floor((t-seven)/60000)); }
+
+function openAttEdit(id){
+  const r=attendanceData.find(x=>x.id===id); if(!r) return;
+  attEditId=id;
+  const e=r.employees||{};
+  document.getElementById('ae_who').textContent=(e.employee_code||'')+' · '+(e.first_name||'')+' '+(e.last_name||'');
+  document.getElementById('ae_status').value=r.status;
+  const hhmm=r.clock_in_time ? new Date(r.clock_in_time).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Bangkok'}) : '07:00';
+  document.getElementById('ae_time').value=hhmm;
+  aeToggleTime();
+  document.getElementById('ae_msg').className='msg'; document.getElementById('ae_msg').textContent='';
+  document.getElementById('att_modal').style.display='flex';
+}
+function aeToggleTime(){ document.getElementById('ae_timewrap').style.display = document.getElementById('ae_status').value==='absent' ? 'none' : 'block'; }
+function closeAttEdit(){ document.getElementById('att_modal').style.display='none'; attEditId=null; }
+async function saveAttEdit(){
+  const r=attendanceData.find(x=>x.id===attEditId); if(!r) return;
+  const day=document.getElementById('at_date').value;
+  const status=document.getElementById('ae_status').value;
+  const hhmm=document.getElementById('ae_time').value;
+  let payload;
+  if(status==='absent'){ payload={status:'absent', clock_in_time:null, late_minutes:0}; }
+  else { if(!hhmm){ showMsg('ae_msg',false,'กรุณาใส่เวลาเข้างาน'); return; }
+         payload={status, clock_in_time:bkkTimestamp(day,hhmm), late_minutes:calcLate(day,hhmm)}; }
+  const { error } = await db.from('attendance_records').update(payload).eq('id',attEditId);
+  if(error){ showMsg('ae_msg',false,'บันทึกไม่สำเร็จ: '+error.message); return; }
+  await db.from('audit_logs').insert({ actor_id:currentEmpId, action:'hr_edit_attendance', target_ref:attEditId,
+    detail:{ work_date:day, from:{status:r.status,late:r.late_minutes}, to:payload } });
+  closeAttEdit(); await loadAttendance();
+}
+async function addBackdated(){
+  const day=document.getElementById('at_date').value;
+  const empId=document.getElementById('bd_emp').value;
+  const hhmm=document.getElementById('bd_time').value;
+  if(!empId){ showMsg('bd_msg',false,'เลือกพนักงานก่อน'); return; }
+  if(!hhmm){ showMsg('bd_msg',false,'ใส่เวลาเข้างาน'); return; }
+  const emp=employeesData.find(x=>x.employee_id===empId);
+  const { error } = await db.from('attendance_records').insert({
+    employee_id:empId, work_date:day, clock_in_time:bkkTimestamp(day,hhmm),
+    working_branch_id: emp?emp.home_branch_id:null, status:'normal', late_minutes:calcLate(day,hhmm) });
+  if(error){
+    showMsg('bd_msg',false, /duplicate|unique/i.test(error.message)?'มีบันทึกของคนนี้ในวันนี้แล้ว — ใช้ปุ่ม "แก้ไข" ในตารางแทน':('บันทึกไม่สำเร็จ: '+error.message));
+    return;
+  }
+  await db.from('audit_logs').insert({ actor_id:currentEmpId, action:'hr_backdate_attendance', target_ref:empId,
+    detail:{ work_date:day, time:hhmm } });
+  showMsg('bd_msg',true,'✅ เพิ่มบันทึกย้อนหลังแล้ว');
+  document.getElementById('bd_time').value='';
+  await loadAttendance();
+}
+function fillBackdateEmps(){
+  const sel=document.getElementById('bd_emp'); if(!sel) return;
+  const staff=employeesData.filter(e=>e.role==='staff');
+  sel.innerHTML='<option value="">— เลือกพนักงาน —</option>';
+  staff.forEach(e=>sel.innerHTML+=`<option value="${e.employee_id}">${e.employee_code} · ${e.first_name} ${e.last_name}</option>`);
 }
 async function viewSelfie(path){
   const url=await makeSignedSelfie(path);
@@ -398,6 +506,7 @@ async function loadEmployees(){
   renderRoleList('owner','e_list_owner');
   renderRoleList('hr','e_list_hr');
   renderRoleList('staff','e_list_staff');
+  fillBackdateEmps();
 }
 function empRow(e){
   return `<tr><td>${e.employee_code}</td><td>${e.first_name} ${e.last_name} (${e.nickname||''})</td><td>${e.phone}</td><td>${e.branches?e.branches.name:'-'}</td><td>`+
@@ -677,6 +786,65 @@ async function downloadPayroll(fmt){
     exported_by: currentEmpId, period_start: payrollPeriod.start, period_end: payrollPeriod.end,
     format: fmt, file_ref: fname
   });
+}
+
+// ---------- อนุมัติ/เคสค้าง (B1 + B2) ----------
+const SRC_LABEL={gps_fail:'GPS ไม่ผ่าน',ot_forgot:'ลืมกดออก OT',anomaly:'ผิดปกติ (ออกก่อนเวลา/อื่นๆ)',half_day:'มาครึ่งวันแล้วหาย',face_assist:'ขอ HR ช่วยยืนยันใบหน้า'};
+const ESC_LABEL={day0:'วันนี้',day7:'ค้าง ≥7 วัน',day30:'ค้าง ≥30 วัน',day60:'ค้าง ≥60 วัน'};
+function empName(e){ if(!e) return '(ไม่พบชื่อ)'; return (e.first_name||'')+' '+(e.last_name||'')+(e.nickname?' ('+e.nickname+')':''); }
+
+async function loadApprovals(){ await loadWaivers(); await loadPendingCases(); }
+
+async function loadWaivers(){
+  const box=document.getElementById('wv_list'); box.innerHTML='<div class="empty">กำลังโหลด…</div>';
+  const { data, error } = await db.from('ot_waiver_requests')
+    .select('id,request_date,status,employees(employee_code,first_name,last_name,nickname)')
+    .eq('status','pending').order('request_date',{ascending:true});
+  if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
+  if(!data||!data.length){ box.innerHTML='<div class="empty">ไม่มีคำขอค้างอนุมัติ</div>'; return; }
+  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>วันที่ขอ</th><th></th></tr>';
+  data.forEach(r=>{
+    const e=r.employees||{};
+    h+=`<tr><td>${e.employee_code||'-'}</td><td>${empName(e)}</td><td>${r.request_date}</td>`+
+       `<td><button class="ebtn" onclick="decideWaiver('${r.id}','approved')">✅ อนุมัติ</button> `+
+       `<button class="ebtn del" onclick="decideWaiver('${r.id}','rejected')">❌ ไม่อนุมัติ</button></td></tr>`;
+  });
+  box.innerHTML=h+'</table>';
+}
+async function decideWaiver(id, decision){
+  const { error } = await db.from('ot_waiver_requests')
+    .update({ status:decision, approved_by:currentEmpId, approved_at:new Date().toISOString() }).eq('id',id);
+  if(error){ alert('บันทึกไม่สำเร็จ: '+error.message); return; }
+  await loadWaivers();
+}
+
+async function loadPendingCases(){
+  const box=document.getElementById('pc_list'); box.innerHTML='<div class="empty">กำลังโหลด…</div>';
+  const { data, error } = await db.from('pending_cases')
+    .select('id,source,opened_date,escalation_level,employees(employee_code,first_name,last_name,nickname)')
+    .eq('status','open').order('opened_date',{ascending:true});
+  if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
+  if(!data||!data.length){ box.innerHTML='<div class="empty">ไม่มีเคสค้าง 🎉</div>'; return; }
+  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>สาเหตุ</th><th>เปิดเมื่อ</th><th>สถานะ</th><th></th></tr>';
+  data.forEach(r=>{
+    const e=r.employees||{};
+    const isDay60 = r.escalation_level==='day60';
+    const locked = isDay60 && currentRole!=='owner';
+    const escColor = (r.escalation_level==='day30'||r.escalation_level==='day60')?'var(--red)':(r.escalation_level==='day7'?'var(--tan2)':'var(--muted)');
+    const btn = locked
+      ? '<span style="color:var(--muted);font-size:12px">รอเจ้าของปิด</span>'
+      : `<button class="ebtn" onclick="resolvePending('${r.id}')">ปิดเคส</button>`;
+    h+=`<tr><td>${e.employee_code||'-'}</td><td>${empName(e)}</td><td>${SRC_LABEL[r.source]||r.source}</td>`+
+       `<td>${r.opened_date}</td><td style="color:${escColor}">${ESC_LABEL[r.escalation_level]||r.escalation_level}</td><td>${btn}</td></tr>`;
+  });
+  box.innerHTML=h+'</table>';
+}
+async function resolvePending(id){
+  if(!confirm('ยืนยันปิดเคสนี้? (บันทึกว่าตรวจสอบแล้ว)')) return;
+  const { error } = await db.from('pending_cases')
+    .update({ status:'resolved', acknowledged_by:currentEmpId, acknowledged_at:new Date().toISOString() }).eq('id',id);
+  if(error){ alert('ปิดเคสไม่สำเร็จ: '+error.message); return; }
+  await loadPendingCases();
 }
 
 init();
