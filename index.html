@@ -10,8 +10,19 @@
   :root{--ink:#1C1A17;--ink2:#3A352E;--muted:#8C8479;--tan:#B26A2B;--tan2:#9A5A22;
     --tan-soft:#EBDCC8;--paper:#F2EEE8;--card:#FFF;--line:#E4DDD2;
     --green:#1E7D52;--green-bg:#E4F0E9;--red:#C2391F;--red-bg:#F6E0DB;
+    --amber:#9A6A00;--amber-bg:#FBF1D6;
     --font:'IBM Plex Sans Thai','Sarabun',-apple-system,'Segoe UI',sans-serif;}
   *{box-sizing:border-box;margin:0;padding:0}
+  .bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:10px}
+  .bcard{border:1px solid var(--line);border-radius:12px;padding:11px 13px;border-left:5px solid var(--muted);background:var(--paper)}
+  .bcard.green{border-left-color:var(--green);background:var(--green-bg)}
+  .bcard.yellow{border-left-color:var(--amber);background:var(--amber-bg)}
+  .bcard.red{border-left-color:var(--red);background:var(--red-bg)}
+  .bcard .bn{font-weight:700;font-size:13.5px;margin-bottom:5px;line-height:1.3}
+  .bcard .bs{font-size:11.5px;color:var(--ink2);line-height:1.7}
+  .rgroup h3{font-size:13.5px;color:var(--muted);margin:14px 0 8px;font-weight:600}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:0}
+  .dot.g{background:var(--green)}.dot.y{background:var(--amber)}.dot.r{background:var(--red)}.dot.n{background:var(--muted)}
   body{font-family:var(--font);background:var(--paper);color:var(--ink);line-height:1.5}
   .top{background:var(--ink);color:#fff;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
   .brand{font-weight:700;font-size:18px;display:flex;align-items:center;gap:10px}
@@ -98,6 +109,20 @@
     </div>
 
     <div class="panel on" id="p-dash">
+      <div class="card">
+        <h2>สถานะรายสาขา
+          <span style="float:right;display:flex;gap:8px;align-items:center">
+            <input id="bg_date" type="date" style="width:auto;padding:6px 10px">
+            <button class="ebtn" onclick="loadBranchGrid()">🔄 ดู</button>
+          </span>
+        </h2>
+        <div style="font-size:12px;color:var(--muted);margin:-4px 0 10px">
+          <span class="dot g"></span>ปกติ · <span class="dot y"></span>มีคนสาย · <span class="dot r"></span>มีคนขาด/รอตรวจ · <span class="dot n"></span>ยังไม่มีข้อมูล · <b>กติกา "แย่สุดชนะ"</b>
+        </div>
+        <input id="bg_search" placeholder="🔍 ค้นหาสาขา…" oninput="renderBranchGrid()" style="margin-bottom:10px">
+        <div id="bg_summary" class="kpis" style="margin-bottom:12px"></div>
+        <div id="branch_grid"><div class="empty">กำลังโหลด…</div></div>
+      </div>
       <div class="card"><h2>ภาพรวมระบบ <button class="ebtn" style="float:right" onclick="loadDashboard()">🔄 รีเฟรช</button></h2><div class="kpis" id="dash_kpis"></div></div>
       <div class="card"><h2>พนักงานแยกตามสาขา</h2><div id="dash_by_branch"><div class="empty">กำลังโหลด…</div></div></div>
       <div class="card"><h2>สาขาแยกตามจังหวัด</h2><div id="dash_by_province"><div class="empty">กำลังโหลด…</div></div></div>
@@ -264,7 +289,7 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));
   t.classList.add('on');document.getElementById('p-'+t.dataset.t).classList.add('on');
-  if(t.dataset.t==='dash') loadDashboard();
+  if(t.dataset.t==='dash'){ loadDashboard(); loadBranchGrid(); }
   if(t.dataset.t==='attend'){ const d=document.getElementById('at_date'); if(!d.value) d.value=bkkToday(); loadAttendance(); }
   if(t.dataset.t==='approvals') loadApprovals();
 });
@@ -299,7 +324,7 @@ async function afterLogin(){
   document.getElementById('login').style.display='none';
   document.getElementById('appshell').style.display='block';
   document.getElementById('whoami').textContent='สวัสดี, '+(emp.first_name||user.email)+' · '+roleLabel(emp.role);
-  await loadRegions(); await loadBranches(); await loadEmployees(); loadDashboard();
+  await loadRegions(); await loadBranches(); await loadEmployees(); loadDashboard(); loadBranchGrid();
 }
 async function loadDashboard(){
   const staff = employeesData.filter(e=>e.role==='staff');   // แสดงแค่พนักงาน (ไม่รวมเจ้าของ/HR)
@@ -322,6 +347,65 @@ async function loadDashboard(){
   let h2='<table><tr><th>จังหวัด</th><th>จำนวนสาขา</th></tr>';
   Object.keys(byProv).sort().forEach(k=>h2+=`<tr><td>${k}</td><td>${byProv[k]} สาขา</td></tr>`);
   document.getElementById('dash_by_province').innerHTML = branchesData.length? h2+'</table>' : '<div class="empty">ยังไม่มีสาขา</div>';
+}
+// ---------- การ์ดสถานะรายสาขา (DL-34/35/36) — คำนวณ roll-up ฝั่งเว็บ ----------
+let branchGridData=[];
+async function loadBranchGrid(){
+  const dEl=document.getElementById('bg_date'); if(!dEl.value) dEl.value=bkkToday();
+  const day=dEl.value, today=bkkToday();
+  const grid=document.getElementById('branch_grid'); grid.innerHTML='<div class="empty">กำลังโหลด…</div>';
+  const { data: att, error } = await db.from('attendance_records')
+    .select('employee_id,working_branch_id,status,late_minutes').eq('work_date', day);
+  if(error){ grid.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
+  const attByEmp={}; (att||[]).forEach(r=>attByEmp[r.employee_id]=r);
+  const staff=employeesData.filter(e=>e.role==='staff');
+  const b={}; branchesData.forEach(br=>b[br.branch_id]={br,on_time:0,late:0,pending:0,absent:0,notyet:0,total:0});
+  staff.forEach(s=>{
+    const rec=attByEmp[s.employee_id]; let bid, bucket;
+    if(rec){
+      if(rec.status==='absent'){ bid=s.home_branch_id; bucket='absent'; }
+      else if(rec.status==='pending'){ bid=rec.working_branch_id||s.home_branch_id; bucket='pending'; }
+      else if(rec.late_minutes>0){ bid=rec.working_branch_id||s.home_branch_id; bucket='late'; }
+      else { bid=rec.working_branch_id||s.home_branch_id; bucket='on_time'; }
+    } else { bid=s.home_branch_id; bucket=(day<today)?'absent':'notyet'; }
+    if(!bid||!b[bid]) return;
+    b[bid][bucket]++; b[bid].total++;
+  });
+  branchGridData=Object.values(b).map(x=>{
+    let color; if(x.pending>0||x.absent>0) color='red'; else if(x.late>0) color='yellow';
+    else if(x.on_time>0) color='green'; else color='gray';
+    return {...x, color};
+  });
+  renderBranchGrid();
+}
+function renderBranchGrid(){
+  const q=(document.getElementById('bg_search').value||'').trim().toLowerCase();
+  const cnt={red:0,yellow:0,green:0,gray:0}; branchGridData.forEach(x=>cnt[x.color]++);
+  document.getElementById('bg_summary').innerHTML=
+    `<div class="kpi"><div class="n" style="color:var(--red)">${cnt.red}</div><div class="l">สาขาแดง</div></div>`+
+    `<div class="kpi"><div class="n" style="color:var(--amber)">${cnt.yellow}</div><div class="l">สาขาเหลือง</div></div>`+
+    `<div class="kpi"><div class="n" style="color:var(--green)">${cnt.green}</div><div class="l">สาขาเขียว</div></div>`;
+  const rows=branchGridData.filter(x=>!q||x.br.name.toLowerCase().includes(q));
+  if(!rows.length){ document.getElementById('branch_grid').innerHTML='<div class="empty">ไม่พบสาขา</div>'; return; }
+  const byReg={}; rows.forEach(x=>{ const rn=x.br.regions?x.br.regions.name:'(ไม่ระบุภูมิภาค)'; (byReg[rn]=byReg[rn]||[]).push(x); });
+  const order={red:0,yellow:1,green:2,gray:3};
+  let html='';
+  Object.keys(byReg).sort().forEach(rn=>{
+    const list=byReg[rn].sort((a,c)=>order[a.color]-order[c.color]||a.br.name.localeCompare(c.br.name));
+    html+=`<div class="rgroup"><h3>${rn} (${list.length} สาขา)</h3><div class="bgrid">`;
+    list.forEach(x=>{
+      const parts=[];
+      if(x.on_time) parts.push('ตรงเวลา '+x.on_time);
+      if(x.late) parts.push('สาย '+x.late);
+      if(x.pending) parts.push('รอตรวจ '+x.pending);
+      if(x.absent) parts.push('ขาด '+x.absent);
+      if(x.notyet) parts.push('ยังไม่เข้า '+x.notyet);
+      const detail=x.total? parts.join(' · ') : 'ไม่มีพนักงานประจำ';
+      html+=`<div class="bcard ${x.color}"><div class="bn">${x.br.name}</div><div class="bs">${detail}</div></div>`;
+    });
+    html+='</div></div>';
+  });
+  document.getElementById('branch_grid').innerHTML=html;
 }
 function bkkToday(){ return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'}); }
 async function makeSignedSelfie(path){
