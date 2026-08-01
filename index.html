@@ -420,7 +420,7 @@ async function loadAttendance(){
   const box=document.getElementById('at_list'), kpi=document.getElementById('at_kpis');
   box.innerHTML='<div class="empty">กำลังโหลด…</div>'; kpi.innerHTML='';
   const { data, error } = await db.from('attendance_records')
-    .select('id,clock_in_time,status,late_minutes,selfie_path,employee_id,employees(employee_code,first_name,last_name,nickname),branches(name)')
+    .select('id,clock_in_time,status,late_minutes,selfie_path,employee_id,employees(employee_code,first_name,last_name,nickname),branches(name),ot_records(ot_clock_out_time,ot_hours,ot_status)')
     .eq('work_date', day).order('clock_in_time',{ascending:true});
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
   attendanceData = data||[];
@@ -434,18 +434,22 @@ async function loadAttendance(){
     `<div class="kpi"><div class="n">${total}</div><div class="l">เข้างานแล้ว</div></div>`+
     `<div class="kpi"><div class="n">${late}</div><div class="l">มาสาย</div></div>`+
     `<div class="kpi"><div class="n">${pend}</div><div class="l">รอ HR ยืนยัน</div></div>`;
-  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เวลาเข้า</th><th>สาขา</th><th>สถานะ</th><th>รูป</th><th></th></tr>';
+  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เวลาเข้า</th><th>เวลาออก</th><th>สาขา</th><th>สถานะ</th><th>รูป</th><th></th></tr>';
   data.forEach(r=>{
     const e=r.employees||{}; const name=(e.first_name||'')+' '+(e.last_name||'');
     const t=r.clock_in_time? new Date(r.clock_in_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}):'-';
     const lateTxt=r.late_minutes>0? ' (สาย '+r.late_minutes+' น.)':'';
+    const otRec = Array.isArray(r.ot_records) ? r.ot_records[0] : r.ot_records;
+    const outT = otRec && otRec.ot_clock_out_time
+      ? new Date(otRec.ot_clock_out_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}) + (otRec.ot_hours>0 ? ' (OT '+otRec.ot_hours+' ชม.)' : '')
+      : '<span style="color:var(--muted)">ยังไม่ออก</span>';
     const stTxt = r.status==='pending' ? '<span style="color:var(--red)">รอยืนยัน</span>'
                 : r.status==='absent' ? '<span style="color:var(--red)">ขาด</span>'
                 : r.late_minutes>0 ? '<span style="color:var(--amber)">สาย</span>'
                 : '<span style="color:var(--green)">ปกติ</span>';
     const photo = r.selfie_path ? `<button class="ebtn" onclick="viewSelfie('${r.selfie_path}')">ดูรูป</button>` : '-';
     const editBtn = editable ? `<button class="ebtn" onclick="openAttEdit('${r.id}')">แก้ไข</button>` : '';
-    h+=`<tr><td>${e.employee_code||'-'}</td><td>${name}</td><td>${t}${lateTxt}</td><td>${r.branches?r.branches.name:'-'}</td><td>${stTxt}</td><td>${photo}</td><td>${editBtn}</td></tr>`;
+    h+=`<tr><td>${e.employee_code||'-'}</td><td>${name}</td><td>${t}${lateTxt}</td><td>${outT}</td><td>${r.branches?r.branches.name:'-'}</td><td>${stTxt}</td><td>${photo}</td><td>${editBtn}</td></tr>`;
   });
   box.innerHTML=h+'</table>';
 }
