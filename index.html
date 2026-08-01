@@ -264,6 +264,7 @@
         <option value="absent">ขาด (ไม่มาทำงาน)</option>
       </select>
       <div id="ae_timewrap"><label>เวลาเข้างาน</label><input id="ae_time" type="time"><div style="font-size:11.5px;color:var(--muted);margin-top:4px">ระบบคิดสายอัตโนมัติจากเวลานี้ (เริ่มนับ 07:00)</div></div>
+      <div id="ae_otwrap"><label>เวลาออกงาน (OT)</label><input id="ae_ottime" type="time"><div style="font-size:11.5px;color:var(--muted);margin-top:4px">เว้นว่างไว้ถ้ายังไม่ออกงาน · ระบบคิดชั่วโมง OT อัตโนมัติจากเวลานี้</div></div>
       <button class="btn" onclick="saveAttEdit()">บันทึกการแก้ไข</button>
       <button class="btn" onclick="closeAttEdit()" style="background:#8C8479;margin-top:8px">ยกเลิก</button>
       <div id="ae_msg" class="msg"></div>
@@ -420,7 +421,7 @@ async function loadAttendance(){
   const box=document.getElementById('at_list'), kpi=document.getElementById('at_kpis');
   box.innerHTML='<div class="empty">กำลังโหลด…</div>'; kpi.innerHTML='';
   const { data, error } = await db.from('attendance_records')
-    .select('id,clock_in_time,status,late_minutes,selfie_path,employee_id,employees(employee_code,first_name,last_name,nickname),branches(name),ot_records(ot_clock_out_time,ot_hours,ot_status)')
+    .select('id,clock_in_time,status,late_minutes,selfie_path,employee_id,employees(employee_code,first_name,last_name,nickname),branches(name),ot_records(id,ot_clock_out_time,ot_hours,ot_status)')
     .eq('work_date', day).order('clock_in_time',{ascending:true});
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
   attendanceData = data||[];
@@ -465,11 +466,18 @@ function openAttEdit(id){
   document.getElementById('ae_status').value=r.status;
   const hhmm=r.clock_in_time ? new Date(r.clock_in_time).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Bangkok'}) : '07:00';
   document.getElementById('ae_time').value=hhmm;
+  const otRec = Array.isArray(r.ot_records) ? r.ot_records[0] : r.ot_records;
+  const otHHMM = otRec && otRec.ot_clock_out_time ? new Date(otRec.ot_clock_out_time).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Bangkok'}) : '';
+  document.getElementById('ae_ottime').value = otHHMM;
   aeToggleTime();
   document.getElementById('ae_msg').className='msg'; document.getElementById('ae_msg').textContent='';
   document.getElementById('att_modal').style.display='flex';
 }
-function aeToggleTime(){ document.getElementById('ae_timewrap').style.display = document.getElementById('ae_status').value==='absent' ? 'none' : 'block'; }
+function aeToggleTime(){
+  const show = document.getElementById('ae_status').value!=='absent' ? 'block' : 'none';
+  document.getElementById('ae_timewrap').style.display = show;
+  document.getElementById('ae_otwrap').style.display = show;
+}
 function closeAttEdit(){ document.getElementById('att_modal').style.display='none'; attEditId=null; }
 async function saveAttEdit(){
   const r=attendanceData.find(x=>x.id===attEditId); if(!r) return;
@@ -484,8 +492,25 @@ async function saveAttEdit(){
          payload={status, clock_in_time:bkkTimestamp(day,hhmm), late_minutes:calcLate(day,hhmm)}; }
   const { error } = await db.from('attendance_records').update(payload).eq('id',attEditId);
   if(error){ showMsg('ae_msg',false,'บันทึกไม่สำเร็จ: '+error.message); return; }
+
+  // จัดการเวลาออกงาน (OT)
+  const otHHMM = status==='absent' ? '' : document.getElementById('ae_ottime').value;
+  const existingOt = Array.isArray(r.ot_records) ? r.ot_records[0] : r.ot_records;
+  if(otHHMM){
+    const otTime = bkkTimestamp(day, otHHMM);
+    const { data: otHours, error: hoursErr } = await db.rpc('fn_calc_ot_hours', { p_work_date: day, p_clock_out: otTime });
+    if(hoursErr){ showMsg('ae_msg',false,'คำนวณชั่วโมง OT ไม่สำเร็จ: '+hoursErr.message); return; }
+    const otPayload = { ot_clock_out_time: otTime, ot_hours: otHours||0, ot_status: (otHours>0?'YES':'NO'), face_verified:true, status:'complete' };
+    const { error: otErr } = existingOt
+      ? await db.from('ot_records').update(otPayload).eq('id', existingOt.id)
+      : await db.from('ot_records').insert({ attendance_id: attEditId, ...otPayload });
+    if(otErr){ showMsg('ae_msg',false,'บันทึกเวลาออกงานไม่สำเร็จ: '+otErr.message); return; }
+  }else if(existingOt){
+    await db.from('ot_records').update({ ot_clock_out_time:null, ot_hours:0, ot_status:'NO' }).eq('id', existingOt.id);
+  }
+
   await db.from('audit_logs').insert({ actor_id:currentEmpId, action:'hr_edit_attendance', target_ref:attEditId,
-    detail:{ work_date:day, from:{status:r.status,late:r.late_minutes}, to:payload } });
+    detail:{ work_date:day, from:{status:r.status,late:r.late_minutes}, to:payload, ot_time:otHHMM||null } });
   closeAttEdit(); await loadAttendance();
 }
 async function addBackdated(){
