@@ -132,7 +132,7 @@
       <div class="card">
         <h2>การเข้างาน
           <span style="float:right;display:flex;gap:8px;align-items:center">
-            <input id="at_date" type="date" style="width:auto;padding:6px 10px">
+            <input id="at_date" type="date" style="width:auto;padding:6px 10px" onchange="loadAttendance()">
             <button class="ebtn" onclick="loadAttendance()">🔄 ดู</button>
           </span>
         </h2>
@@ -469,6 +469,8 @@ function closeAttEdit(){ document.getElementById('att_modal').style.display='non
 async function saveAttEdit(){
   const r=attendanceData.find(x=>x.id===attEditId); if(!r) return;
   const day=document.getElementById('at_date').value;
+  const diff=daysBetween(day);
+  if(diff<0 || diff>60){ showMsg('ae_msg',false,'แก้ไขย้อนหลังได้เฉพาะช่วง 0-60 วันเท่านั้น'); return; }
   const status=document.getElementById('ae_status').value;
   const hhmm=document.getElementById('ae_time').value;
   let payload;
@@ -483,6 +485,8 @@ async function saveAttEdit(){
 }
 async function addBackdated(){
   const day=document.getElementById('at_date').value;
+  const diff=daysBetween(day);
+  if(diff<0 || diff>60){ showMsg('bd_msg',false,'แก้ไขย้อนหลังได้เฉพาะช่วง 0-60 วันเท่านั้น'); return; }
   const empId=document.getElementById('bd_emp').value;
   const hhmm=document.getElementById('bd_time').value;
   if(!empId){ showMsg('bd_msg',false,'เลือกพนักงานก่อน'); return; }
@@ -886,7 +890,7 @@ async function loadApprovals(){ await loadWaivers(); await loadPendingCases(); }
 async function loadWaivers(){
   const box=document.getElementById('wv_list'); box.innerHTML='<div class="empty">กำลังโหลด…</div>';
   const { data, error } = await db.from('ot_waiver_requests')
-    .select('id,request_date,status,employees(employee_code,first_name,last_name,nickname)')
+    .select('id,request_date,status,employees!employee_id(employee_code,first_name,last_name,nickname)')
     .eq('status','pending').order('request_date',{ascending:true});
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
   if(!data||!data.length){ box.innerHTML='<div class="empty">ไม่มีคำขอค้างอนุมัติ</div>'; return; }
@@ -909,7 +913,7 @@ async function decideWaiver(id, decision){
 async function loadPendingCases(){
   const box=document.getElementById('pc_list'); box.innerHTML='<div class="empty">กำลังโหลด…</div>';
   const { data, error } = await db.from('pending_cases')
-    .select('id,source,opened_date,escalation_level,employees(employee_code,first_name,last_name,nickname)')
+    .select('id,source,opened_date,escalation_level,employees!employee_id(employee_code,first_name,last_name,nickname)')
     .eq('status','open').order('opened_date',{ascending:true});
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
   if(!data||!data.length){ box.innerHTML='<div class="empty">ไม่มีเคสค้าง 🎉</div>'; return; }

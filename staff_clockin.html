@@ -354,7 +354,8 @@ async function renderExtra(){
     }else{
       waiverHtml = `<button class="btn ghost" onclick="requestOtWaiver()">🙋 ขอไม่ทำ OT วันนี้</button>`;
     }
-    const canExit = bkkMinutesNow() >= 990;   // 16:30 = 16*60+30 = 990 (DL-13)
+    const waiverApproved = waiver && waiver.status==='approved';
+    const canExit = waiverApproved || bkkMinutesNow() >= 990;   // 16:30 = 16*60+30 = 990 (DL-13); HR อนุมัติแล้วออกก่อนได้ (DL-15)
     otBox.innerHTML = waiverHtml + (canExit
       ? `<button class="btn" style="margin-top:10px" onclick="startOtClockOut()">📸 ออกงาน (OT)</button>`
       : `<div class="msg" style="display:block;margin-top:10px">ปุ่มออกงาน OT จะเปิดให้กดตั้งแต่ 16:30 น.</div>`);
