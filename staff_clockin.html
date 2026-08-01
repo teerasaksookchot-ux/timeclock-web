@@ -355,10 +355,10 @@ async function renderExtra(){
       waiverHtml = `<button class="btn ghost" onclick="requestOtWaiver()">🙋 ขอไม่ทำ OT วันนี้</button>`;
     }
     const waiverApproved = waiver && waiver.status==='approved';
-    const canExit = waiverApproved || bkkMinutesNow() >= 990;   // 16:30 = 16*60+30 = 990 (DL-13); HR อนุมัติแล้วออกก่อนได้ (DL-15)
+    const canExit = waiverApproved || bkkMinutesNow() >= 1140;   // 19:00 = 19*60 = 1140 (เวลาเลิกงานรวม OT) — ออกก่อนได้เฉพาะ HR อนุมัติคำขอไม่ทำ OT แล้ว (DL-15)
     otBox.innerHTML = waiverHtml + (canExit
       ? `<button class="btn" style="margin-top:10px" onclick="startOtClockOut()">📸 ออกงาน (OT)</button>`
-      : `<div class="msg" style="display:block;margin-top:10px">ปุ่มออกงาน OT จะเปิดให้กดตั้งแต่ 16:30 น.</div>`);
+      : `<div class="msg" style="display:block;margin-top:10px">ปุ่มออกงานจะเปิดให้กดตั้งแต่ 19:00 น. — ถ้าจะออกก่อน ต้องกด "ขอไม่ทำ OT" แล้วรอ HR อนุมัติก่อน</div>`);
   }
 
   // --- Personal Leave (DL-20..24) ---
