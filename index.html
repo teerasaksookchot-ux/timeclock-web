@@ -441,6 +441,7 @@ async function loadAttendance(){
     const lateTxt=r.late_minutes>0? ' (สาย '+r.late_minutes+' น.)':'';
     const stTxt = r.status==='pending' ? '<span style="color:var(--red)">รอยืนยัน</span>'
                 : r.status==='absent' ? '<span style="color:var(--red)">ขาด</span>'
+                : r.late_minutes>0 ? '<span style="color:var(--amber)">สาย</span>'
                 : '<span style="color:var(--green)">ปกติ</span>';
     const photo = r.selfie_path ? `<button class="ebtn" onclick="viewSelfie('${r.selfie_path}')">ดูรูป</button>` : '-';
     const editBtn = editable ? `<button class="ebtn" onclick="openAttEdit('${r.id}')">แก้ไข</button>` : '';
@@ -890,7 +891,7 @@ async function loadApprovals(){ await loadWaivers(); await loadPendingCases(); }
 async function loadWaivers(){
   const box=document.getElementById('wv_list'); box.innerHTML='<div class="empty">กำลังโหลด…</div>';
   const { data, error } = await db.from('ot_waiver_requests')
-    .select('id,request_date,status,employees!employee_id(employee_code,first_name,last_name,nickname)')
+    .select('id,request_date,status,employees!ot_waiver_requests_employee_id_fkey(employee_code,first_name,last_name,nickname)')
     .eq('status','pending').order('request_date',{ascending:true});
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
   if(!data||!data.length){ box.innerHTML='<div class="empty">ไม่มีคำขอค้างอนุมัติ</div>'; return; }
@@ -913,7 +914,7 @@ async function decideWaiver(id, decision){
 async function loadPendingCases(){
   const box=document.getElementById('pc_list'); box.innerHTML='<div class="empty">กำลังโหลด…</div>';
   const { data, error } = await db.from('pending_cases')
-    .select('id,source,opened_date,escalation_level,employees!employee_id(employee_code,first_name,last_name,nickname)')
+    .select('id,source,opened_date,escalation_level,employees!pending_cases_employee_id_fkey(employee_code,first_name,last_name,nickname)')
     .eq('status','open').order('opened_date',{ascending:true});
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
   if(!data||!data.length){ box.innerHTML='<div class="empty">ไม่มีเคสค้าง 🎉</div>'; return; }
