@@ -146,6 +146,7 @@
           <div><label>พนักงาน</label><select id="bd_emp"></select></div>
           <div><label>เวลาเข้างาน</label><input id="bd_time" type="time"></div>
         </div>
+        <label>เวลาออกงาน (OT) — เว้นว่างได้ถ้าไม่มี</label><input id="bd_ottime" type="time">
         <button class="btn" onclick="addBackdated()">บันทึกย้อนหลัง</button>
         <div id="bd_msg" class="msg"></div>
       </div>
@@ -519,20 +520,31 @@ async function addBackdated(){
   if(diff<0 || diff>60){ showMsg('bd_msg',false,'แก้ไขย้อนหลังได้เฉพาะช่วง 0-60 วันเท่านั้น'); return; }
   const empId=document.getElementById('bd_emp').value;
   const hhmm=document.getElementById('bd_time').value;
+  const otHHMM=document.getElementById('bd_ottime').value;
   if(!empId){ showMsg('bd_msg',false,'เลือกพนักงานก่อน'); return; }
   if(!hhmm){ showMsg('bd_msg',false,'ใส่เวลาเข้างาน'); return; }
   const emp=employeesData.find(x=>x.employee_id===empId);
-  const { error } = await db.from('attendance_records').insert({
+  const { data:newAtt, error } = await db.from('attendance_records').insert({
     employee_id:empId, work_date:day, clock_in_time:bkkTimestamp(day,hhmm),
-    working_branch_id: emp?emp.home_branch_id:null, status:'normal', late_minutes:calcLate(day,hhmm) });
+    working_branch_id: emp?emp.home_branch_id:null, status:'normal', late_minutes:calcLate(day,hhmm) }).select().single();
   if(error){
     showMsg('bd_msg',false, /duplicate|unique/i.test(error.message)?'มีบันทึกของคนนี้ในวันนี้แล้ว — ใช้ปุ่ม "แก้ไข" ในตารางแทน':('บันทึกไม่สำเร็จ: '+error.message));
     return;
   }
+  if(otHHMM){
+    const otTime=bkkTimestamp(day,otHHMM);
+    const { data: otHours, error: hoursErr } = await db.rpc('fn_calc_ot_hours', { p_work_date: day, p_clock_out: otTime });
+    if(hoursErr){ showMsg('bd_msg',false,'คำนวณชั่วโมง OT ไม่สำเร็จ: '+hoursErr.message); return; }
+    const { error: otErr } = await db.from('ot_records').insert({
+      attendance_id:newAtt.id, ot_clock_out_time:otTime, ot_hours:otHours||0,
+      ot_status:(otHours>0?'YES':'NO'), face_verified:true, status:'complete' });
+    if(otErr){ showMsg('bd_msg',false,'บันทึกเวลาออกงานไม่สำเร็จ: '+otErr.message); return; }
+  }
   await db.from('audit_logs').insert({ actor_id:currentEmpId, action:'hr_backdate_attendance', target_ref:empId,
-    detail:{ work_date:day, time:hhmm } });
+    detail:{ work_date:day, time:hhmm, ot_time:otHHMM||null } });
   showMsg('bd_msg',true,'✅ เพิ่มบันทึกย้อนหลังแล้ว');
   document.getElementById('bd_time').value='';
+  document.getElementById('bd_ottime').value='';
   await loadAttendance();
 }
 function fillBackdateEmps(){
