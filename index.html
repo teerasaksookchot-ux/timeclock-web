@@ -131,7 +131,9 @@
     <div class="panel" id="p-attend">
       <div class="card">
         <h2>การเข้างาน
-          <span style="float:right;display:flex;gap:8px;align-items:center">
+          <span style="float:right;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="at_region" style="width:auto;padding:6px 10px" onchange="fillAtBranchFilter();loadAttendance();"><option value="">ทุกภาค</option></select>
+            <select id="at_branch" style="width:auto;padding:6px 10px" onchange="loadAttendance()"><option value="">ทุกสาขา</option></select>
             <input id="at_date" type="date" style="width:auto;padding:6px 10px" onchange="loadAttendance()">
             <button class="ebtn" onclick="loadAttendance()">🔄 ดู</button>
           </span>
@@ -288,12 +290,27 @@ function fillRoleOptions(curr){
 function lmsg(ok,t){const m=document.getElementById('l_msg');m.className='msg '+(ok?'ok':'err');m.textContent=t;}
 function showMsg(id,ok,t){const m=document.getElementById(id);m.className='msg '+(ok?'ok':'err');m.textContent=t;}
 
-document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+function switchTab(name){
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));
-  t.classList.add('on');document.getElementById('p-'+t.dataset.t).classList.add('on');
+  document.querySelector('.tab[data-t="'+name+'"]').classList.add('on');
+  document.getElementById('p-'+name).classList.add('on');
+}
+function jumpToBranchAttendance(branchId){
+  switchTab('attend');
+  const bgDate=document.getElementById('bg_date').value || bkkToday();
+  document.getElementById('at_date').value = bgDate;
+  loadAtFilters().then(()=>{
+    document.getElementById('at_region').value = '';
+    fillAtBranchFilter();
+    document.getElementById('at_branch').value = branchId;
+    loadAttendance();
+  });
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  switchTab(t.dataset.t);
   if(t.dataset.t==='dash'){ loadDashboard(); loadBranchGrid(); }
-  if(t.dataset.t==='attend'){ const d=document.getElementById('at_date'); if(!d.value) d.value=bkkToday(); loadAttendance(); }
+  if(t.dataset.t==='attend'){ const d=document.getElementById('at_date'); if(!d.value) d.value=bkkToday(); loadAtFilters(); loadAttendance(); }
   if(t.dataset.t==='approvals') loadApprovals();
 });
 
@@ -406,7 +423,7 @@ function renderBranchGrid(){
       if(x.absent) parts.push('ขาด '+x.absent);
       if(x.notyet) parts.push('ยังไม่เข้า '+x.notyet);
       const detail=x.total? parts.join(' · ') : 'ไม่มีพนักงานประจำ';
-      html+=`<div class="bcard ${x.color}"><div class="bn">${x.br.name}</div><div class="bs">${detail}</div></div>`;
+      html+=`<div class="bcard ${x.color}" style="cursor:pointer" onclick="jumpToBranchAttendance('${x.br.branch_id}')"><div class="bn">${x.br.name}</div><div class="bs">${detail}</div></div>`;
     });
     html+='</div></div>';
   });
@@ -420,13 +437,38 @@ async function makeSignedSelfie(path){
 }
 let attendanceData=[], attEditId=null;
 function daysBetween(dstr){ const d=new Date(dstr+'T00:00:00+07:00'), today=new Date(bkkToday()+'T00:00:00+07:00'); return Math.round((today-d)/86400000); }
+async function loadAtFilters(){
+  const { data } = await db.from('regions').select('*').eq('is_active',true).order('name');
+  const s=document.getElementById('at_region'); const cur=s.value;
+  s.innerHTML='<option value="">ทุกภาค</option>';
+  (data||[]).forEach(r=>s.innerHTML+=`<option value="${r.region_id}">${r.name}</option>`);
+  if([...s.options].some(o=>o.value===cur)) s.value=cur;
+  fillAtBranchFilter();
+}
+function fillAtBranchFilter(){
+  const regionId=document.getElementById('at_region').value;
+  const s=document.getElementById('at_branch'); const cur=s.value;
+  const list = regionId ? branchesData.filter(b=>b.region_id===regionId) : branchesData;
+  s.innerHTML='<option value="">ทุกสาขา</option>';
+  list.forEach(b=>s.innerHTML+=`<option value="${b.branch_id}">${b.name}</option>`);
+  if(list.some(b=>b.branch_id===cur)) s.value=cur;
+}
 async function loadAttendance(){
   const day = document.getElementById('at_date').value || bkkToday();
+  const regionId = document.getElementById('at_region').value;
+  const branchId = document.getElementById('at_branch').value;
   const box=document.getElementById('at_list'), kpi=document.getElementById('at_kpis');
   box.innerHTML='<div class="empty">กำลังโหลด…</div>'; kpi.innerHTML='';
-  const { data, error } = await db.from('attendance_records')
+  let q = db.from('attendance_records')
     .select('id,clock_in_time,status,late_minutes,selfie_path,employee_id,updated_at,updated_by,employees!attendance_records_employee_id_fkey(employee_code,first_name,last_name,nickname),branches(name),ot_records(id,ot_clock_out_time,ot_hours,ot_status)')
-    .eq('work_date', day).order('clock_in_time',{ascending:true});
+    .eq('work_date', day);
+  if(branchId){
+    q = q.eq('working_branch_id', branchId);
+  }else if(regionId){
+    const ids = branchesData.filter(b=>b.region_id===regionId).map(b=>b.branch_id);
+    q = q.in('working_branch_id', ids.length ? ids : ['00000000-0000-0000-0000-000000000000']);
+  }
+  const { data, error } = await q.order('clock_in_time',{ascending:true});
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
   attendanceData = data||[];
   // แก้ย้อนหลังได้ไม่เกิน 60 วัน และไม่ใช่วันในอนาคต (DL-51)
