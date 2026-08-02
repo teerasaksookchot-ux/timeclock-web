@@ -233,6 +233,10 @@
           <div><label>ตั้งแต่วันที่</label><input id="pr_start" type="date"></div>
           <div><label>ถึงวันที่</label><input id="pr_end" type="date"></div>
         </div>
+        <div class="grid2">
+          <div><label>ภาค</label><select id="pr_region" onchange="fillPrBranchFilter()"><option value="">ทุกภาค</option></select></div>
+          <div><label>สาขา</label><select id="pr_branch"><option value="">ทุกสาขา</option></select></div>
+        </div>
         <button class="btn" id="pr_prepbtn" onclick="preparePayroll()">🔄 เตรียมข้อมูล</button>
         <div id="pr_msg" class="msg"></div>
       </div>
@@ -312,6 +316,7 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   if(t.dataset.t==='dash'){ loadDashboard(); loadBranchGrid(); }
   if(t.dataset.t==='attend'){ const d=document.getElementById('at_date'); if(!d.value) d.value=bkkToday(); loadAtFilters(); loadAttendance(); }
   if(t.dataset.t==='approvals') loadApprovals();
+  if(t.dataset.t==='payroll') loadPrFilters();
 });
 
 async function init(){
@@ -927,16 +932,40 @@ function calcRegularHours(workDate, clockInISO, otOutISO){
   return ms>0 ? Math.round((ms/3600000)*100)/100 : 0;
 }
 
+async function loadPrFilters(){
+  const { data } = await db.from('regions').select('*').eq('is_active',true).order('name');
+  const s=document.getElementById('pr_region'); const cur=s.value;
+  s.innerHTML='<option value="">ทุกภาค</option>';
+  (data||[]).forEach(r=>s.innerHTML+=`<option value="${r.region_id}">${r.name}</option>`);
+  if([...s.options].some(o=>o.value===cur)) s.value=cur;
+  fillPrBranchFilter();
+}
+function fillPrBranchFilter(){
+  const regionId=document.getElementById('pr_region').value;
+  const s=document.getElementById('pr_branch'); const cur=s.value;
+  const list = regionId ? branchesData.filter(b=>b.region_id===regionId) : branchesData;
+  s.innerHTML='<option value="">ทุกสาขา</option>';
+  list.forEach(b=>s.innerHTML+=`<option value="${b.branch_id}">${b.name}</option>`);
+  if(list.some(b=>b.branch_id===cur)) s.value=cur;
+}
 async function preparePayroll(){
   const start=document.getElementById('pr_start').value, end=document.getElementById('pr_end').value;
+  const regionId=document.getElementById('pr_region').value, branchId=document.getElementById('pr_branch').value;
   if(!start||!end){ showMsg('pr_msg',false,'กรุณาเลือกวันที่เริ่มและสิ้นสุด'); return; }
   if(start>end){ showMsg('pr_msg',false,'วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด'); return; }
   const btn=document.getElementById('pr_prepbtn'); btn.disabled=true; btn.textContent='กำลังเตรียมข้อมูล…';
   document.getElementById('pr_resultcard').style.display='none';
   try{
-    const { data: att, error: aerr } = await db.from('attendance_records')
+    let attQ = db.from('attendance_records')
       .select('id,employee_id,work_date,status,late_minutes,clock_in_time,working_branch_id')
       .gte('work_date', start).lte('work_date', end);
+    if(branchId){
+      attQ = attQ.eq('working_branch_id', branchId);
+    }else if(regionId){
+      const ids = branchesData.filter(b=>b.region_id===regionId).map(b=>b.branch_id);
+      attQ = attQ.in('working_branch_id', ids.length ? ids : ['00000000-0000-0000-0000-000000000000']);
+    }
+    const { data: att, error: aerr } = await attQ;
     if(aerr) throw aerr;
     const attIds = (att||[]).map(a=>a.id);
     let ot=[];
@@ -997,7 +1026,10 @@ async function preparePayroll(){
 
     payrollRows = rows; payrollPeriod = { start, end };
     renderPayrollPreview(rows);
-    showMsg('pr_msg', true, '✅ เตรียมข้อมูลสำเร็จ '+rows.length+' คน (ช่วง '+start+' ถึง '+end+')');
+    const scopeTxt = branchId ? (branchesData.find(b=>b.branch_id===branchId)?.name || 'สาขาที่เลือก')
+                    : regionId ? ('ภาค '+(document.getElementById('pr_region').selectedOptions[0]?.textContent||''))
+                    : 'ทุกสาขา';
+    showMsg('pr_msg', true, '✅ เตรียมข้อมูลสำเร็จ '+rows.length+' คน · '+scopeTxt+' (ช่วง '+start+' ถึง '+end+')');
   }catch(err){
     showMsg('pr_msg', false, 'เตรียมข้อมูลไม่สำเร็จ: '+(err.message||err));
   }
