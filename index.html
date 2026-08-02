@@ -669,7 +669,9 @@ function showDetail(id){
   let authSection;
   if(e.auth_user_id){
     authSection = `<p style="color:#1E7D52"><b>✓ มีบัญชี login แล้ว</b> (เข้าด้วยเบอร์ ${e.phone})</p>`+
-      (manage ? `<button class="btn" style="background:#B26A2B" onclick="manageAuth('${e.employee_id}','reset')">🔄 รีเซตรหัสผ่าน</button>` : '<p style="font-size:12px;color:#8C8479">ผู้ดูแล HR จัดการบัญชี login ของ HR/เจ้าของไม่ได้</p>');
+      (manage ? `<button class="btn" style="background:#B26A2B" onclick="manageAuth('${e.employee_id}','reset')">🔄 รีเซตรหัสผ่าน</button> `+
+                `<button class="btn ghost" style="margin-top:8px" onclick="manageAuth('${e.employee_id}','reactivate')">🩹 กู้บัญชี login (ถ้าเปิดใช้งานแล้วยังเข้าไม่ได้)</button>`
+              : '<p style="font-size:12px;color:#8C8479">ผู้ดูแล HR จัดการบัญชี login ของ HR/เจ้าของไม่ได้</p>');
   } else {
     authSection = `<p style="color:#8C8479">ยังไม่มีบัญชี login สำหรับเข้าแอป</p>`+
       (manage ? `<button class="btn" onclick="manageAuth('${e.employee_id}','create')">➕ สร้างบัญชี login</button>` : '');
@@ -703,11 +705,16 @@ async function manageAuth(employee_id, action){
     });
     const data = await res.json();
     if(!res.ok){ el.innerHTML='<span style="color:#C2391F">ไม่สำเร็จ: '+(data.error||'')+'</span>'; return; }
-    el.innerHTML='<div style="background:#E4F0E9;padding:12px;border-radius:10px">'+
-      `<b>${action==='create'?'✅ สร้างบัญชีแล้ว':'✅ รีเซตรหัสแล้ว'}</b><br>`+
-      `เบอร์เข้าระบบ: <b>${data.login_phone}</b><br>`+
-      `รหัสผ่านชั่วคราว: <b style="font-size:18px;color:#9A5A22">${data.temp_password}</b><br>`+
-      '<span style="font-size:12px;color:#3A352E">แจ้งรหัสนี้ให้พนักงาน → ใช้เข้าครั้งแรก → ระบบจะให้เปลี่ยนรหัสเอง</span></div>';
+    if(action==='reactivate'){
+      el.innerHTML='<div style="background:#E4F0E9;padding:12px;border-radius:10px"><b>✅ กู้บัญชี login แล้ว</b><br>'+
+        '<span style="font-size:12px;color:#3A352E">ลองเข้าสู่ระบบด้วยเบอร์โทร + รหัสผ่านเดิมได้เลย ถ้ายังเข้าไม่ได้ให้กด "รีเซตรหัสผ่าน"</span></div>';
+    }else{
+      el.innerHTML='<div style="background:#E4F0E9;padding:12px;border-radius:10px">'+
+        `<b>${action==='create'?'✅ สร้างบัญชีแล้ว':'✅ รีเซตรหัสแล้ว'}</b><br>`+
+        `เบอร์เข้าระบบ: <b>${data.login_phone}</b><br>`+
+        `รหัสผ่านชั่วคราว: <b style="font-size:18px;color:#9A5A22">${data.temp_password}</b><br>`+
+        '<span style="font-size:12px;color:#3A352E">แจ้งรหัสนี้ให้พนักงาน → ใช้เข้าครั้งแรก → ระบบจะให้เปลี่ยนรหัสเอง</span></div>';
+    }
     await loadEmployees();
   }catch(err){ el.innerHTML='<span style="color:#C2391F">เกิดข้อผิดพลาด: '+err+'</span>'; }
 }
