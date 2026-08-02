@@ -80,9 +80,9 @@
   <div class="loginbox">
     <div class="mk">⏱️</div>
     <h1>เข้าสู่ระบบ — ผู้ดูแล HR</h1>
-    <p>กรอกอีเมลและรหัสผ่านที่ตั้งไว้</p>
-    <label>อีเมล</label>
-    <input id="l_email" type="email" placeholder="hr@yourshop.com">
+    <p>กรอกอีเมล (เจ้าของ) หรือเบอร์โทร (HR/พนักงาน) + รหัสผ่านที่ตั้งไว้</p>
+    <label>อีเมล หรือ เบอร์โทร</label>
+    <input id="l_email" type="text" placeholder="hr@yourshop.com หรือ 0812345678">
     <label>รหัสผ่าน</label>
     <input id="l_pw" type="password" placeholder="••••••••">
     <button class="btn" onclick="doLogin()">เข้าสู่ระบบ</button>
@@ -306,9 +306,11 @@ async function init(){
 }
 
 async function doLogin(){
-  const email=document.getElementById('l_email').value.trim();
+  const input=document.getElementById('l_email').value.trim();
   const pw=document.getElementById('l_pw').value;
   if(!db){ lmsg(false,'ยังไม่ได้ตั้งค่าการเชื่อมต่อ'); return; }
+  // รองรับ HR/พนักงานที่บัญชีสร้างด้วยเบอร์โทร (แปลงเป็นอีเมลภายในแบบเดียวกับหน้าพนักงาน) รวมถึงอีเมลจริงของเจ้าของ
+  const email = input.includes('@') ? input : (input + '@staff.timeclock.local');
   const { error } = await db.auth.signInWithPassword({ email, password:pw });
   if(error){ lmsg(false,'อีเมลหรือรหัสผ่านไม่ถูกต้อง'); return; }
   await afterLogin();
