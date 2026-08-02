@@ -801,6 +801,18 @@ async function deactivateEmployee(id){
 let payrollRows=[], payrollPeriod=null;
 const PR_HEADERS=['รหัสพนักงาน','ชื่อ-สกุล','สาขาประจำ','สาขาที่ทำงาน','วันทำงาน','ชั่วโมงทำงาน','สถานะ OT','ชั่วโมง OT','สายรวม (นาที)','ลากิจรวม (นาที)'];
 
+// คิดชั่วโมงทำงานปกติสด ๆ จากเวลาเข้างานจริง (ไม่พึ่งคอลัมน์ work_hours ที่ปรับด้วย cron ตอน 16:00
+// เพราะ cron จะข้ามบันทึกที่เพิ่ม/แก้ทีหลัง 16:00 ของวันนั้นไปตลอดกาล) — เข้างาน..16:00 (BR-004)
+function calcRegularHours(workDate, clockInISO){
+  if(!clockInISO) return 0;
+  const clockIn = new Date(clockInISO);
+  const sevenAM = new Date(workDate+'T07:00:00+07:00');
+  const sixteenPM = new Date(workDate+'T16:00:00+07:00');
+  const start = clockIn > sevenAM ? clockIn : sevenAM;
+  const ms = sixteenPM - start;
+  return ms>0 ? Math.round((ms/3600000)*100)/100 : 0;
+}
+
 async function preparePayroll(){
   const start=document.getElementById('pr_start').value, end=document.getElementById('pr_end').value;
   if(!start||!end){ showMsg('pr_msg',false,'กรุณาเลือกวันที่เริ่มและสิ้นสุด'); return; }
@@ -809,7 +821,7 @@ async function preparePayroll(){
   document.getElementById('pr_resultcard').style.display='none';
   try{
     const { data: att, error: aerr } = await db.from('attendance_records')
-      .select('id,employee_id,work_date,status,late_minutes,work_hours,working_branch_id')
+      .select('id,employee_id,work_date,status,late_minutes,clock_in_time,working_branch_id')
       .gte('work_date', start).lte('work_date', end);
     if(aerr) throw aerr;
     const attIds = (att||[]).map(a=>a.id);
@@ -835,7 +847,7 @@ async function preparePayroll(){
     (att||[]).forEach(a=>{
       const g = agg[a.employee_id] || (agg[a.employee_id] = { workDays:0, workHours:0, lateMin:0, otHours:0, leaveMin:0, branchSet:new Set() });
       if(a.status!=='absent') g.workDays++;
-      g.workHours += Number(a.work_hours)||0;
+      g.workHours += calcRegularHours(a.work_date, a.clock_in_time);
       g.lateMin += Number(a.late_minutes)||0;
       if(a.working_branch_id) g.branchSet.add(a.working_branch_id);
     });
