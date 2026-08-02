@@ -644,11 +644,13 @@ async function loadEmployees(){
   renderRoleList('staff','e_list_staff');
   fillBackdateEmps();
 }
+function canManageEmp(e){ return currentRole==='owner' || (currentRole==='hr' && e.role==='staff'); }
 function empRow(e){
+  const manage = canManageEmp(e);
+  const editBtn = manage ? `<button class="ebtn" onclick="editEmployee('${e.employee_id}')">แก้ไข</button> ` : '';
+  const deactBtn = (manage && e.employee_id!==currentEmpId) ? `<button class="ebtn del" onclick="deactivateEmployee('${e.employee_id}')">ปิดใช้งาน</button>` : '';
   return `<tr><td>${e.employee_code}</td><td>${e.first_name} ${e.last_name} (${e.nickname||''})</td><td>${e.phone}</td><td>${e.branches?e.branches.name:'-'}</td><td>`+
-    `<button class="ebtn" onclick="showDetail('${e.employee_id}')">ดูข้อมูล</button> `+
-    `<button class="ebtn" onclick="editEmployee('${e.employee_id}')">แก้ไข</button> `+
-    `<button class="ebtn del" onclick="deactivateEmployee('${e.employee_id}')">ปิดใช้งาน</button></td></tr>`;
+    `<button class="ebtn" onclick="showDetail('${e.employee_id}')">ดูข้อมูล</button> ${editBtn}${deactBtn}</td></tr>`;
 }
 function renderRoleList(role, elId){
   const list=employeesData.filter(e=>e.role===role);
@@ -662,13 +664,14 @@ function whoName(uid){ if(!uid)return '—'; const p=employeesData.find(x=>x.emp
 function fmtTime(t){ return t? new Date(t).toLocaleString('th-TH') : '—'; }
 function showDetail(id){
   const e=employeesData.find(x=>x.employee_id===id); if(!e)return;
+  const manage = canManageEmp(e);
   let authSection;
   if(e.auth_user_id){
     authSection = `<p style="color:#1E7D52"><b>✓ มีบัญชี login แล้ว</b> (เข้าด้วยเบอร์ ${e.phone})</p>`+
-      `<button class="btn" style="background:#B26A2B" onclick="manageAuth('${e.employee_id}','reset')">🔄 รีเซตรหัสผ่าน</button>`;
+      (manage ? `<button class="btn" style="background:#B26A2B" onclick="manageAuth('${e.employee_id}','reset')">🔄 รีเซตรหัสผ่าน</button>` : '<p style="font-size:12px;color:#8C8479">ผู้ดูแล HR จัดการบัญชี login ของ HR/เจ้าของไม่ได้</p>');
   } else {
     authSection = `<p style="color:#8C8479">ยังไม่มีบัญชี login สำหรับเข้าแอป</p>`+
-      `<button class="btn" onclick="manageAuth('${e.employee_id}','create')">➕ สร้างบัญชี login</button>`;
+      (manage ? `<button class="btn" onclick="manageAuth('${e.employee_id}','create')">➕ สร้างบัญชี login</button>` : '');
   }
   document.getElementById('detail_body').innerHTML=
     `<b>ชื่อ:</b> ${e.first_name} ${e.last_name} (${e.nickname||''})<br>`+
@@ -685,6 +688,8 @@ function showDetail(id){
 }
 async function manageAuth(employee_id, action){
   const el=document.getElementById('auth_result');
+  const target=employeesData.find(x=>x.employee_id===employee_id);
+  if(!target || !canManageEmp(target)){ el.innerHTML='<span style="color:#C2391F">ไม่มีสิทธิ์จัดการบัญชี login นี้</span>'; return; }
   el.innerHTML='<span style="color:#8C8479">กำลังดำเนินการ…</span>';
   try{
     let { data:{ session } } = await db.auth.getSession();
@@ -729,9 +734,9 @@ async function addEmployee(){
     const me=employeesData.find(x=>x.employee_id===currentEmpId);
     if(me && me.role!==role){showMsg('e_msg',false,'ห้ามเปลี่ยน Role ของตัวเอง (ให้เจ้าของอีกคนเปลี่ยนให้)');return;}
   }
-  let error, code;
+  let error, code, updData;
   if(editEmpId){
-    ({ error } = await db.from('employees').update({first_name:first,last_name:last,nickname:nick,phone,home_branch_id:branch,role,updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('employee_id',editEmpId));
+    ({ data:updData, error } = await db.from('employees').update({first_name:first,last_name:last,nickname:nick,phone,home_branch_id:branch,role,updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('employee_id',editEmpId).select());
   } else {
     const { count } = await db.from('employees').select('*',{count:'exact',head:true});
     code='EMP'+String((count||0)+1).padStart(6,'0');
@@ -742,6 +747,9 @@ async function addEmployee(){
     if(/uq_employees_phone/.test(m)) m='เบอร์นี้ซ้ำกับพนักงานที่ยังทำงานอยู่';
     else if(/row-level security|policy|violates/i.test(m)) m='เฉพาะเจ้าของ (Owner) เท่านั้นที่ตั้ง Role เป็น HR/เจ้าของได้';
     showMsg('e_msg',false,'บันทึกไม่ได้: '+m);return;
+  }
+  if(editEmpId && (!updData || !updData.length)){
+    showMsg('e_msg',false,'ไม่มีสิทธิ์แก้ไขบัญชีนี้ — ผู้ดูแล HR แก้ไขได้เฉพาะบัญชีพนักงาน (staff) เท่านั้น');return;
   }
   showMsg('e_msg',true, editEmpId ? '✅ แก้ไขพนักงาน "'+first+'" แล้ว' : '✅ บันทึกพนักงาน "'+first+'" (รหัส '+code+') แล้ว');
   cancelEmpEdit();
@@ -779,9 +787,11 @@ async function deactivateBranch(id){
 }
 async function deactivateEmployee(id){
   const e=employeesData.find(x=>x.employee_id===id); if(!e)return;
+  if(id===currentEmpId){ showMsg('e_msg',false,'ปิดใช้งานบัญชีตัวเองไม่ได้ (จะเข้าระบบไม่ได้ทันที) — ให้คนอื่นปิดให้แทน'); return; }
   if(!confirm('ปิดใช้งานพนักงาน "'+e.first_name+' '+e.last_name+'" ?\n(เช่น ลาออก — ข้อมูลไม่ถูกลบจริง)'))return;
-  const { error } = await db.from('employees').update({status:'inactive',updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('employee_id',id);
+  const { data:updData, error } = await db.from('employees').update({status:'inactive',updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('employee_id',id).select();
   if(error){showMsg('e_msg',false,'ปิดใช้งานไม่ได้: '+error.message);return;}
+  if(!updData || !updData.length){ showMsg('e_msg',false,'ไม่มีสิทธิ์ปิดใช้งานบัญชีนี้ — ผู้ดูแล HR ปิดใช้งานได้เฉพาะบัญชีพนักงาน (staff) เท่านั้น'); return; }
   // ปิดบัญชี login ด้วย (กันเบอร์นี้ชนตอนคนใหม่สร้างบัญชี — DL-02/DL-03)
   if(e.auth_user_id){
     try{
