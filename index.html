@@ -1002,7 +1002,8 @@ async function preparePayroll(){
       g.otHours += Number(o.ot_hours)||0;
     });
     (leaves||[]).forEach(l=>{
-      const g = agg[l.employee_id] || (agg[l.employee_id] = { workDays:0, workHours:0, lateMin:0, otHours:0, leaveMin:0, branchSet:new Set() });
+      // ไม่สร้างแถวใหม่จากแค่ข้อมูลลากิจ — ลากิจไม่มีสาขาผูกอยู่ ต้องมีบันทึกเข้างาน (ที่ผ่านตัวกรองสาขา/ภาคแล้ว) มาก่อนถึงจะนับให้
+      const g = agg[l.employee_id]; if(!g) return;
       g.leaveMin += Number(l.leave_minutes)||0;
     });
 
