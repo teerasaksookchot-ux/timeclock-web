@@ -193,6 +193,7 @@ function show(id){
 }
 function msg(id,kind,t){const m=document.getElementById(id);m.className='msg '+kind;m.textContent=t;}
 function clrmsg(id){const m=document.getElementById(id);m.className='msg';m.textContent='';}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 // ---------- เริ่มระบบ ----------
 async function init(){
@@ -616,7 +617,7 @@ async function processClockIn(blob, gps){
 function askBranch(list){
   return new Promise(resolve=>{
     const sel=document.getElementById('pk_sel');
-    sel.innerHTML=''; list.forEach(b=>sel.innerHTML+='<option value="'+b.branch_id+'">'+b.name+'</option>');
+    sel.innerHTML=''; list.forEach(b=>sel.innerHTML+='<option value="'+b.branch_id+'">'+esc(b.name)+'</option>');
     pickResolve=resolve; show('s-pick');
   });
 }
@@ -632,7 +633,7 @@ function showResult(kind, ic, big, sub, rows){
   document.getElementById('r_big').textContent=big;
   document.getElementById('r_sub').textContent=sub;
   document.getElementById('r_rows').innerHTML =
-    rows.map(r=>'<div class="rrow"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('');
+    rows.map(r=>'<div class="rrow"><span>'+esc(r[0])+'</span><b>'+esc(r[1])+'</b></div>').join('');
   show('s-result');
 }
 // แสดงผลกรณีถูกบล็อก (อยู่นอกพื้นที่สาขาแบบมั่นใจ — ไม่บันทึกอะไร)
@@ -642,7 +643,7 @@ function showBlock(distMeters, branchName){
   document.getElementById('r_sub').textContent='กรุณากดเข้างานเมื่ออยู่ที่หน้าสาขาจริง';
   document.getElementById('r_rows').innerHTML =
     [['สาขาที่ใกล้สุด', branchName||'-'], ['ระยะห่างโดยประมาณ', distMeters+' เมตร']]
-    .map(r=>'<div class="rrow"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('');
+    .map(r=>'<div class="rrow"><span>'+esc(r[0])+'</span><b>'+esc(r[1])+'</b></div>').join('');
   show('s-result');
 }
 async function backHome(){ show('s-home'); await refreshTodayStatus(); }

@@ -293,6 +293,8 @@ function fillRoleOptions(curr){
 }
 function lmsg(ok,t){const m=document.getElementById('l_msg');m.className='msg '+(ok?'ok':'err');m.textContent=t;}
 function showMsg(id,ok,t){const m=document.getElementById(id);m.className='msg '+(ok?'ok':'err');m.textContent=t;}
+// กันชื่อพนักงาน/สาขาที่มีอักขระ HTML แทรกสคริปต์ผ่านช่องกรอกข้อมูล (stored XSS) — ทุกจุดที่เอาข้อความที่คนพิมพ์มาใส่ผ่าน innerHTML ต้องผ่านฟังก์ชันนี้ก่อน
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 function switchTab(name){
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
@@ -366,13 +368,13 @@ async function loadDashboard(){
   const byBranch={};
   staff.forEach(e=>{const n=e.branches?e.branches.name:'(ยังไม่ระบุสาขา)';byBranch[n]=(byBranch[n]||0)+1;});
   let h1='<table><tr><th>สาขา</th><th>จำนวนพนักงาน</th></tr>';
-  Object.keys(byBranch).sort().forEach(k=>h1+=`<tr><td>${k}</td><td>${byBranch[k]} คน</td></tr>`);
+  Object.keys(byBranch).sort().forEach(k=>h1+=`<tr><td>${esc(k)}</td><td>${byBranch[k]} คน</td></tr>`);
   document.getElementById('dash_by_branch').innerHTML = staff.length? h1+'</table>' : '<div class="empty">ยังไม่มีพนักงาน</div>';
   // แยกตามจังหวัด
   const byProv={};
   branchesData.forEach(b=>{const p=b.province||'(ยังไม่ระบุจังหวัด)';byProv[p]=(byProv[p]||0)+1;});
   let h2='<table><tr><th>จังหวัด</th><th>จำนวนสาขา</th></tr>';
-  Object.keys(byProv).sort().forEach(k=>h2+=`<tr><td>${k}</td><td>${byProv[k]} สาขา</td></tr>`);
+  Object.keys(byProv).sort().forEach(k=>h2+=`<tr><td>${esc(k)}</td><td>${byProv[k]} สาขา</td></tr>`);
   document.getElementById('dash_by_province').innerHTML = branchesData.length? h2+'</table>' : '<div class="empty">ยังไม่มีสาขา</div>';
 }
 // ---------- การ์ดสถานะรายสาขา (DL-34/35/36) — คำนวณ roll-up ฝั่งเว็บ ----------
@@ -419,7 +421,7 @@ function renderBranchGrid(){
   let html='';
   Object.keys(byReg).sort().forEach(rn=>{
     const list=byReg[rn].sort((a,c)=>order[a.color]-order[c.color]||a.br.name.localeCompare(c.br.name));
-    html+=`<div class="rgroup"><h3>${rn} (${list.length} สาขา)</h3><div class="bgrid">`;
+    html+=`<div class="rgroup"><h3>${esc(rn)} (${list.length} สาขา)</h3><div class="bgrid">`;
     list.forEach(x=>{
       const parts=[];
       if(x.on_time) parts.push('ตรงเวลา '+x.on_time);
@@ -428,7 +430,7 @@ function renderBranchGrid(){
       if(x.absent) parts.push('ขาด '+x.absent);
       if(x.notyet) parts.push('ยังไม่เข้า '+x.notyet);
       const detail=x.total? parts.join(' · ') : 'ไม่มีพนักงานประจำ';
-      html+=`<div class="bcard ${x.color}" style="cursor:pointer" onclick="jumpToBranchAttendance('${x.br.branch_id}')"><div class="bn">${x.br.name}</div><div class="bs">${detail}</div></div>`;
+      html+=`<div class="bcard ${x.color}" style="cursor:pointer" onclick="jumpToBranchAttendance('${x.br.branch_id}')"><div class="bn">${esc(x.br.name)}</div><div class="bs">${esc(detail)}</div></div>`;
     });
     html+='</div></div>';
   });
@@ -455,7 +457,7 @@ function fillAtBranchFilter(){
   const s=document.getElementById('at_branch'); const cur=s.value;
   const list = regionId ? branchesData.filter(b=>b.region_id===regionId) : branchesData;
   s.innerHTML='<option value="">ทุกสาขา</option>';
-  list.forEach(b=>s.innerHTML+=`<option value="${b.branch_id}">${b.name}</option>`);
+  list.forEach(b=>s.innerHTML+=`<option value="${b.branch_id}">${esc(b.name)}</option>`);
   if(list.some(b=>b.branch_id===cur)) s.value=cur;
 }
 async function loadAttendance(){
@@ -502,7 +504,7 @@ async function loadAttendance(){
     const photo = r.selfie_path ? `<button class="ebtn" onclick="viewSelfie('${r.selfie_path}')">ดูรูป</button>` : '-';
     const editBtn = editable ? `<button class="ebtn" onclick="openAttEdit('${r.id}')">แก้ไข</button>` : '';
     const editedTxt = r.updated_by ? `${whoName(r.updated_by)}<br><span style="font-size:11px;color:var(--muted)">${fmtTime(r.updated_at)}</span>` : '<span style="color:var(--muted)">—</span>';
-    h+=`<tr><td>${e.employee_code||'-'}</td><td>${name}</td><td>${t}${lateTxt}</td><td>${outT}</td><td>${r.branches?r.branches.name:'-'}</td><td>${stTxt}</td><td>${photo}</td><td style="font-size:12.5px">${editedTxt}</td><td>${editBtn}</td></tr>`;
+    h+=`<tr><td>${esc(e.employee_code)||'-'}</td><td>${esc(name)}</td><td>${t}${lateTxt}</td><td>${outT}</td><td>${r.branches?esc(r.branches.name):'-'}</td><td>${stTxt}</td><td>${photo}</td><td style="font-size:12.5px">${editedTxt}</td><td>${editBtn}</td></tr>`;
   });
   box.innerHTML=h+'</table>';
 }
@@ -604,7 +606,7 @@ function fillBackdateEmps(){
   const sel=document.getElementById('bd_emp'); if(!sel) return;
   const staff=employeesData.filter(e=>e.role==='staff');
   sel.innerHTML='<option value="">— เลือกพนักงาน —</option>';
-  staff.forEach(e=>sel.innerHTML+=`<option value="${e.employee_id}">${e.employee_code} · ${e.first_name} ${e.last_name}</option>`);
+  staff.forEach(e=>sel.innerHTML+=`<option value="${e.employee_id}">${esc(e.employee_code)} · ${esc(e.first_name)} ${esc(e.last_name)}</option>`);
 }
 async function viewSelfie(path){
   const url=await makeSignedSelfie(path);
@@ -645,8 +647,8 @@ async function loadBranches(){
   if(!data||!data.length){box.innerHTML='<div class="empty">ยังไม่มีสาขา</div>';return;}
   branchesData=data;
   let h='<table><tr><th>ชื่อสาขา</th><th>จังหวัด</th><th>ภูมิภาค</th><th>รัศมี</th><th></th></tr>';
-  data.forEach(b=>{h+=`<tr><td>${b.name}</td><td>${b.province||'-'}</td><td>${b.regions?b.regions.name:'-'}</td><td>${b.geofence_radius} ม.</td><td><button class="ebtn" onclick="showBranchDetail('${b.branch_id}')">ดูข้อมูล</button> <button class="ebtn" onclick="editBranch('${b.branch_id}')">แก้ไข</button> <button class="ebtn del" onclick="deactivateBranch('${b.branch_id}')">ปิดใช้งาน</button></td></tr>`;
-    sel.innerHTML+=`<option value="${b.branch_id}">${b.name}</option>`;});
+  data.forEach(b=>{h+=`<tr><td>${esc(b.name)}</td><td>${esc(b.province||'-')}</td><td>${b.regions?esc(b.regions.name):'-'}</td><td>${b.geofence_radius} ม.</td><td><button class="ebtn" onclick="showBranchDetail('${b.branch_id}')">ดูข้อมูล</button> <button class="ebtn" onclick="editBranch('${b.branch_id}')">แก้ไข</button> <button class="ebtn del" onclick="deactivateBranch('${b.branch_id}')">ปิดใช้งาน</button></td></tr>`;
+    sel.innerHTML+=`<option value="${b.branch_id}">${esc(b.name)}</option>`;});
   box.innerHTML=h+'</table>';
 }
 async function addBranch(){
@@ -700,7 +702,7 @@ function empRow(e){
   const manage = canManageEmp(e);
   const editBtn = manage ? `<button class="ebtn" onclick="editEmployee('${e.employee_id}')">แก้ไข</button> ` : '';
   const deactBtn = (manage && e.employee_id!==currentEmpId) ? `<button class="ebtn del" onclick="deactivateEmployee('${e.employee_id}')">ปิดใช้งาน</button>` : '';
-  return `<tr><td>${e.employee_code}</td><td>${e.first_name} ${e.last_name} (${e.nickname||''})</td><td>${e.phone}</td><td>${e.branches?e.branches.name:'-'}</td><td>`+
+  return `<tr><td>${esc(e.employee_code)}</td><td>${esc(e.first_name)} ${esc(e.last_name)} (${esc(e.nickname||'')})</td><td>${esc(e.phone)}</td><td>${e.branches?esc(e.branches.name):'-'}</td><td>`+
     `<button class="ebtn" onclick="showDetail('${e.employee_id}')">ดูข้อมูล</button> ${editBtn}${deactBtn}</td></tr>`;
 }
 function renderRoleList(role, elId){
@@ -711,14 +713,14 @@ function renderRoleList(role, elId){
   list.forEach(e=>h+=empRow(e));
   box.innerHTML=h+'</table>';
 }
-function whoName(uid){ if(!uid)return '—'; const p=employeesData.find(x=>x.employee_id===uid); return p?`${p.first_name} (${p.nickname||''})`:'(บัญชีที่ไม่อยู่ในรายชื่อ)'; }
+function whoName(uid){ if(!uid)return '—'; const p=employeesData.find(x=>x.employee_id===uid); return p?esc(`${p.first_name} (${p.nickname||''})`):'(บัญชีที่ไม่อยู่ในรายชื่อ)'; }
 function fmtTime(t){ return t? new Date(t).toLocaleString('th-TH') : '—'; }
 function showDetail(id){
   const e=employeesData.find(x=>x.employee_id===id); if(!e)return;
   const manage = canManageEmp(e);
   let authSection;
   if(e.auth_user_id){
-    authSection = `<p style="color:#1E7D52"><b>✓ มีบัญชี login แล้ว</b> (เข้าด้วยเบอร์ ${e.phone})</p>`+
+    authSection = `<p style="color:#1E7D52"><b>✓ มีบัญชี login แล้ว</b> (เข้าด้วยเบอร์ ${esc(e.phone)})</p>`+
       (manage ? `<button class="btn" style="background:#B26A2B" onclick="manageAuth('${e.employee_id}','reset')">🔄 รีเซตรหัสผ่าน</button> `+
                 `<button class="btn ghost" style="margin-top:8px" onclick="manageAuth('${e.employee_id}','reactivate')">🩹 กู้บัญชี login (ถ้าเปิดใช้งานแล้วยังเข้าไม่ได้)</button>`
               : '<p style="font-size:12px;color:#8C8479">ผู้ดูแล HR จัดการบัญชี login ของ HR/เจ้าของไม่ได้</p>');
@@ -727,8 +729,8 @@ function showDetail(id){
       (manage ? `<button class="btn" onclick="manageAuth('${e.employee_id}','create')">➕ สร้างบัญชี login</button>` : '');
   }
   document.getElementById('detail_body').innerHTML=
-    `<b>ชื่อ:</b> ${e.first_name} ${e.last_name} (${e.nickname||''})<br>`+
-    `<b>รหัส:</b> ${e.employee_code} · <b>สิทธิ์:</b> ${roleLabel(e.role)}<br>`+
+    `<b>ชื่อ:</b> ${esc(e.first_name)} ${esc(e.last_name)} (${esc(e.nickname||'')})<br>`+
+    `<b>รหัส:</b> ${esc(e.employee_code)} · <b>สิทธิ์:</b> ${roleLabel(e.role)}<br>`+
     `<hr style="border:none;border-top:1px solid #E4DDD2;margin:8px 0">`+
     `<b>สร้างเมื่อ:</b> ${fmtTime(e.created_at)}<br>`+
     `<b>ผู้สร้าง:</b> ${whoName(e.created_by)}<br>`+
@@ -771,8 +773,8 @@ async function manageAuth(employee_id, action){
 function showBranchDetail(id){
   const b=branchesData.find(x=>x.branch_id===id); if(!b)return;
   document.getElementById('detail_body').innerHTML=
-    `<b>ชื่อสาขา:</b> ${b.name}<br>`+
-    `<b>จังหวัด:</b> ${b.province||'-'} · <b>ภูมิภาค:</b> ${b.regions?b.regions.name:'-'}<br>`+
+    `<b>ชื่อสาขา:</b> ${esc(b.name)}<br>`+
+    `<b>จังหวัด:</b> ${esc(b.province||'-')} · <b>ภูมิภาค:</b> ${b.regions?esc(b.regions.name):'-'}<br>`+
     `<b>รัศมีเข้างาน:</b> ${b.geofence_radius} เมตร<br>`+
     `<hr style="border:none;border-top:1px solid #E4DDD2;margin:8px 0">`+
     `<b>สร้างเมื่อ:</b> ${fmtTime(b.created_at)}<br>`+
@@ -876,7 +878,7 @@ async function loadInactiveEmployees(){
   let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เบอร์</th><th>สิทธิ์เดิม</th><th></th></tr>';
   data.forEach(e=>{
     const btn = canManageEmp(e) ? `<button class="ebtn" onclick="reactivateEmployee('${e.employee_id}')">↩️ เปิดใช้งาน</button>` : '';
-    h+=`<tr><td>${e.employee_code}</td><td>${e.first_name} ${e.last_name} (${e.nickname||''})</td><td>${e.phone}</td><td>${roleLabel(e.role)}</td><td>${btn}</td></tr>`;
+    h+=`<tr><td>${esc(e.employee_code)}</td><td>${esc(e.first_name)} ${esc(e.last_name)} (${esc(e.nickname||'')})</td><td>${esc(e.phone)}</td><td>${roleLabel(e.role)}</td><td>${btn}</td></tr>`;
   });
   box.innerHTML=h+'</table>';
 }
@@ -945,7 +947,7 @@ function fillPrBranchFilter(){
   const s=document.getElementById('pr_branch'); const cur=s.value;
   const list = regionId ? branchesData.filter(b=>b.region_id===regionId) : branchesData;
   s.innerHTML='<option value="">ทุกสาขา</option>';
-  list.forEach(b=>s.innerHTML+=`<option value="${b.branch_id}">${b.name}</option>`);
+  list.forEach(b=>s.innerHTML+=`<option value="${b.branch_id}">${esc(b.name)}</option>`);
   if(list.some(b=>b.branch_id===cur)) s.value=cur;
 }
 async function preparePayroll(){
@@ -1048,7 +1050,7 @@ function renderPayrollPreview(rows){
   if(!rows.length){ document.getElementById('pr_table').innerHTML='<div class="empty">ไม่พบข้อมูลในช่วงวันที่นี้</div>'; return; }
   let h='<table><tr>'+PR_HEADERS.map(x=>'<th>'+x+'</th>').join('')+'</tr>';
   rows.forEach(r=>{
-    h+=`<tr><td>${r.code}</td><td>${r.name}</td><td>${r.homeBranch}</td><td>${r.workingBranch}</td><td>${r.workDays}</td><td>${r.workHours}</td><td>${r.otStatus}</td><td>${r.otHours}</td><td>${r.lateMin}</td><td>${r.leaveMin}</td></tr>`;
+    h+=`<tr><td>${esc(r.code)}</td><td>${esc(r.name)}</td><td>${esc(r.homeBranch)}</td><td>${esc(r.workingBranch)}</td><td>${r.workDays}</td><td>${r.workHours}</td><td>${r.otStatus}</td><td>${r.otHours}</td><td>${r.lateMin}</td><td>${r.leaveMin}</td></tr>`;
   });
   document.getElementById('pr_table').innerHTML = h+'</table>';
 }
@@ -1086,7 +1088,7 @@ async function downloadPayroll(fmt){
 // ---------- อนุมัติ/เคสค้าง (B1 + B2) ----------
 const SRC_LABEL={gps_fail:'GPS ไม่ผ่าน',ot_forgot:'ลืมกดออก OT',anomaly:'ผิดปกติ (ออกก่อนเวลา/อื่นๆ)',half_day:'มาครึ่งวันแล้วหาย',face_assist:'ขอ HR ช่วยยืนยันใบหน้า'};
 const ESC_LABEL={day0:'วันนี้',day7:'ค้าง ≥7 วัน',day30:'ค้าง ≥30 วัน',day60:'ค้าง ≥60 วัน'};
-function empName(e){ if(!e) return '(ไม่พบชื่อ)'; return (e.first_name||'')+' '+(e.last_name||'')+(e.nickname?' ('+e.nickname+')':''); }
+function empName(e){ if(!e) return '(ไม่พบชื่อ)'; return esc((e.first_name||'')+' '+(e.last_name||'')+(e.nickname?' ('+e.nickname+')':'')); }
 
 async function loadApprovals(){ await loadWaivers(); await loadPendingCases(); }
 
