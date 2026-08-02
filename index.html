@@ -803,13 +803,24 @@ const PR_HEADERS=['รหัสพนักงาน','ชื่อ-สกุล
 
 // คิดชั่วโมงทำงานปกติสด ๆ จากเวลาเข้างานจริง (ไม่พึ่งคอลัมน์ work_hours ที่ปรับด้วย cron ตอน 16:00
 // เพราะ cron จะข้ามบันทึกที่เพิ่ม/แก้ทีหลัง 16:00 ของวันนั้นไปตลอดกาล) — เข้างาน..16:00 (BR-004)
-function calcRegularHours(workDate, clockInISO){
+// ปัดเวลาออกลงทุก 30 นาที + หักพักเที่ยง 12:00-13:00 เสมอ ถ้าออกก่อน 16:00 นับถึงเวลาที่ออกจริง (ปัดลง)
+function floorTo30(d){ const step=30*60000; return new Date(Math.floor(d.getTime()/step)*step); }
+function calcRegularHours(workDate, clockInISO, otOutISO){
   if(!clockInISO) return 0;
   const clockIn = new Date(clockInISO);
   const sevenAM = new Date(workDate+'T07:00:00+07:00');
   const sixteenPM = new Date(workDate+'T16:00:00+07:00');
+  const noon = new Date(workDate+'T12:00:00+07:00');
+  const onePM = new Date(workDate+'T13:00:00+07:00');
   const start = clockIn > sevenAM ? clockIn : sevenAM;
-  const ms = sixteenPM - start;
+  let end = otOutISO ? new Date(otOutISO) : sixteenPM;
+  if(end > sixteenPM) end = sixteenPM;
+  end = floorTo30(end);
+  if(end <= start) return 0;
+  const lunchStart = start > noon ? start : noon;
+  const lunchEnd = end < onePM ? end : onePM;
+  const lunchMs = lunchEnd > lunchStart ? (lunchEnd - lunchStart) : 0;
+  const ms = (end - start) - lunchMs;
   return ms>0 ? Math.round((ms/3600000)*100)/100 : 0;
 }
 
@@ -828,7 +839,7 @@ async function preparePayroll(){
     let ot=[];
     if(attIds.length){
       const { data: otData, error: oerr } = await db.from('ot_records')
-        .select('attendance_id,ot_hours').in('attendance_id', attIds);
+        .select('attendance_id,ot_hours,ot_clock_out_time').in('attendance_id', attIds);
       if(oerr) throw oerr;
       ot = otData||[];
     }
@@ -843,11 +854,13 @@ async function preparePayroll(){
     const branchName = id => brNameById[id] || '-';
     const empById = {}; (allEmp||[]).forEach(e=>empById[e.employee_id]=e);
 
+    const otOutByAtt = {}; ot.forEach(o=>{ if(o.ot_clock_out_time) otOutByAtt[o.attendance_id]=o.ot_clock_out_time; });
+
     const agg={};
     (att||[]).forEach(a=>{
       const g = agg[a.employee_id] || (agg[a.employee_id] = { workDays:0, workHours:0, lateMin:0, otHours:0, leaveMin:0, branchSet:new Set() });
       if(a.status!=='absent') g.workDays++;
-      g.workHours += calcRegularHours(a.work_date, a.clock_in_time);
+      g.workHours += calcRegularHours(a.work_date, a.clock_in_time, otOutByAtt[a.id]);
       g.lateMin += Number(a.late_minutes)||0;
       if(a.working_branch_id) g.branchSet.add(a.working_branch_id);
     });
