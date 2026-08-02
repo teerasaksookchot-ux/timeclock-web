@@ -199,6 +199,7 @@
       <div class="card"><h2>เจ้าของ (Owner)</h2><div id="e_list_owner"><div class="empty">กำลังโหลด…</div></div></div>
       <div class="card"><h2>ผู้ดูแล HR</h2><div id="e_list_hr"><div class="empty">กำลังโหลด…</div></div></div>
       <div class="card"><h2>พนักงาน</h2><div id="e_list_staff"><div class="empty">กำลังโหลด…</div></div></div>
+      <div class="card"><h2>พนักงานที่ปิดใช้งานแล้ว <button class="ebtn" style="float:right" onclick="loadInactiveEmployees()">🔄 แสดง</button></h2><div id="e_list_inactive"><div class="empty">กดปุ่ม "แสดง" เพื่อดูรายชื่อ</div></div></div>
     </div>
 
     <div class="panel" id="p-roles">
@@ -808,6 +809,44 @@ async function deactivateEmployee(id){
   }
   showMsg('e_msg',true,'✅ ปิดใช้งานพนักงาน "'+e.first_name+'" แล้ว');
   await loadEmployees(); loadDashboard();
+}
+async function loadInactiveEmployees(){
+  const box=document.getElementById('e_list_inactive');
+  box.innerHTML='<div class="empty">กำลังโหลด…</div>';
+  const { data, error } = await db.from('employees').select('*, branches:home_branch_id(name)').eq('status','inactive').order('employee_code');
+  if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
+  if(!data||!data.length){ box.innerHTML='<div class="empty">ไม่มีพนักงานที่ปิดใช้งาน</div>'; return; }
+  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เบอร์</th><th>สิทธิ์เดิม</th><th></th></tr>';
+  data.forEach(e=>{
+    const btn = canManageEmp(e) ? `<button class="ebtn" onclick="reactivateEmployee('${e.employee_id}')">↩️ เปิดใช้งาน</button>` : '';
+    h+=`<tr><td>${e.employee_code}</td><td>${e.first_name} ${e.last_name} (${e.nickname||''})</td><td>${e.phone}</td><td>${roleLabel(e.role)}</td><td>${btn}</td></tr>`;
+  });
+  box.innerHTML=h+'</table>';
+}
+async function reactivateEmployee(id){
+  if(!confirm('เปิดใช้งานพนักงานคนนี้กลับมาใหม่? (บัญชี login เดิมจะกลับมาใช้ได้ด้วย)'))return;
+  const e = employeesData.find(x=>x.employee_id===id) || (await db.from('employees').select('*').eq('employee_id',id).maybeSingle()).data;
+  if(!e){ alert('หาพนักงานคนนี้ไม่พบ'); return; }
+  const { data:updData, error } = await db.from('employees').update({status:'active',updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('employee_id',id).select();
+  if(error){
+    const m = /duplicate|unique/i.test(error.message) ? 'เปิดใช้งานไม่ได้: เบอร์นี้ถูกใช้โดยพนักงานที่ยัง active อยู่แล้ว' : ('เปิดใช้งานไม่ได้: '+error.message);
+    alert(m); return;
+  }
+  if(!updData || !updData.length){ alert('ไม่มีสิทธิ์เปิดใช้งานบัญชีนี้'); return; }
+  if(e.auth_user_id){
+    try{
+      let { data:{ session } } = await db.auth.getSession();
+      if(session && session.access_token){
+        const res = await fetch(SUPABASE_URL+'/functions/v1/manage-staff-auth', {
+          method:'POST',
+          headers:{ 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json' },
+          body: JSON.stringify({ action:'reactivate', employee_id:id })
+        });
+        if(!res.ok){ const d=await res.json().catch(()=>({})); alert('เปิดใช้งานพนักงานแล้ว แต่กู้บัญชี login เดิมไม่สำเร็จ: '+(d.error||'')+' — ใช้ปุ่ม "รีเซตรหัสผ่าน" แทนได้'); }
+      }
+    }catch(err){ /* ไม่บล็อกการเปิดใช้งานพนักงาน แม้กู้บัญชี login จะพลาด */ }
+  }
+  await loadEmployees(); loadDashboard(); await loadInactiveEmployees();
 }
 // ---------- Payroll Export (DL-45..48) ----------
 let payrollRows=[], payrollPeriod=null;
