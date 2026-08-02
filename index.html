@@ -425,7 +425,7 @@ async function loadAttendance(){
   const box=document.getElementById('at_list'), kpi=document.getElementById('at_kpis');
   box.innerHTML='<div class="empty">กำลังโหลด…</div>'; kpi.innerHTML='';
   const { data, error } = await db.from('attendance_records')
-    .select('id,clock_in_time,status,late_minutes,selfie_path,employee_id,employees(employee_code,first_name,last_name,nickname),branches(name),ot_records(id,ot_clock_out_time,ot_hours,ot_status)')
+    .select('id,clock_in_time,status,late_minutes,selfie_path,employee_id,updated_at,updated_by,employees(employee_code,first_name,last_name,nickname),branches(name),ot_records(id,ot_clock_out_time,ot_hours,ot_status)')
     .eq('work_date', day).order('clock_in_time',{ascending:true});
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
   attendanceData = data||[];
@@ -439,7 +439,7 @@ async function loadAttendance(){
     `<div class="kpi"><div class="n">${total}</div><div class="l">เข้างานแล้ว</div></div>`+
     `<div class="kpi"><div class="n">${late}</div><div class="l">มาสาย</div></div>`+
     `<div class="kpi"><div class="n">${pend}</div><div class="l">รอ HR ยืนยัน</div></div>`;
-  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เวลาเข้า</th><th>เวลาออก</th><th>สาขา</th><th>สถานะ</th><th>รูป</th><th></th></tr>';
+  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เวลาเข้า</th><th>เวลาออก</th><th>สาขา</th><th>สถานะ</th><th>รูป</th><th>แก้ไขล่าสุด</th><th></th></tr>';
   data.forEach(r=>{
     const e=r.employees||{}; const name=(e.first_name||'')+' '+(e.last_name||'');
     const t=r.clock_in_time? new Date(r.clock_in_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}):'-';
@@ -454,7 +454,8 @@ async function loadAttendance(){
                 : '<span style="color:var(--green)">ปกติ</span>';
     const photo = r.selfie_path ? `<button class="ebtn" onclick="viewSelfie('${r.selfie_path}')">ดูรูป</button>` : '-';
     const editBtn = editable ? `<button class="ebtn" onclick="openAttEdit('${r.id}')">แก้ไข</button>` : '';
-    h+=`<tr><td>${e.employee_code||'-'}</td><td>${name}</td><td>${t}${lateTxt}</td><td>${outT}</td><td>${r.branches?r.branches.name:'-'}</td><td>${stTxt}</td><td>${photo}</td><td>${editBtn}</td></tr>`;
+    const editedTxt = r.updated_by ? `${whoName(r.updated_by)}<br><span style="font-size:11px;color:var(--muted)">${fmtTime(r.updated_at)}</span>` : '<span style="color:var(--muted)">—</span>';
+    h+=`<tr><td>${e.employee_code||'-'}</td><td>${name}</td><td>${t}${lateTxt}</td><td>${outT}</td><td>${r.branches?r.branches.name:'-'}</td><td>${stTxt}</td><td>${photo}</td><td style="font-size:12.5px">${editedTxt}</td><td>${editBtn}</td></tr>`;
   });
   box.innerHTML=h+'</table>';
 }
@@ -494,6 +495,7 @@ async function saveAttEdit(){
   if(status==='absent'){ payload={status:'absent', clock_in_time:null, late_minutes:0}; }
   else { if(!hhmm){ showMsg('ae_msg',false,'กรุณาใส่เวลาเข้างาน'); return; }
          payload={status, clock_in_time:bkkTimestamp(day,hhmm), late_minutes:calcLate(day,hhmm)}; }
+  payload.updated_at = new Date().toISOString(); payload.updated_by = currentEmpId;
   const { error } = await db.from('attendance_records').update(payload).eq('id',attEditId);
   if(error){ showMsg('ae_msg',false,'บันทึกไม่สำเร็จ: '+error.message); return; }
 
@@ -529,7 +531,8 @@ async function addBackdated(){
   const emp=employeesData.find(x=>x.employee_id===empId);
   const { data:newAtt, error } = await db.from('attendance_records').insert({
     employee_id:empId, work_date:day, clock_in_time:bkkTimestamp(day,hhmm),
-    working_branch_id: emp?emp.home_branch_id:null, status:'normal', late_minutes:calcLate(day,hhmm) }).select().single();
+    working_branch_id: emp?emp.home_branch_id:null, status:'normal', late_minutes:calcLate(day,hhmm),
+    updated_at:new Date().toISOString(), updated_by:currentEmpId }).select().single();
   if(error){
     showMsg('bd_msg',false, /duplicate|unique/i.test(error.message)?'มีบันทึกของคนนี้ในวันนี้แล้ว — ใช้ปุ่ม "แก้ไข" ในตารางแทน':('บันทึกไม่สำเร็จ: '+error.message));
     return;
