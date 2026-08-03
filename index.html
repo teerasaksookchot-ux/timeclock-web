@@ -51,8 +51,21 @@
   .kpi .n{font-weight:700;font-size:30px;color:var(--tan2)}
   .kpi .l{font-size:12.5px;color:var(--muted);margin-top:2px}
   table{width:100%;border-collapse:collapse;margin-top:6px;font-size:13.5px}
-  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
   th{color:var(--muted);font-weight:600;font-size:12px}
+  /* ตารางที่สร้างด้วย JS ทุกจุด แสดงในกล่องนี้ — ให้เลื่อนแนวนอนได้แทนที่จะดันหน้าเว็บให้กว้างเกิน */
+  #b_list,#e_list_owner,#e_list_hr,#e_list_staff,#e_list_inactive,
+  #dash_by_branch,#dash_by_province,#at_list,#wv_list,#pc_list,#pr_table{
+    overflow-x:auto;-webkit-overflow-scrolling:touch;
+  }
+  @media (max-width:640px){
+    .wrap{padding:14px}
+    .grid2{grid-template-columns:1fr}
+    .card{padding:16px}
+    .loginbox{padding:22px}
+    .top{padding:12px 16px}
+    input,select{font-size:16px}   /* กัน iOS Safari ซูมจอเองตอนแตะช่องกรอก */
+  }
   .msg{padding:11px 14px;border-radius:9px;font-size:13.5px;margin-top:12px;display:none}
   .msg.ok{background:var(--green-bg);color:var(--green);display:block}
   .msg.err{background:var(--red-bg);color:var(--red);display:block}
@@ -110,8 +123,9 @@
 
     <div class="panel on" id="p-dash">
       <div class="card">
-        <h2>สถานะรายสาขา
-          <span style="float:right;display:flex;gap:8px;align-items:center">
+        <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <span>สถานะรายสาขา</span>
+          <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <input id="bg_date" type="date" style="width:auto;padding:6px 10px">
             <button class="ebtn" onclick="loadBranchGrid()">🔄 ดู</button>
           </span>
@@ -123,15 +137,16 @@
         <div id="bg_summary" class="kpis" style="margin-bottom:12px"></div>
         <div id="branch_grid"><div class="empty">กำลังโหลด…</div></div>
       </div>
-      <div class="card"><h2>ภาพรวมระบบ <button class="ebtn" style="float:right" onclick="loadDashboard()">🔄 รีเฟรช</button></h2><div class="kpis" id="dash_kpis"></div></div>
+      <div class="card"><h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>ภาพรวมระบบ</span><button class="ebtn" onclick="loadDashboard()">🔄 รีเฟรช</button></h2><div class="kpis" id="dash_kpis"></div></div>
       <div class="card"><h2>พนักงานแยกตามสาขา</h2><div id="dash_by_branch"><div class="empty">กำลังโหลด…</div></div></div>
       <div class="card"><h2>สาขาแยกตามจังหวัด</h2><div id="dash_by_province"><div class="empty">กำลังโหลด…</div></div></div>
     </div>
 
     <div class="panel" id="p-attend">
       <div class="card">
-        <h2>การเข้างาน
-          <span style="float:right;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <span>การเข้างาน</span>
+          <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <select id="at_region" style="width:auto;padding:6px 10px" onchange="fillAtBranchFilter();loadAttendance();"><option value="">ทุกภาค</option></select>
             <select id="at_branch" style="width:auto;padding:6px 10px" onchange="loadAttendance()"><option value="">ทุกสาขา</option></select>
             <input id="at_date" type="date" style="width:auto;padding:6px 10px" onchange="loadAttendance()">
@@ -156,7 +171,7 @@
 
     <div class="panel" id="p-approvals">
       <div class="card">
-        <h2>ขอไม่ทำ OT (รออนุมัติ) <button class="ebtn" style="float:right" onclick="loadApprovals()">🔄 รีเฟรช</button></h2>
+        <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>ขอไม่ทำ OT (รออนุมัติ)</span><button class="ebtn" onclick="loadApprovals()">🔄 รีเฟรช</button></h2>
         <div id="wv_list"><div class="empty">กำลังโหลด…</div></div>
       </div>
       <div class="card">
@@ -201,7 +216,7 @@
       <div class="card"><h2>เจ้าของ (Owner)</h2><div id="e_list_owner"><div class="empty">กำลังโหลด…</div></div></div>
       <div class="card"><h2>ผู้ดูแล HR</h2><div id="e_list_hr"><div class="empty">กำลังโหลด…</div></div></div>
       <div class="card"><h2>พนักงาน</h2><div id="e_list_staff"><div class="empty">กำลังโหลด…</div></div></div>
-      <div class="card"><h2>พนักงานที่ปิดใช้งานแล้ว <button class="ebtn" style="float:right" onclick="loadInactiveEmployees()">🔄 แสดง</button></h2><div id="e_list_inactive"><div class="empty">กดปุ่ม "แสดง" เพื่อดูรายชื่อ</div></div></div>
+      <div class="card"><h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>พนักงานที่ปิดใช้งานแล้ว</span><button class="ebtn" onclick="loadInactiveEmployees()">🔄 แสดง</button></h2><div id="e_list_inactive"><div class="empty">กดปุ่ม "แสดง" เพื่อดูรายชื่อ</div></div></div>
     </div>
 
     <div class="panel" id="p-roles">
@@ -241,8 +256,9 @@
         <div id="pr_msg" class="msg"></div>
       </div>
       <div class="card" id="pr_resultcard" style="display:none">
-        <h2>ผลลัพธ์
-          <span style="float:right;display:flex;gap:8px">
+        <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <span>ผลลัพธ์</span>
+          <span style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="ebtn" onclick="downloadPayroll('xlsx')">⬇️ XLSX</button>
             <button class="ebtn" onclick="downloadPayroll('csv')">⬇️ CSV</button>
           </span>
