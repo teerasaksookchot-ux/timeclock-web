@@ -6,6 +6,8 @@
 <title>ระบบลงเวลา · เว็บแอดมิน HR</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root{--ink:#1C1A17;--ink2:#3A352E;--muted:#8C8479;--tan:#B26A2B;--tan2:#9A5A22;
     --tan-soft:#EBDCC8;--paper:#F2EEE8;--card:#FFF;--line:#E4DDD2;
@@ -191,10 +193,17 @@
           <div><label>จังหวัด</label><select id="b_province"></select></div>
         </div>
         <label>รัศมีเข้างาน (เมตร)</label><input id="b_radius" type="number" value="100">
+        <label>ตำแหน่งสาขา — เลือกวิธีใดวิธีหนึ่ง</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input id="b_maplink" placeholder="วางลิงก์ Google Maps ที่นี่ แล้วกดดึงพิกัด" style="flex:1">
+          <button type="button" class="ebtn" style="white-space:nowrap" onclick="parseMapLink()">📋 ดึงพิกัด</button>
+        </div>
+        <button type="button" class="btn ghost" style="margin-top:0;margin-bottom:10px" onclick="openMapPicker()">🗺️ เปิดแผนที่ปักหมุดเอง</button>
         <div class="grid2">
           <div><label>Latitude</label><input id="b_lat" placeholder="16.4419"></div>
           <div><label>Longitude</label><input id="b_lng" placeholder="102.8360"></div>
         </div>
+        <div id="b_locmsg" class="msg"></div>
         <button class="btn" id="b_savebtn" onclick="addBranch()">บันทึกสาขา</button>
         <button class="btn" id="b_cancelbtn" onclick="cancelBranchEdit()" style="display:none;background:#8C8479;margin-top:8px">ยกเลิกการแก้ไข</button>
         <div id="b_msg" class="msg"></div>
@@ -293,6 +302,21 @@
       <button class="btn" onclick="saveAttEdit()">บันทึกการแก้ไข</button>
       <button class="btn" onclick="closeAttEdit()" style="background:#8C8479;margin-top:8px">ยกเลิก</button>
       <div id="ae_msg" class="msg"></div>
+    </div>
+  </div>
+
+  <div id="map_modal" style="display:none;position:fixed;inset:0;background:rgba(28,26,23,.45);align-items:center;justify-content:center;z-index:30;padding:20px">
+    <div style="background:#fff;border-radius:16px;max-width:560px;width:100%;padding:20px;box-shadow:0 16px 50px rgba(0,0,0,.25)">
+      <h2 style="margin-bottom:8px">ปักหมุดตำแหน่งสาขา</h2>
+      <p style="font-size:12.5px;color:var(--muted);margin-bottom:10px">ค้นหาสถานที่ หรือเลื่อน/แตะแผนที่เพื่อปักหมุด — ลากหมุดปรับตำแหน่งได้</p>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input id="map_search" placeholder="🔍 ค้นหาสถานที่ (เช่น ชื่อปั๊มน้ำมัน, ตำบล, อำเภอ)" onkeydown="if(event.key==='Enter'){event.preventDefault();searchMapLocation();}">
+        <button type="button" class="ebtn" style="white-space:nowrap" onclick="searchMapLocation()">ค้นหา</button>
+      </div>
+      <div id="map_canvas" style="height:320px;border-radius:12px;overflow:hidden;border:1px solid var(--line)"></div>
+      <div id="map_coord" style="font-size:12.5px;color:var(--muted);margin-top:8px">ยังไม่ได้เลือกตำแหน่ง</div>
+      <button class="btn" onclick="confirmMapPick()">✅ ใช้ตำแหน่งนี้</button>
+      <button class="btn" onclick="closeMapPicker()" style="background:#8C8479;margin-top:8px">ยกเลิก</button>
     </div>
   </div>
 </div>
@@ -668,6 +692,89 @@ async function loadBranches(){
     sel.innerHTML+=`<option value="${b.branch_id}">${esc(b.name)}</option>`;});
   box.innerHTML=h+'</table>';
 }
+
+// ---------- ตำแหน่งสาขา วิธีที่ 2: วางลิงก์ Google Maps ----------
+function parseGoogleMapsLink(url){
+  if(!url) return null;
+  let m = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);          // .../@13.7563,100.5018,17z
+  if(m) return { lat:parseFloat(m[1]), lng:parseFloat(m[2]) };
+  m = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);           // ลิงก์แบบ place (data blob)
+  if(m) return { lat:parseFloat(m[1]), lng:parseFloat(m[2]) };
+  m = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);          // ?q=13.7563,100.5018
+  if(m) return { lat:parseFloat(m[1]), lng:parseFloat(m[2]) };
+  m = url.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/);         // ll=13.7563,100.5018 (แบบเก่า)
+  if(m) return { lat:parseFloat(m[1]), lng:parseFloat(m[2]) };
+  return null;
+}
+function parseMapLink(){
+  const url=document.getElementById('b_maplink').value.trim();
+  if(!url){ showMsg('b_locmsg',false,'วางลิงก์ก่อนครับ'); return; }
+  const c=parseGoogleMapsLink(url);
+  if(!c){
+    showMsg('b_locmsg',false,'ดึงพิกัดจากลิงก์นี้ไม่ได้ — ถ้าเป็นลิงก์สั้น (maps.app.goo.gl) ให้เปิดลิงก์ในเบราว์เซอร์ก่อน แล้วคัดลอก URL เต็มจากช่องที่อยู่เว็บมาวางแทน (หรือใช้ปุ่ม "เปิดแผนที่ปักหมุดเอง" แทน)');
+    return;
+  }
+  document.getElementById('b_lat').value=c.lat;
+  document.getElementById('b_lng').value=c.lng;
+  showMsg('b_locmsg',true,'✅ ดึงพิกัดสำเร็จ: '+c.lat+', '+c.lng);
+}
+
+// ---------- ตำแหน่งสาขา วิธีที่ 3: เปิดแผนที่ปักหมุดเอง (Leaflet + OpenStreetMap) ----------
+let mapPicker=null, mapMarker=null;
+function openMapPicker(){
+  document.getElementById('map_modal').style.display='flex';
+  document.getElementById('map_search').value='';
+  document.getElementById('map_coord').textContent='ยังไม่ได้เลือกตำแหน่ง';
+  setTimeout(()=>{
+    if(!mapPicker){
+      mapPicker = L.map('map_canvas').setView([13.7563,100.5018], 6);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom:19, attribution:'&copy; OpenStreetMap'
+      }).addTo(mapPicker);
+      mapPicker.on('click', e=>placeMarker(e.latlng.lat, e.latlng.lng));
+    } else {
+      mapPicker.invalidateSize();
+    }
+    const curLat=parseFloat(document.getElementById('b_lat').value), curLng=parseFloat(document.getElementById('b_lng').value);
+    if(!isNaN(curLat) && !isNaN(curLng)){
+      mapPicker.setView([curLat,curLng], 16);
+      placeMarker(curLat, curLng);
+    }
+  }, 50);
+}
+function placeMarker(lat,lng){
+  if(mapMarker){ mapMarker.setLatLng([lat,lng]); }
+  else {
+    mapMarker = L.marker([lat,lng], { draggable:true }).addTo(mapPicker);
+    mapMarker.on('dragend', ()=>{ const p=mapMarker.getLatLng(); updateMapCoordText(p.lat,p.lng); });
+  }
+  updateMapCoordText(lat,lng);
+}
+function updateMapCoordText(lat,lng){
+  document.getElementById('map_coord').textContent='ตำแหน่งที่เลือก: '+lat.toFixed(6)+', '+lng.toFixed(6);
+}
+async function searchMapLocation(){
+  const q=document.getElementById('map_search').value.trim();
+  if(!q) return;
+  try{
+    const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=th&q='+encodeURIComponent(q));
+    const data = await res.json();
+    if(!data || !data.length){ alert('หาสถานที่นี้ไม่พบ ลองพิมพ์คำอื่น หรือแตะปักหมุดเองบนแผนที่'); return; }
+    const lat=parseFloat(data[0].lat), lng=parseFloat(data[0].lon);
+    mapPicker.setView([lat,lng], 16);
+    placeMarker(lat,lng);
+  }catch(e){ alert('ค้นหาไม่สำเร็จ: '+e); }
+}
+function confirmMapPick(){
+  if(!mapMarker){ alert('กรุณาแตะเลือกตำแหน่งบนแผนที่ หรือค้นหาก่อน'); return; }
+  const p=mapMarker.getLatLng();
+  document.getElementById('b_lat').value=p.lat.toFixed(6);
+  document.getElementById('b_lng').value=p.lng.toFixed(6);
+  closeMapPicker();
+  showMsg('b_locmsg',true,'✅ ปักหมุดสำเร็จ: '+p.lat.toFixed(6)+', '+p.lng.toFixed(6));
+}
+function closeMapPicker(){ document.getElementById('map_modal').style.display='none'; }
+
 async function addBranch(){
   const name=document.getElementById('b_name').value.trim();
   const region=document.getElementById('b_region').value||null;
