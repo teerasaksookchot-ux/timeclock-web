@@ -10,6 +10,10 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   .icon{width:1em;height:1em;vertical-align:-0.15em;display:inline-block;flex-shrink:0}
+  .pwwrap{position:relative}
+  .pwwrap input{padding-right:42px}
+  .pwtoggle{position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:8px;color:var(--muted);display:flex;align-items:center}
+  .pwtoggle .icon{width:19px;height:19px}
   :root{--ink:#1C1A17;--ink2:#3A352E;--muted:#8C8479;--tan:#B26A2B;--tan2:#9A5A22;
     --tan-soft:#EBDCC8;--paper:#F2EEE8;--card:#FFF;--line:#E4DDD2;
     --green:#1E7D52;--green-bg:#E4F0E9;--red:#C2391F;--red-bg:#F6E0DB;
@@ -101,7 +105,10 @@
     <label>อีเมล หรือ เบอร์โทร</label>
     <input id="l_email" type="text" placeholder="hr@yourshop.com หรือ 0812345678">
     <label>รหัสผ่าน</label>
-    <input id="l_pw" type="password" placeholder="••••••••">
+    <div class="pwwrap">
+      <input id="l_pw" type="password" placeholder="••••••••">
+      <button type="button" class="pwtoggle" onclick="togglePw('l_pw',this)" aria-label="แสดง/ซ่อนรหัสผ่าน"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg></button>
+    </div>
     <button class="btn" onclick="doLogin()">เข้าสู่ระบบ</button>
     <div id="l_msg" class="msg"></div>
     <div id="configMsg" class="config"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg> ยังไม่ได้ตั้งค่าการเชื่อมต่อ — เปิดไฟล์นี้ด้วยโปรแกรมแก้ข้อความ แล้วใส่ Project URL และ anon key (ดูคู่มือขั้นที่ 4)</div>
@@ -370,6 +377,15 @@ async function init(){
   db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const { data:{ session } } = await db.auth.getSession();
   if(session) await afterLogin();
+}
+
+const EYE_ON='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>';
+const EYE_OFF='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"/></svg>';
+function togglePw(id, btn){
+  const inp = document.getElementById(id);
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.innerHTML = show ? EYE_OFF : EYE_ON;
 }
 
 async function doLogin(){
