@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
+  .icon{width:1em;height:1em;vertical-align:-0.15em;display:inline-block;flex-shrink:0}
   :root{--ink:#1C1A17;--ink2:#3A352E;--muted:#8C8479;--tan:#B26A2B;--tan2:#9A5A22;
     --tan-soft:#EBDCC8;--paper:#F2EEE8;--card:#FFF;--line:#E4DDD2;
     --green:#1E7D52;--green-bg:#E4F0E9;--red:#C2391F;--red-bg:#F6E0DB;
@@ -84,7 +85,7 @@
 </head>
 <body>
 
-<!-- ============ ⬇️ ใส่ค่า 2 บรรทัดนี้ก่อนใช้งาน (ดูคู่มือ) ============ -->
+<!-- ============ <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> ใส่ค่า 2 บรรทัดนี้ก่อนใช้งาน (ดูคู่มือ) ============ -->
 <script>
   const SUPABASE_URL = "https://vafjdsizrfevziwhtktr.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhZmpkc2l6cmZldnppd2h0a3RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1OTY2ODQsImV4cCI6MjA5NzE3MjY4NH0.F8rhOVF1ZjE4i-yvmuOLh9DJt0YundEmxwlJMoshY24";
@@ -94,7 +95,7 @@
 <!-- LOGIN -->
 <div class="login" id="login">
   <div class="loginbox">
-    <div class="mk">⏱️</div>
+    <div class="mk"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></div>
     <h1>เข้าสู่ระบบ — ผู้ดูแล HR</h1>
     <p>กรอกอีเมล (เจ้าของ) หรือเบอร์โทร (HR/พนักงาน) + รหัสผ่านที่ตั้งไว้</p>
     <label>อีเมล หรือ เบอร์โทร</label>
@@ -103,25 +104,25 @@
     <input id="l_pw" type="password" placeholder="••••••••">
     <button class="btn" onclick="doLogin()">เข้าสู่ระบบ</button>
     <div id="l_msg" class="msg"></div>
-    <div id="configMsg" class="config">⚠️ ยังไม่ได้ตั้งค่าการเชื่อมต่อ — เปิดไฟล์นี้ด้วยโปรแกรมแก้ข้อความ แล้วใส่ Project URL และ anon key (ดูคู่มือขั้นที่ 4)</div>
+    <div id="configMsg" class="config"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg> ยังไม่ได้ตั้งค่าการเชื่อมต่อ — เปิดไฟล์นี้ด้วยโปรแกรมแก้ข้อความ แล้วใส่ Project URL และ anon key (ดูคู่มือขั้นที่ 4)</div>
   </div>
 </div>
 
 <!-- APP -->
 <div id="appshell" style="display:none">
   <div class="top">
-    <div class="brand"><span class="mk">⏱️</span> ระบบลงเวลา · เว็บแอดมิน HR</div>
+    <div class="brand"><span class="mk"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></span> ระบบลงเวลา · เว็บแอดมิน HR</div>
     <div class="who"><span id="whoami"></span> <button class="logout" onclick="doLogout()">ออกจากระบบ</button></div>
   </div>
   <div class="wrap">
     <div class="tabs">
-      <div class="tab on" data-t="dash">📊 ภาพรวม</div>
-      <div class="tab" data-t="attend">🕐 เข้างานวันนี้</div>
-      <div class="tab" data-t="approvals">✅ อนุมัติ/เคสค้าง</div>
-      <div class="tab" data-t="branches">🏪 สาขา</div>
-      <div class="tab" data-t="employees">👥 พนักงาน</div>
-      <div class="tab" data-t="roles">🔑 สิทธิ์</div>
-      <div class="tab" data-t="payroll">💰 ส่งออกเงินเดือน</div>
+      <div class="tab on" data-t="dash"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg> ภาพรวม</div>
+      <div class="tab" data-t="attend"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> เข้างานวันนี้</div>
+      <div class="tab" data-t="approvals"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> อนุมัติ/เคสค้าง</div>
+      <div class="tab" data-t="branches"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75h-3.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z"/></svg> สาขา</div>
+      <div class="tab" data-t="employees"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"/></svg> พนักงาน</div>
+      <div class="tab" data-t="roles"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z"/></svg> สิทธิ์</div>
+      <div class="tab" data-t="payroll"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ส่งออกเงินเดือน</div>
     </div>
 
     <div class="panel on" id="p-dash">
@@ -130,17 +131,17 @@
           <span>สถานะรายสาขา</span>
           <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <input id="bg_date" type="date" style="width:auto;padding:6px 10px">
-            <button class="ebtn" onclick="loadBranchGrid()">🔄 ดู</button>
+            <button class="ebtn" onclick="loadBranchGrid()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> ดู</button>
           </span>
         </h2>
         <div style="font-size:12px;color:var(--muted);margin:-4px 0 10px">
           <span class="dot g"></span>ปกติ · <span class="dot y"></span>มีคนสาย · <span class="dot r"></span>มีคนขาด/รอตรวจ · <span class="dot n"></span>ยังไม่มีข้อมูล · <b>กติกา "แย่สุดชนะ"</b>
         </div>
-        <input id="bg_search" placeholder="🔍 ค้นหาสาขา…" oninput="renderBranchGrid()" style="margin-bottom:10px">
+        <input id="bg_search" placeholder="ค้นหาสาขา…" oninput="renderBranchGrid()" style="margin-bottom:10px">
         <div id="bg_summary" class="kpis" style="margin-bottom:12px"></div>
         <div id="branch_grid"><div class="empty">กำลังโหลด…</div></div>
       </div>
-      <div class="card"><h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>ภาพรวมระบบ</span><button class="ebtn" onclick="loadDashboard()">🔄 รีเฟรช</button></h2><div class="kpis" id="dash_kpis"></div></div>
+      <div class="card"><h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>ภาพรวมระบบ</span><button class="ebtn" onclick="loadDashboard()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> รีเฟรช</button></h2><div class="kpis" id="dash_kpis"></div></div>
       <div class="card"><h2>พนักงานแยกตามสาขา</h2><div id="dash_by_branch"><div class="empty">กำลังโหลด…</div></div></div>
       <div class="card"><h2>สาขาแยกตามจังหวัด</h2><div id="dash_by_province"><div class="empty">กำลังโหลด…</div></div></div>
     </div>
@@ -153,7 +154,7 @@
             <select id="at_region" style="width:auto;padding:6px 10px" onchange="fillAtBranchFilter();loadAttendance();"><option value="">ทุกภาค</option></select>
             <select id="at_branch" style="width:auto;padding:6px 10px" onchange="loadAttendance()"><option value="">ทุกสาขา</option></select>
             <input id="at_date" type="date" style="width:auto;padding:6px 10px" onchange="loadAttendance()">
-            <button class="ebtn" onclick="loadAttendance()">🔄 ดู</button>
+            <button class="ebtn" onclick="loadAttendance()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> ดู</button>
           </span>
         </h2>
         <div class="kpis" id="at_kpis" style="margin-bottom:14px"></div>
@@ -174,7 +175,7 @@
 
     <div class="panel" id="p-approvals">
       <div class="card">
-        <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>ขอไม่ทำ OT (รออนุมัติ)</span><button class="ebtn" onclick="loadApprovals()">🔄 รีเฟรช</button></h2>
+        <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>ขอไม่ทำ OT (รออนุมัติ)</span><button class="ebtn" onclick="loadApprovals()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> รีเฟรช</button></h2>
         <div id="wv_list"><div class="empty">กำลังโหลด…</div></div>
       </div>
       <div class="card">
@@ -196,9 +197,9 @@
         <label>ตำแหน่งสาขา — เลือกวิธีใดวิธีหนึ่ง</label>
         <div style="display:flex;gap:8px;margin-bottom:8px">
           <input id="b_maplink" placeholder="วางลิงก์ Google Maps ที่นี่ แล้วกดดึงพิกัด" style="flex:1">
-          <button type="button" class="ebtn" style="white-space:nowrap" onclick="parseMapLink()">📋 ดึงพิกัด</button>
+          <button type="button" class="ebtn" style="white-space:nowrap" onclick="parseMapLink()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184"/></svg> ดึงพิกัด</button>
         </div>
-        <button type="button" class="btn ghost" style="margin-top:0;margin-bottom:10px" onclick="openMapPicker()">🗺️ เปิดแผนที่ปักหมุดเอง</button>
+        <button type="button" class="btn ghost" style="margin-top:0;margin-bottom:10px" onclick="openMapPicker()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.05a1.125 1.125 0 0 0-1.006 0L3.622 5.487a1.125 1.125 0 0 0-.622 1.006V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z"/></svg> เปิดแผนที่ปักหมุดเอง</button>
         <div class="grid2">
           <div><label>Latitude</label><input id="b_lat" placeholder="16.4419"></div>
           <div><label>Longitude</label><input id="b_lng" placeholder="102.8360"></div>
@@ -226,7 +227,7 @@
       <div class="card"><h2>เจ้าของ (Owner)</h2><div id="e_list_owner"><div class="empty">กำลังโหลด…</div></div></div>
       <div class="card"><h2>ผู้ดูแล HR</h2><div id="e_list_hr"><div class="empty">กำลังโหลด…</div></div></div>
       <div class="card"><h2>พนักงาน</h2><div id="e_list_staff"><div class="empty">กำลังโหลด…</div></div></div>
-      <div class="card"><h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>พนักงานที่ปิดใช้งานแล้ว</span><button class="ebtn" onclick="loadInactiveEmployees()">🔄 แสดง</button></h2><div id="e_list_inactive"><div class="empty">กดปุ่ม "แสดง" เพื่อดูรายชื่อ</div></div></div>
+      <div class="card"><h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>พนักงานที่ปิดใช้งานแล้ว</span><button class="ebtn" onclick="loadInactiveEmployees()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> แสดง</button></h2><div id="e_list_inactive"><div class="empty">กดปุ่ม "แสดง" เพื่อดูรายชื่อ</div></div></div>
     </div>
 
     <div class="panel" id="p-roles">
@@ -234,19 +235,19 @@
         <h2>สิทธิ์การเข้าถึงของแต่ละ Role</h2>
         <table>
           <tr><th>ความสามารถ</th><th>พนักงาน</th><th>ผู้ดูแล HR</th><th>เจ้าของ</th></tr>
-          <tr><td>เข้างาน / ดูข้อมูลของตัวเอง</td><td>✅</td><td>✅</td><td>✅</td></tr>
-          <tr><td>ดู/เพิ่ม/แก้ไขพนักงานทุกคน</td><td>❌</td><td>✅</td><td>✅</td></tr>
-          <tr><td>เพิ่ม/แก้ไข/ปิดสาขา</td><td>❌</td><td>✅</td><td>✅</td></tr>
-          <tr><td>ดูภาพรวม (Dashboard) ทุกสาขา</td><td>❌</td><td>✅</td><td>✅</td></tr>
-          <tr><td>ออกไฟล์เงินเดือน (Payroll)</td><td>❌</td><td>✅</td><td>✅</td></tr>
-          <tr><td>ตั้ง Role เป็น HR / เจ้าของ</td><td>❌</td><td>❌</td><td>✅ เท่านั้น</td></tr>
-          <tr><td>อนุมัติเคสค้างเกิน 60 วัน</td><td>❌</td><td>❌</td><td>✅</td></tr>
+          <tr><td>เข้างาน / ดูข้อมูลของตัวเอง</td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
+          <tr><td>ดู/เพิ่ม/แก้ไขพนักงานทุกคน</td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
+          <tr><td>เพิ่ม/แก้ไข/ปิดสาขา</td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
+          <tr><td>ดูภาพรวม (Dashboard) ทุกสาขา</td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
+          <tr><td>ออกไฟล์เงินเดือน (Payroll)</td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
+          <tr><td>ตั้ง Role เป็น HR / เจ้าของ</td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> เท่านั้น</td></tr>
+          <tr><td>อนุมัติเคสค้างเกิน 60 วัน</td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
         </table>
       </div>
       <div class="card">
         <h2>วิธีเปลี่ยน Role</h2>
         <p style="font-size:13.5px;color:var(--ink2)">ไปที่แท็บ <b>"พนักงาน"</b> → กด <b>"แก้ไข"</b> ที่คนนั้น → เลือก <b>สิทธิ์ (Role)</b> → บันทึก<br><br>
-        🔒 <b>เฉพาะเจ้าของ (Owner)</b> เท่านั้นที่ตั้ง Role เป็น HR หรือ Owner ได้ · ผู้ดูแล HR ตั้งได้แค่ "พนักงาน"</p>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg> <b>เฉพาะเจ้าของ (Owner)</b> เท่านั้นที่ตั้ง Role เป็น HR หรือ Owner ได้ · ผู้ดูแล HR ตั้งได้แค่ "พนักงาน"</p>
       </div>
     </div>
 
@@ -262,15 +263,15 @@
           <div><label>ภาค</label><select id="pr_region" onchange="fillPrBranchFilter()"><option value="">ทุกภาค</option></select></div>
           <div><label>สาขา</label><select id="pr_branch"><option value="">ทุกสาขา</option></select></div>
         </div>
-        <button class="btn" id="pr_prepbtn" onclick="preparePayroll()">🔄 เตรียมข้อมูล</button>
+        <button class="btn" id="pr_prepbtn" onclick="preparePayroll()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> เตรียมข้อมูล</button>
         <div id="pr_msg" class="msg"></div>
       </div>
       <div class="card" id="pr_resultcard" style="display:none">
         <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
           <span>ผลลัพธ์</span>
           <span style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="ebtn" onclick="downloadPayroll('xlsx')">⬇️ XLSX</button>
-            <button class="ebtn" onclick="downloadPayroll('csv')">⬇️ CSV</button>
+            <button class="ebtn" onclick="downloadPayroll('xlsx')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> XLSX</button>
+            <button class="ebtn" onclick="downloadPayroll('csv')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> CSV</button>
           </span>
         </h2>
         <div class="kpis" id="pr_kpis" style="margin-bottom:14px"></div>
@@ -310,12 +311,12 @@
       <h2 style="margin-bottom:8px">ปักหมุดตำแหน่งสาขา</h2>
       <p style="font-size:12.5px;color:var(--muted);margin-bottom:10px">ค้นหาสถานที่ หรือเลื่อน/แตะแผนที่เพื่อปักหมุด — ลากหมุดปรับตำแหน่งได้</p>
       <div style="display:flex;gap:8px;margin-bottom:10px">
-        <input id="map_search" placeholder="🔍 ค้นหาสถานที่ (เช่น ชื่อปั๊มน้ำมัน, ตำบล, อำเภอ)" onkeydown="if(event.key==='Enter'){event.preventDefault();searchMapLocation();}">
+        <input id="map_search" placeholder="ค้นหาสถานที่ (เช่น ชื่อปั๊มน้ำมัน, ตำบล, อำเภอ)" onkeydown="if(event.key==='Enter'){event.preventDefault();searchMapLocation();}">
         <button type="button" class="ebtn" style="white-space:nowrap" onclick="searchMapLocation()">ค้นหา</button>
       </div>
       <div id="map_canvas" style="height:320px;border-radius:12px;overflow:hidden;border:1px solid var(--line)"></div>
       <div id="map_coord" style="font-size:12.5px;color:var(--muted);margin-top:8px">ยังไม่ได้เลือกตำแหน่ง</div>
-      <button class="btn" onclick="confirmMapPick()">✅ ใช้ตำแหน่งนี้</button>
+      <button class="btn" onclick="confirmMapPick()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ใช้ตำแหน่งนี้</button>
       <button class="btn" onclick="closeMapPicker()" style="background:#8C8479;margin-top:8px">ยกเลิก</button>
     </div>
   </div>
@@ -638,7 +639,7 @@ async function addBackdated(){
   }
   await db.from('audit_logs').insert({ actor_id:currentEmpId, action:'hr_backdate_attendance', target_ref:empId,
     detail:{ work_date:day, time:hhmm, ot_time:otHHMM||null } });
-  showMsg('bd_msg',true,'✅ เพิ่มบันทึกย้อนหลังแล้ว');
+  showMsg('bd_msg',true,'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> เพิ่มบันทึกย้อนหลังแล้ว');
   document.getElementById('bd_time').value='';
   document.getElementById('bd_ottime').value='';
   await loadAttendance();
@@ -716,7 +717,7 @@ function parseMapLink(){
   }
   document.getElementById('b_lat').value=c.lat;
   document.getElementById('b_lng').value=c.lng;
-  showMsg('b_locmsg',true,'✅ ดึงพิกัดสำเร็จ: '+c.lat+', '+c.lng);
+  showMsg('b_locmsg',true,'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ดึงพิกัดสำเร็จ: '+c.lat+', '+c.lng);
 }
 
 // ---------- ตำแหน่งสาขา วิธีที่ 3: เปิดแผนที่ปักหมุดเอง (Leaflet + OpenStreetMap) ----------
@@ -771,7 +772,7 @@ function confirmMapPick(){
   document.getElementById('b_lat').value=p.lat.toFixed(6);
   document.getElementById('b_lng').value=p.lng.toFixed(6);
   closeMapPicker();
-  showMsg('b_locmsg',true,'✅ ปักหมุดสำเร็จ: '+p.lat.toFixed(6)+', '+p.lng.toFixed(6));
+  showMsg('b_locmsg',true,'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ปักหมุดสำเร็จ: '+p.lat.toFixed(6)+', '+p.lng.toFixed(6));
 }
 function closeMapPicker(){ document.getElementById('map_modal').style.display='none'; }
 
@@ -787,7 +788,7 @@ async function addBranch(){
   if(editBranchId){ payload.updated_at=new Date().toISOString(); payload.updated_by=currentEmpId; ({ error } = await db.from('branches').update(payload).eq('branch_id',editBranchId)); }
   else { payload.created_by=currentEmpId; payload.updated_by=currentEmpId; ({ error } = await db.from('branches').insert(payload)); }
   if(error){showMsg('b_msg',false,'บันทึกไม่ได้: '+error.message);return;}
-  showMsg('b_msg',true, editBranchId ? '✅ แก้ไขสาขา "'+name+'" แล้ว' : '✅ บันทึกสาขา "'+name+'" แล้ว');
+  showMsg('b_msg',true, editBranchId ? '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> แก้ไขสาขา "'+name+'" แล้ว' : '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> บันทึกสาขา "'+name+'" แล้ว');
   cancelBranchEdit();
   await loadBranches(); loadDashboard();
 }
@@ -844,13 +845,13 @@ function showDetail(id){
   const manage = canManageEmp(e);
   let authSection;
   if(e.auth_user_id){
-    authSection = `<p style="color:#1E7D52"><b>✓ มีบัญชี login แล้ว</b> (เข้าด้วยเบอร์ ${esc(e.phone)})</p>`+
-      (manage ? `<button class="btn" style="background:#B26A2B" onclick="manageAuth('${e.employee_id}','reset')">🔄 รีเซตรหัสผ่าน</button> `+
-                `<button class="btn ghost" style="margin-top:8px" onclick="manageAuth('${e.employee_id}','reactivate')">🩹 กู้บัญชี login (ถ้าเปิดใช้งานแล้วยังเข้าไม่ได้)</button>`
+    authSection = `<p style="color:#1E7D52"><b><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg> มีบัญชี login แล้ว</b> (เข้าด้วยเบอร์ ${esc(e.phone)})</p>`+
+      (manage ? `<button class="btn" style="background:#B26A2B" onclick="manageAuth('${e.employee_id}','reset')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> รีเซตรหัสผ่าน</button> `+
+                `<button class="btn ghost" style="margin-top:8px" onclick="manageAuth('${e.employee_id}','reactivate')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437 1.745-1.437m6.615 8.206L3.75 12"/></svg> กู้บัญชี login (ถ้าเปิดใช้งานแล้วยังเข้าไม่ได้)</button>`
               : '<p style="font-size:12px;color:#8C8479">ผู้ดูแล HR จัดการบัญชี login ของ HR/เจ้าของไม่ได้</p>');
   } else {
     authSection = `<p style="color:#8C8479">ยังไม่มีบัญชี login สำหรับเข้าแอป</p>`+
-      (manage ? `<button class="btn" onclick="manageAuth('${e.employee_id}','create')">➕ สร้างบัญชี login</button>` : '');
+      (manage ? `<button class="btn" onclick="manageAuth('${e.employee_id}','create')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg> สร้างบัญชี login</button>` : '');
   }
   document.getElementById('detail_body').innerHTML=
     `<b>ชื่อ:</b> ${esc(e.first_name)} ${esc(e.last_name)} (${esc(e.nickname||'')})<br>`+
@@ -882,11 +883,11 @@ async function manageAuth(employee_id, action){
     const data = await res.json();
     if(!res.ok){ el.innerHTML='<span style="color:#C2391F">ไม่สำเร็จ: '+(data.error||'')+'</span>'; return; }
     if(action==='reactivate'){
-      el.innerHTML='<div style="background:#E4F0E9;padding:12px;border-radius:10px"><b>✅ กู้บัญชี login แล้ว</b><br>'+
+      el.innerHTML='<div style="background:#E4F0E9;padding:12px;border-radius:10px"><b><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> กู้บัญชี login แล้ว</b><br>'+
         '<span style="font-size:12px;color:#3A352E">ลองเข้าสู่ระบบด้วยเบอร์โทร + รหัสผ่านเดิมได้เลย ถ้ายังเข้าไม่ได้ให้กด "รีเซตรหัสผ่าน"</span></div>';
     }else{
       el.innerHTML='<div style="background:#E4F0E9;padding:12px;border-radius:10px">'+
-        `<b>${action==='create'?'✅ สร้างบัญชีแล้ว':'✅ รีเซตรหัสแล้ว'}</b><br>`+
+        `<b>${action==='create'?'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> สร้างบัญชีแล้ว':'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> รีเซตรหัสแล้ว'}</b><br>`+
         `เบอร์เข้าระบบ: <b>${data.login_phone}</b><br>`+
         `รหัสผ่านชั่วคราว: <b style="font-size:18px;color:#9A5A22">${data.temp_password}</b><br>`+
         '<span style="font-size:12px;color:#3A352E">แจ้งรหัสนี้ให้พนักงาน → ใช้เข้าครั้งแรก → ระบบจะให้เปลี่ยนรหัสเอง</span></div>';
@@ -935,7 +936,7 @@ async function addEmployee(){
   if(editEmpId && (!updData || !updData.length)){
     showMsg('e_msg',false,'ไม่มีสิทธิ์แก้ไขบัญชีนี้ — ผู้ดูแล HR แก้ไขได้เฉพาะบัญชีพนักงาน (staff) เท่านั้น');return;
   }
-  showMsg('e_msg',true, editEmpId ? '✅ แก้ไขพนักงาน "'+first+'" แล้ว' : '✅ บันทึกพนักงาน "'+first+'" (รหัส '+code+') แล้ว');
+  showMsg('e_msg',true, editEmpId ? '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> แก้ไขพนักงาน "'+first+'" แล้ว' : '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> บันทึกพนักงาน "'+first+'" (รหัส '+code+') แล้ว');
   cancelEmpEdit();
   await loadEmployees(); loadDashboard();
 }
@@ -966,7 +967,7 @@ async function deactivateBranch(id){
   if(!confirm('ปิดใช้งานสาขา "'+b.name+'" ?\n(ข้อมูลไม่ถูกลบจริง ยังกู้คืนได้ แต่จะไม่แสดงในรายการ)'))return;
   const { error } = await db.from('branches').update({status:'deactivated',updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('branch_id',id);
   if(error){showMsg('b_msg',false,'ปิดใช้งานไม่ได้: '+error.message);return;}
-  showMsg('b_msg',true,'✅ ปิดใช้งานสาขา "'+b.name+'" แล้ว');
+  showMsg('b_msg',true,'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ปิดใช้งานสาขา "'+b.name+'" แล้ว');
   await loadBranches(); loadDashboard();
 }
 async function deactivateEmployee(id){
@@ -986,11 +987,11 @@ async function deactivateEmployee(id){
           headers:{ 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json' },
           body: JSON.stringify({ action:'deactivate', employee_id:id })
         });
-        if(!res.ok){ const d=await res.json().catch(()=>({})); showMsg('e_msg',true,'✅ ปิดใช้งานพนักงาน "'+e.first_name+'" แล้ว (แต่ปิดบัญชี login ไม่สำเร็จ: '+(d.error||'')+' — เบอร์นี้อาจใช้ซ้ำไม่ได้ทันที)'); await loadEmployees(); loadDashboard(); return; }
+        if(!res.ok){ const d=await res.json().catch(()=>({})); showMsg('e_msg',true,'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ปิดใช้งานพนักงาน "'+e.first_name+'" แล้ว (แต่ปิดบัญชี login ไม่สำเร็จ: '+(d.error||'')+' — เบอร์นี้อาจใช้ซ้ำไม่ได้ทันที)'); await loadEmployees(); loadDashboard(); return; }
       }
     }catch(err){ /* ไม่บล็อกการปิดใช้งานพนักงาน แม้ปิดบัญชี login จะพลาด */ }
   }
-  showMsg('e_msg',true,'✅ ปิดใช้งานพนักงาน "'+e.first_name+'" แล้ว');
+  showMsg('e_msg',true,'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ปิดใช้งานพนักงาน "'+e.first_name+'" แล้ว');
   await loadEmployees(); loadDashboard();
 }
 async function loadInactiveEmployees(){
@@ -1001,7 +1002,7 @@ async function loadInactiveEmployees(){
   if(!data||!data.length){ box.innerHTML='<div class="empty">ไม่มีพนักงานที่ปิดใช้งาน</div>'; return; }
   let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เบอร์</th><th>สิทธิ์เดิม</th><th></th></tr>';
   data.forEach(e=>{
-    const btn = canManageEmp(e) ? `<button class="ebtn" onclick="reactivateEmployee('${e.employee_id}')">↩️ เปิดใช้งาน</button>` : '';
+    const btn = canManageEmp(e) ? `<button class="ebtn" onclick="reactivateEmployee('${e.employee_id}')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/></svg> เปิดใช้งาน</button>` : '';
     h+=`<tr><td>${esc(e.employee_code)}</td><td>${esc(e.first_name)} ${esc(e.last_name)} (${esc(e.nickname||'')})</td><td>${esc(e.phone)}</td><td>${roleLabel(e.role)}</td><td>${btn}</td></tr>`;
   });
   box.innerHTML=h+'</table>';
@@ -1156,11 +1157,11 @@ async function preparePayroll(){
     const scopeTxt = branchId ? (branchesData.find(b=>b.branch_id===branchId)?.name || 'สาขาที่เลือก')
                     : regionId ? ('ภาค '+(document.getElementById('pr_region').selectedOptions[0]?.textContent||''))
                     : 'ทุกสาขา';
-    showMsg('pr_msg', true, '✅ เตรียมข้อมูลสำเร็จ '+rows.length+' คน · '+scopeTxt+' (ช่วง '+start+' ถึง '+end+')');
+    showMsg('pr_msg', true, '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> เตรียมข้อมูลสำเร็จ '+rows.length+' คน · '+scopeTxt+' (ช่วง '+start+' ถึง '+end+')');
   }catch(err){
     showMsg('pr_msg', false, 'เตรียมข้อมูลไม่สำเร็จ: '+(err.message||err));
   }
-  btn.disabled=false; btn.textContent='🔄 เตรียมข้อมูล';
+  btn.disabled=false; btn.innerHTML='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> เตรียมข้อมูล';
 }
 
 function renderPayrollPreview(rows){
@@ -1227,8 +1228,8 @@ async function loadWaivers(){
   data.forEach(r=>{
     const e=r.employees||{};
     h+=`<tr><td>${e.employee_code||'-'}</td><td>${empName(e)}</td><td>${r.request_date}</td>`+
-       `<td><button class="ebtn" onclick="decideWaiver('${r.id}','approved')">✅ อนุมัติ</button> `+
-       `<button class="ebtn del" onclick="decideWaiver('${r.id}','rejected')">❌ ไม่อนุมัติ</button></td></tr>`;
+       `<td><button class="ebtn" onclick="decideWaiver('${r.id}','approved')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> อนุมัติ</button> `+
+       `<button class="ebtn del" onclick="decideWaiver('${r.id}','rejected')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ไม่อนุมัติ</button></td></tr>`;
   });
   box.innerHTML=h+'</table>';
 }
@@ -1245,7 +1246,7 @@ async function loadPendingCases(){
     .select('id,source,opened_date,escalation_level,employees!pending_cases_employee_id_fkey(employee_code,first_name,last_name,nickname)')
     .eq('status','open').order('opened_date',{ascending:true});
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
-  if(!data||!data.length){ box.innerHTML='<div class="empty">ไม่มีเคสค้าง 🎉</div>'; return; }
+  if(!data||!data.length){ box.innerHTML='<div class="empty">ไม่มีเคสค้าง <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.182 15.182a4.5 4.5 0 0 1-6.364 0M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-13.5-3h.008v.008H7.5V9Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.125 0h.008v.008h-.008V9Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg></div>'; return; }
   let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>สาเหตุ</th><th>เปิดเมื่อ</th><th>สถานะ</th><th></th></tr>';
   data.forEach(r=>{
     const e=r.employees||{};
