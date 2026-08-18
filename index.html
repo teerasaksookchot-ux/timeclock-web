@@ -14,6 +14,10 @@
   .pwwrap input{padding-right:42px}
   .pwtoggle{position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:8px;color:var(--muted);display:flex;align-items:center}
   .pwtoggle .icon{width:19px;height:19px}
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-top-color:transparent;
+    border-radius:50%;animation:sp .7s linear infinite;vertical-align:-3px;margin-right:6px}
+  .spin.dark{border-color:var(--muted);border-top-color:transparent}
+  @keyframes sp{to{transform:rotate(360deg)}}
   :root{--ink:#1C1A17;--ink2:#3A352E;--muted:#8C8479;--tan:#B26A2B;--tan2:#9A5A22;
     --tan-soft:#EBDCC8;--paper:#F2EEE8;--card:#FFF;--line:#E4DDD2;
     --green:#1E7D52;--green-bg:#E4F0E9;--red:#C2391F;--red-bg:#F6E0DB;
@@ -109,7 +113,7 @@
       <input id="l_pw" type="password" placeholder="••••••••">
       <button type="button" class="pwtoggle" onclick="togglePw('l_pw',this)" aria-label="แสดง/ซ่อนรหัสผ่าน"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg></button>
     </div>
-    <button class="btn" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <button class="btn" id="l_btn" onclick="doLogin()">เข้าสู่ระบบ</button>
     <div id="l_msg" class="msg"></div>
     <div id="configMsg" class="config"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg> ยังไม่ได้ตั้งค่าการเชื่อมต่อ — เปิดไฟล์นี้ด้วยโปรแกรมแก้ข้อความ แล้วใส่ Project URL และ anon key (ดูคู่มือขั้นที่ 4)</div>
   </div>
@@ -146,11 +150,11 @@
         </div>
         <input id="bg_search" placeholder="ค้นหาสาขา…" oninput="renderBranchGrid()" style="margin-bottom:10px">
         <div id="bg_summary" class="kpis" style="margin-bottom:12px"></div>
-        <div id="branch_grid"><div class="empty">กำลังโหลด…</div></div>
+        <div id="branch_grid"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div>
       </div>
       <div class="card"><h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>ภาพรวมระบบ</span><button class="ebtn" onclick="loadDashboard()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> รีเฟรช</button></h2><div class="kpis" id="dash_kpis"></div></div>
-      <div class="card"><h2>พนักงานแยกตามสาขา</h2><div id="dash_by_branch"><div class="empty">กำลังโหลด…</div></div></div>
-      <div class="card"><h2>สาขาแยกตามจังหวัด</h2><div id="dash_by_province"><div class="empty">กำลังโหลด…</div></div></div>
+      <div class="card"><h2>พนักงานแยกตามสาขา</h2><div id="dash_by_branch"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div></div>
+      <div class="card"><h2>สาขาแยกตามจังหวัด</h2><div id="dash_by_province"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div></div>
     </div>
 
     <div class="panel" id="p-attend">
@@ -183,12 +187,12 @@
     <div class="panel" id="p-approvals">
       <div class="card">
         <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>ขอไม่ทำ OT (รออนุมัติ)</span><button class="ebtn" onclick="loadApprovals()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> รีเฟรช</button></h2>
-        <div id="wv_list"><div class="empty">กำลังโหลด…</div></div>
+        <div id="wv_list"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div>
       </div>
       <div class="card">
         <h2>เคสค้าง (Pending Cases)</h2>
         <p style="font-size:12.5px;color:var(--muted);margin:-6px 0 10px">เคสที่ระบบตั้งให้ตรวจ เช่น GPS ไม่ผ่าน, ลืมกดออก OT, ออกก่อนเวลา · เคสค้างเกิน 60 วัน เฉพาะเจ้าของปิดได้</p>
-        <div id="pc_list"><div class="empty">กำลังโหลด…</div></div>
+        <div id="pc_list"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div>
       </div>
     </div>
 
@@ -216,7 +220,7 @@
         <button class="btn" id="b_cancelbtn" onclick="cancelBranchEdit()" style="display:none;background:#8C8479;margin-top:8px">ยกเลิกการแก้ไข</button>
         <div id="b_msg" class="msg"></div>
       </div>
-      <div class="card"><h2>รายการสาขา</h2><div id="b_list"><div class="empty">กำลังโหลด…</div></div></div>
+      <div class="card"><h2>รายการสาขา</h2><div id="b_list"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div></div>
     </div>
 
     <div class="panel" id="p-employees">
@@ -231,9 +235,9 @@
         <button class="btn" id="e_cancelbtn" onclick="cancelEmpEdit()" style="display:none;background:#8C8479;margin-top:8px">ยกเลิกการแก้ไข</button>
         <div id="e_msg" class="msg"></div>
       </div>
-      <div class="card"><h2>เจ้าของ (Owner)</h2><div id="e_list_owner"><div class="empty">กำลังโหลด…</div></div></div>
-      <div class="card"><h2>ผู้ดูแล HR</h2><div id="e_list_hr"><div class="empty">กำลังโหลด…</div></div></div>
-      <div class="card"><h2>พนักงาน</h2><div id="e_list_staff"><div class="empty">กำลังโหลด…</div></div></div>
+      <div class="card"><h2>เจ้าของ (Owner)</h2><div id="e_list_owner"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div></div>
+      <div class="card"><h2>ผู้ดูแล HR</h2><div id="e_list_hr"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div></div>
+      <div class="card"><h2>พนักงาน</h2><div id="e_list_staff"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div></div>
       <div class="card"><h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>พนักงานที่ปิดใช้งานแล้ว</span><button class="ebtn" onclick="loadInactiveEmployees()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> แสดง</button></h2><div id="e_list_inactive"><div class="empty">กดปุ่ม "แสดง" เพื่อดูรายชื่อ</div></div></div>
     </div>
 
@@ -392,11 +396,17 @@ async function doLogin(){
   const input=document.getElementById('l_email').value.trim();
   const pw=document.getElementById('l_pw').value;
   if(!db){ lmsg(false,'ยังไม่ได้ตั้งค่าการเชื่อมต่อ'); return; }
-  // รองรับ HR/พนักงานที่บัญชีสร้างด้วยเบอร์โทร (แปลงเป็นอีเมลภายในแบบเดียวกับหน้าพนักงาน) รวมถึงอีเมลจริงของเจ้าของ
-  const email = input.includes('@') ? input : (input + '@staff.timeclock.local');
-  const { error } = await db.auth.signInWithPassword({ email, password:pw });
-  if(error){ lmsg(false,'อีเมลหรือรหัสผ่านไม่ถูกต้อง'); return; }
-  await afterLogin();
+  const btn=document.getElementById('l_btn'); const orig=btn.innerHTML;
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>กำลังเข้าสู่ระบบ…';
+  try{
+    // รองรับ HR/พนักงานที่บัญชีสร้างด้วยเบอร์โทร (แปลงเป็นอีเมลภายในแบบเดียวกับหน้าพนักงาน) รวมถึงอีเมลจริงของเจ้าของ
+    const email = input.includes('@') ? input : (input + '@staff.timeclock.local');
+    const { error } = await db.auth.signInWithPassword({ email, password:pw });
+    if(error){ lmsg(false,'อีเมลหรือรหัสผ่านไม่ถูกต้อง'); return; }
+    await afterLogin();
+  } finally {
+    btn.disabled=false; btn.innerHTML=orig;
+  }
 }
 
 async function afterLogin(){
@@ -440,7 +450,7 @@ let branchGridData=[];
 async function loadBranchGrid(){
   const dEl=document.getElementById('bg_date'); if(!dEl.value) dEl.value=bkkToday();
   const day=dEl.value, today=bkkToday();
-  const grid=document.getElementById('branch_grid'); grid.innerHTML='<div class="empty">กำลังโหลด…</div>';
+  const grid=document.getElementById('branch_grid'); grid.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>';
   const { data: att, error } = await db.from('attendance_records')
     .select('employee_id,working_branch_id,status,late_minutes').eq('work_date', day);
   if(error){ grid.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
@@ -523,7 +533,7 @@ async function loadAttendance(){
   const regionId = document.getElementById('at_region').value;
   const branchId = document.getElementById('at_branch').value;
   const box=document.getElementById('at_list'), kpi=document.getElementById('at_kpis');
-  box.innerHTML='<div class="empty">กำลังโหลด…</div>'; kpi.innerHTML='';
+  box.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>'; kpi.innerHTML='';
   let q = db.from('attendance_records')
     .select('id,clock_in_time,status,late_minutes,selfie_path,employee_id,updated_at,updated_by,employees!attendance_records_employee_id_fkey(employee_code,first_name,last_name,nickname),branches(name),ot_records(id,ot_clock_out_time,ot_hours,ot_status)')
     .eq('work_date', day);
@@ -1012,7 +1022,7 @@ async function deactivateEmployee(id){
 }
 async function loadInactiveEmployees(){
   const box=document.getElementById('e_list_inactive');
-  box.innerHTML='<div class="empty">กำลังโหลด…</div>';
+  box.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>';
   const { data, error } = await db.from('employees').select('*, branches:home_branch_id(name)').eq('status','inactive').order('employee_code');
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
   if(!data||!data.length){ box.innerHTML='<div class="empty">ไม่มีพนักงานที่ปิดใช้งาน</div>'; return; }
@@ -1096,7 +1106,7 @@ async function preparePayroll(){
   const regionId=document.getElementById('pr_region').value, branchId=document.getElementById('pr_branch').value;
   if(!start||!end){ showMsg('pr_msg',false,'กรุณาเลือกวันที่เริ่มและสิ้นสุด'); return; }
   if(start>end){ showMsg('pr_msg',false,'วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด'); return; }
-  const btn=document.getElementById('pr_prepbtn'); btn.disabled=true; btn.textContent='กำลังเตรียมข้อมูล…';
+  const btn=document.getElementById('pr_prepbtn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>กำลังเตรียมข้อมูล…';
   document.getElementById('pr_resultcard').style.display='none';
   try{
     let attQ = db.from('attendance_records')
@@ -1234,7 +1244,7 @@ function empName(e){ if(!e) return '(ไม่พบชื่อ)'; return esc((
 async function loadApprovals(){ await loadWaivers(); await loadPendingCases(); }
 
 async function loadWaivers(){
-  const box=document.getElementById('wv_list'); box.innerHTML='<div class="empty">กำลังโหลด…</div>';
+  const box=document.getElementById('wv_list'); box.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>';
   const { data, error } = await db.from('ot_waiver_requests')
     .select('id,request_date,status,employees!ot_waiver_requests_employee_id_fkey(employee_code,first_name,last_name,nickname)')
     .eq('status','pending').order('request_date',{ascending:true});
@@ -1257,7 +1267,7 @@ async function decideWaiver(id, decision){
 }
 
 async function loadPendingCases(){
-  const box=document.getElementById('pc_list'); box.innerHTML='<div class="empty">กำลังโหลด…</div>';
+  const box=document.getElementById('pc_list'); box.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>';
   const { data, error } = await db.from('pending_cases')
     .select('id,source,opened_date,escalation_level,employees!pending_cases_employee_id_fkey(employee_code,first_name,last_name,nickname)')
     .eq('status','open').order('opened_date',{ascending:true});

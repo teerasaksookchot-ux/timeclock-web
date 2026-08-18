@@ -261,10 +261,11 @@ async function doLogin(){
   const pw=document.getElementById('l_pw').value;
   if(!db){ msg('l_msg','err','ยังไม่ได้ตั้งค่าการเชื่อมต่อ'); return; }
   if(!phone||!pw){ msg('l_msg','err','กรุณากรอกเบอร์โทรและรหัสผ่าน'); return; }
-  const btn=document.getElementById('l_btn'); btn.disabled=true; clrmsg('l_msg');
+  const btn=document.getElementById('l_btn'); const orig=btn.innerHTML;
+  btn.disabled=true; clrmsg('l_msg'); btn.innerHTML='<span class="spin"></span>กำลังเข้าสู่ระบบ…';
   const email = phone + '@staff.timeclock.local';
   const { error } = await db.auth.signInWithPassword({ email, password:pw });
-  btn.disabled=false;
+  btn.disabled=false; btn.innerHTML=orig;
   if(error){ msg('l_msg','err','เบอร์โทรหรือรหัสผ่านไม่ถูกต้อง'); return; }
   await loadMe(); await route();
 }
@@ -300,11 +301,12 @@ async function doChangePw(){
   const p1=document.getElementById('c_pw1').value, p2=document.getElementById('c_pw2').value;
   if(p1.length<6){ msg('c_msg','err','รหัสใหม่ต้องยาวอย่างน้อย 6 ตัวอักษร'); return; }
   if(p1!==p2){ msg('c_msg','err','รหัสใหม่สองช่องไม่ตรงกัน'); return; }
-  const btn=document.getElementById('c_btn'); btn.disabled=true; clrmsg('c_msg');
+  const btn=document.getElementById('c_btn'); const orig=btn.innerHTML;
+  btn.disabled=true; clrmsg('c_msg'); btn.innerHTML='<span class="spin"></span>กำลังบันทึก…';
   const { error } = await db.auth.updateUser({ password:p1 });
-  if(error){ btn.disabled=false; msg('c_msg','err','เปลี่ยนรหัสไม่สำเร็จ: '+error.message); return; }
+  if(error){ btn.disabled=false; btn.innerHTML=orig; msg('c_msg','err','เปลี่ยนรหัสไม่สำเร็จ: '+error.message); return; }
   const { error:rerr } = await db.rpc('fn_complete_first_login');
-  btn.disabled=false;
+  btn.disabled=false; btn.innerHTML=orig;
   if(rerr){ msg('c_msg','err','บันทึกสถานะไม่สำเร็จ: '+rerr.message); return; }
   me.must_change_password=false;
   await route();
@@ -317,10 +319,11 @@ async function checkConsent(){
   return !!(data && data.length);
 }
 async function doConsent(){
-  const btn=document.getElementById('cs_btn'); btn.disabled=true; clrmsg('cs_msg');
+  const btn=document.getElementById('cs_btn'); const orig=btn.innerHTML;
+  btn.disabled=true; clrmsg('cs_msg'); btn.innerHTML='<span class="spin"></span>กำลังบันทึก…';
   const { error } = await db.from('consents')
     .insert({ employee_id:me.employee_id, camera:true, face:true, gps:true });
-  btn.disabled=false;
+  btn.disabled=false; btn.innerHTML=orig;
   if(error){ msg('cs_msg','err','บันทึกไม่สำเร็จ: '+error.message); return; }
   await enterHome();
 }
