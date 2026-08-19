@@ -1143,8 +1143,8 @@ async function preparePayroll(){
 
     const agg={};
     (att||[]).forEach(a=>{
-      const g = agg[a.employee_id] || (agg[a.employee_id] = { workDays:0, absentDays:0, workHours:0, lateMin:0, otHours:0, leaveMin:0, branchSet:new Set() });
-      if(a.status!=='absent') g.workDays++; else g.absentDays++;
+      const g = agg[a.employee_id] || (agg[a.employee_id] = { workDays:0, workHours:0, lateMin:0, otHours:0, leaveMin:0, branchSet:new Set() });
+      if(a.status!=='absent') g.workDays++;
       g.workHours += calcRegularHours(a.work_date, a.clock_in_time, otOutByAtt[a.id]);
       g.lateMin += Number(a.late_minutes)||0;
       if(a.working_branch_id) g.branchSet.add(a.working_branch_id);
@@ -1170,7 +1170,6 @@ async function preparePayroll(){
         homeBranch: e? branchName(e.home_branch_id) : '-',
         workingBranch: branches,
         workDays: g.workDays,
-        absentDays: g.absentDays,
         workHours: Math.round(g.workHours*100)/100,
         otStatus: g.otHours>0 ? 'YES' : 'NO',
         otHours: Math.round(g.otHours*10)/10,
@@ -1191,13 +1190,24 @@ async function preparePayroll(){
   btn.disabled=false; btn.innerHTML='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> เตรียมข้อมูล';
 }
 
+const TH_MONTHS_SHORT=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function thShortDate(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  return d+' '+TH_MONTHS_SHORT[m-1]+' '+(y+543);
+}
+function thDateRangeLabel(start,end){
+  if(!start||!end) return '-';
+  const [ys,ms] = start.split('-').map(Number), [ye,me] = end.split('-').map(Number);
+  if(ys===ye && ms===me) return Number(start.slice(8))+'–'+Number(end.slice(8))+' '+TH_MONTHS_SHORT[ms-1]+' '+(ys+543);
+  return thShortDate(start)+' – '+thShortDate(end);
+}
+
 function renderPayrollPreview(rows){
   document.getElementById('pr_resultcard').style.display='block';
-  const totalAbsent = rows.reduce((s,r)=>s+r.absentDays,0);
   const totalOT = rows.reduce((s,r)=>s+(r.otHours>0?1:0),0);
   document.getElementById('pr_kpis').innerHTML =
     `<div class="kpi"><div class="n">${rows.length}</div><div class="l">พนักงาน</div></div>`+
-    `<div class="kpi"><div class="n">${totalAbsent}</div><div class="l">วันขาดงานรวม</div></div>`+
+    `<div class="kpi"><div class="n" style="font-size:20px">${thDateRangeLabel(payrollPeriod.start,payrollPeriod.end)}</div><div class="l">ช่วงรายงาน</div></div>`+
     `<div class="kpi"><div class="n">${totalOT}</div><div class="l">คนมี OT</div></div>`;
   if(!rows.length){ document.getElementById('pr_table').innerHTML='<div class="empty">ไม่พบข้อมูลในช่วงวันที่นี้</div>'; return; }
   let h='<table><tr>'+PR_HEADERS.map(x=>'<th>'+x+'</th>').join('')+'</tr>';
