@@ -1292,7 +1292,7 @@ async function downloadPayroll(fmt){
 }
 
 // ---------- อนุมัติ/เคสค้าง (B1 + B2) ----------
-const SRC_LABEL={gps_fail:'GPS ไม่ผ่าน',ot_forgot:'ลืมกดออก OT',anomaly:'ผิดปกติ (ออกก่อนเวลา/อื่นๆ)',half_day:'มาครึ่งวันแล้วหาย',face_assist:'ขอ HR ช่วยยืนยันใบหน้า'};
+const SRC_LABEL={gps_fail:'GPS ไม่ผ่าน',ot_forgot:'ลืมกดออก OT',anomaly:'ผิดปกติ (ออกก่อนเวลา/อื่นๆ)',half_day:'มาครึ่งวันแล้วหาย',face_assist:'ขอ HR ช่วยยืนยันใบหน้า',late_checkin:'เลยเวลาเข้างาน (หลัง 08:00 ยังไม่กด)'};
 const ESC_LABEL={day0:'วันนี้',day7:'ค้าง ≥7 วัน',day30:'ค้าง ≥30 วัน',day60:'ค้าง ≥60 วัน'};
 function empName(e){ if(!e) return '(ไม่พบชื่อ)'; return esc((e.first_name||'')+' '+(e.last_name||'')+(e.nickname?' ('+e.nickname+')':'')); }
 
