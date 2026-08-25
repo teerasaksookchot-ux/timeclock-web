@@ -350,12 +350,15 @@ async function refreshTodayStatus(){
     .eq('employee_id', me.employee_id).eq('work_date', bkkDate()).maybeSingle();
   todayAttendance = data || null;
   const st=document.getElementById('h_status'), btn=document.getElementById('h_btn');
-  if(data){
+  if(data && data.clock_in_time){
     const t = new Date(data.clock_in_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
     const lateTxt = data.late_minutes>0 ? (' · สาย '+data.late_minutes+' นาที') : '';
     const pend = data.status==='pending' ? ' (รอ HR ยืนยัน)' : '';
     st.className='msg ok'; st.textContent='วันนี้เข้างานแล้วเมื่อ '+t+' น.'+lateTxt+pend;
     btn.disabled=true; btn.innerHTML='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> เข้างานวันนี้แล้ว';
+  }else if(data && data.status==='absent'){
+    st.className='msg err'; st.textContent='วันนี้ถูกบันทึกว่าขาดงาน — หากไม่ถูกต้องกรุณาติดต่อ HR';
+    btn.disabled=true; btn.innerHTML='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg> ขาดงานวันนี้';
   }else if(bkkMinutesNow() < 390){   // 06:30 = 6*60+30 = 390 (DL-06)
     st.className='msg warn'; st.textContent='ยังไม่ถึงเวลาเข้างาน — เปิดให้กดได้ตั้งแต่ 06:30 น.';
     btn.disabled=true; btn.innerHTML='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z"/></svg> กดเข้างาน';
@@ -369,7 +372,7 @@ async function refreshTodayStatus(){
 // ---------- ส่วน OT + ออกไปทำธุระ (แสดงหลังเข้างานแล้วเท่านั้น) ----------
 async function renderExtra(){
   const box=document.getElementById('h_extra');
-  if(!todayAttendance){ box.style.display='none'; return; }
+  if(!todayAttendance || !todayAttendance.clock_in_time){ box.style.display='none'; return; }
   box.style.display='block';
 
   // --- OT (DL-13..19) ---
