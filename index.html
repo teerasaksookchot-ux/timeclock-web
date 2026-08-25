@@ -1324,11 +1324,11 @@ async function decideWaiver(id, decision){
 async function loadPendingCases(){
   const box=document.getElementById('pc_list'); box.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>';
   const { data, error } = await db.from('pending_cases')
-    .select('id,source,opened_date,escalation_level,employees!pending_cases_employee_id_fkey(employee_code,first_name,last_name,nickname)')
+    .select('id,employee_id,source,opened_date,escalation_level,employees!pending_cases_employee_id_fkey(employee_code,first_name,last_name,nickname)')
     .eq('status','open').order('opened_date',{ascending:true});
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
   if(!data||!data.length){ box.innerHTML='<div class="empty">ไม่มีเคสค้าง <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.182 15.182a4.5 4.5 0 0 1-6.364 0M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-13.5-3h.008v.008H7.5V9Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.125 0h.008v.008h-.008V9Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg></div>'; return; }
-  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>สาเหตุ</th><th>เปิดเมื่อ</th><th>สถานะ</th><th></th></tr>';
+  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>สาเหตุ</th><th>เปิดเมื่อ</th><th>สถานะ</th><th></th><th></th></tr>';
   data.forEach(r=>{
     const e=r.employees||{};
     const isDay60 = r.escalation_level==='day60';
@@ -1337,13 +1337,31 @@ async function loadPendingCases(){
     const btn = locked
       ? '<span style="color:var(--muted);font-size:12px">รอเจ้าของปิด</span>'
       : `<button class="ebtn" onclick="resolvePending('${r.id}')">ปิดเคส</button>`;
+    const editBtn = `<button class="ebtn" onclick="jumpToAttendance('${r.opened_date}','${r.employee_id}')">แก้ไขเวลางาน</button>`;
     h+=`<tr><td>${e.employee_code||'-'}</td><td>${empName(e)}</td><td>${SRC_LABEL[r.source]||r.source}</td>`+
-       `<td>${r.opened_date}</td><td style="color:${escColor}">${ESC_LABEL[r.escalation_level]||r.escalation_level}</td><td>${btn}</td></tr>`;
+       `<td>${r.opened_date}</td><td style="color:${escColor}">${ESC_LABEL[r.escalation_level]||r.escalation_level}</td><td>${editBtn}</td><td>${btn}</td></tr>`;
   });
   box.innerHTML=h+'</table>';
 }
+// เปิดแท็บ "เข้างานวันนี้" ตรงวัน+พนักงานของเคสนั้นเลย — ถ้ามีบันทึกอยู่แล้วเปิดแก้ไข ถ้ายังไม่มีเลื่อนไปการ์ด "เพิ่มบันทึกย้อนหลัง" พร้อมเลือกพนักงานให้
+async function jumpToAttendance(day, employeeId){
+  switchTab('attend');
+  document.getElementById('at_date').value = day;
+  await loadAtFilters();
+  await loadAttendance();
+  const existing = attendanceData.find(r=>r.employee_id===employeeId);
+  if(existing){
+    openAttEdit(existing.id);
+  }else{
+    fillBackdateEmps();
+    const sel=document.getElementById('bd_emp');
+    if(sel) sel.value = employeeId;
+    document.getElementById('at_backdate_card').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+}
 async function resolvePending(id){
   if(!confirm('ยืนยันปิดเคสนี้? (บันทึกว่าตรวจสอบแล้ว)')) return;
+  if(!confirm('ยืนยันอีกครั้ง: การปิดเคสจะไม่แก้ไขเวลาเข้างานให้อัตโนมัติ — ถ้ายังไม่ได้ตรวจ/แก้เวลางานของพนักงานคนนี้ ให้กดยกเลิกแล้วใช้ปุ่ม "แก้ไขเวลางาน" ก่อน')) return;
   const { error } = await db.from('pending_cases')
     .update({ status:'resolved', acknowledged_by:currentEmpId, acknowledged_at:new Date().toISOString() }).eq('id',id);
   if(error){ alert('ปิดเคสไม่สำเร็จ: '+error.message); return; }
