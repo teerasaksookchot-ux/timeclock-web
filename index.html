@@ -595,7 +595,7 @@ async function loadAttendance(){
   const editable = diff>=0 && diff<=60;
   document.getElementById('at_backdate_card').style.display = editable ? 'block' : 'none';
   if(!data||!data.length){ box.innerHTML='<div class="empty">วันนี้ยังไม่มีใครเข้างาน</div>'; return; }
-  const total=data.length, pend=data.filter(r=>r.status==='pending').length, late=data.filter(r=>r.late_minutes>0).length;
+  const total=data.filter(r=>r.clock_in_time).length, pend=data.filter(r=>r.status==='pending').length, late=data.filter(r=>r.late_minutes>0).length;
   kpi.innerHTML=
     `<div class="kpi"><div class="n">${total}</div><div class="l">เข้างานแล้ว</div></div>`+
     `<div class="kpi"><div class="n">${late}</div><div class="l">มาสาย</div></div>`+
