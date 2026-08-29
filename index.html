@@ -600,7 +600,7 @@ async function loadAttendance(){
     `<div class="kpi"><div class="n">${total}</div><div class="l">เข้างานแล้ว</div></div>`+
     `<div class="kpi"><div class="n">${late}</div><div class="l">มาสาย</div></div>`+
     `<div class="kpi"><div class="n">${pend}</div><div class="l">รอ HR ยืนยัน</div></div>`;
-  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เวลาเข้า</th><th>เวลาออก</th><th>สาขา</th><th>สถานะ</th><th>รูป</th><th>ออกไปทำธุระ</th><th>นาทีที่ออก</th><th>แก้ไขล่าสุด</th><th></th></tr>';
+  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เวลาเข้า</th><th>เวลาออก</th><th>สาขา</th><th>สถานะ</th><th>เข้างาน</th><th>ออกงาน</th><th>ออกไปทำธุระ</th><th>นาทีที่ออก</th><th>แก้ไขล่าสุด</th><th></th></tr>';
   data.forEach(r=>{
     const e=r.employees||{}; const name=(e.first_name||'')+' '+(e.last_name||'');
     const t=r.clock_in_time? new Date(r.clock_in_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}):'-';
@@ -613,9 +613,8 @@ async function loadAttendance(){
                 : r.status==='absent' ? '<span style="color:var(--red)">ขาด</span>'
                 : r.late_minutes>0 ? '<span style="color:var(--amber)">สาย</span>'
                 : '<span style="color:var(--green)">ปกติ</span>';
-    const photoIn = r.selfie_path ? `<button class="ebtn" onclick="viewSelfie('${r.selfie_path}')">เข้างาน</button>` : '';
-    const photoOut = (otRec && otRec.selfie_path) ? `<button class="ebtn" onclick="viewSelfie('${otRec.selfie_path}')">ออกงาน</button>` : '';
-    const photo = (photoIn || photoOut) ? `${photoIn} ${photoOut}`.trim() : '-';
+    const photoIn = r.selfie_path ? `<button class="ebtn" onclick="viewSelfie('${r.selfie_path}')">ดูรูป</button>` : '-';
+    const photoOut = (otRec && otRec.selfie_path) ? `<button class="ebtn" onclick="viewSelfie('${otRec.selfie_path}')">ดูรูป</button>` : '-';
     const leaveRec = Array.isArray(r.personal_leaves) ? r.personal_leaves[0] : r.personal_leaves;
     const leavePhoto = (leaveRec && leaveRec.selfie_path) ? `<button class="ebtn" onclick="viewSelfie('${leaveRec.selfie_path}')">ดูรูป</button>` : (leaveRec ? '-' : '');
     const leaveMinTxt = !leaveRec ? '-'
@@ -623,7 +622,7 @@ async function loadAttendance(){
       : '<span style="color:var(--amber)">ยังไม่กลับ</span>';
     const editBtn = editable ? `<button class="ebtn" onclick="openAttEdit('${r.id}')">แก้ไข</button>` : '';
     const editedTxt = r.updated_by ? `${whoName(r.updated_by)}<br><span style="font-size:11px;color:var(--muted)">${fmtTime(r.updated_at)}</span>` : '<span style="color:var(--muted)">—</span>';
-    h+=`<tr><td>${esc(e.employee_code)||'-'}</td><td>${esc(name)}</td><td>${t}${lateTxt}</td><td>${outT}</td><td>${r.branches?esc(r.branches.name):'-'}</td><td>${stTxt}</td><td>${photo}</td><td>${leavePhoto}</td><td>${leaveMinTxt}</td><td style="font-size:12.5px">${editedTxt}</td><td>${editBtn}</td></tr>`;
+    h+=`<tr><td>${esc(e.employee_code)||'-'}</td><td>${esc(name)}</td><td>${t}${lateTxt}</td><td>${outT}</td><td>${r.branches?esc(r.branches.name):'-'}</td><td>${stTxt}</td><td>${photoIn}</td><td>${photoOut}</td><td>${leavePhoto}</td><td>${leaveMinTxt}</td><td style="font-size:12.5px">${editedTxt}</td><td>${editBtn}</td></tr>`;
   });
   box.innerHTML=h+'</table>';
 }
