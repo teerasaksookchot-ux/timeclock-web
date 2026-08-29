@@ -993,8 +993,11 @@ async function addEmployee(){
   if(editEmpId){
     ({ data:updData, error } = await db.from('employees').update({first_name:first,last_name:last,nickname:nick,phone,home_branch_id:branch,role,updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('employee_id',editEmpId).select());
   } else {
-    const { count } = await db.from('employees').select('*',{count:'exact',head:true});
-    code='EMP'+String((count||0)+1).padStart(6,'0');
+    const prefix = role==='hr' ? 'HR' : 'EMP';
+    let seqQ = db.from('employees').select('*',{count:'exact',head:true});
+    if(role==='hr') seqQ = seqQ.eq('role','hr');   // นับแยก HR ต่างหาก ไม่ปนกับเลขรัน EMP
+    const { count } = await seqQ;
+    code=prefix+String((count||0)+1).padStart(6,'0');
     ({ error } = await db.from('employees').insert({employee_code:code,first_name:first,last_name:last,nickname:nick,phone,home_branch_id:branch,role,created_by:currentEmpId,updated_by:currentEmpId}));
   }
   if(error){
@@ -1315,6 +1318,10 @@ async function loadWaivers(){
   box.innerHTML=h+'</table>';
 }
 async function decideWaiver(id, decision){
+  const msg = decision==='approved'
+    ? 'ยืนยันอนุมัติคำขอ "ไม่ทำ OT" นี้?\n(พนักงานจะไม่ถูกนับเป็น "ลืมกดออก OT" ในวันนั้น)'
+    : 'ยืนยันไม่อนุมัติคำขอ "ไม่ทำ OT" นี้?';
+  if(!confirm(msg)) return;
   const { error } = await db.from('ot_waiver_requests')
     .update({ status:decision, approved_by:currentEmpId, approved_at:new Date().toISOString() }).eq('id',id);
   if(error){ alert('บันทึกไม่สำเร็จ: '+error.message); return; }
