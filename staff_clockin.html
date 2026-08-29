@@ -520,8 +520,8 @@ async function uploadSelfie(prefix, blob){
 
 // ---------- ออกงาน OT (DL-13..19) ----------
 async function processOtClockOut(blob){
-  const { err:selfieErr } = await uploadSelfie('ot', blob);
-  const { data:rec, error } = await db.rpc('fn_ot_clock_out', { p_attendance: todayAttendance.id, p_face_verified: true });
+  const { path:selfiePath, err:selfieErr } = await uploadSelfie('ot', blob);
+  const { data:rec, error } = await db.rpc('fn_ot_clock_out', { p_attendance: todayAttendance.id, p_face_verified: true, p_selfie_path: selfiePath });
   if(error){
     msg('cam_msg','err','บันทึกไม่สำเร็จ: '+error.message);
     const b=document.getElementById('cap_btn'); b.disabled=false; b.textContent='ลองอีกครั้ง';
@@ -551,10 +551,10 @@ async function requestOtWaiver(){
 
 // ---------- ออกไปทำธุระ (DL-20..24) ----------
 async function processLeaveOut(blob, gps){
-  const { err:selfieErr } = await uploadSelfie('leave', blob);
+  const { path:selfiePath, err:selfieErr } = await uploadSelfie('leave', blob);
   const { data:rec, error } = await db.from('personal_leaves').insert({
     attendance_id: todayAttendance.id, employee_id: me.employee_id,
-    leave_date: bkkDate(), leave_out_time: new Date().toISOString()
+    leave_date: bkkDate(), leave_out_time: new Date().toISOString(), selfie_path: selfiePath
   }).select().single();
   if(error){
     if(/duplicate|unique/i.test(error.message||'')){
