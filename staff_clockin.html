@@ -432,7 +432,7 @@ async function openCameraScreen(btnText){
   document.getElementById('cap_btn').textContent=btnText;
   show('s-camera');
   try{
-    camStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user' }, audio:false });
+    camStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user', width:{ideal:480,max:720}, height:{ideal:640,max:960} }, audio:false });
     document.getElementById('cam_video').srcObject = camStream;
   }catch(e){
     msg('cam_msg','err','เปิดกล้องไม่ได้ — กรุณาอนุญาตการใช้กล้องในเบราว์เซอร์ แล้วลองใหม่');
