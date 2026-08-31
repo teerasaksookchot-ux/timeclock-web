@@ -910,7 +910,7 @@ function canManageEmp(e){ return currentRole==='owner' || (currentRole==='hr' &&
 function empRow(e){
   const manage = canManageEmp(e);
   const editBtn = manage ? `<button class="ebtn" onclick="editEmployee('${e.employee_id}')">แก้ไข</button> ` : '';
-  const deactBtn = (manage && e.employee_id!==currentEmpId) ? `<button class="ebtn del" onclick="deactivateEmployee('${e.employee_id}')">ปิดใช้งาน</button>` : '';
+  const deactBtn = (manage && e.employee_id!==currentEmpId && e.employee_code!=='OWNER01') ? `<button class="ebtn del" onclick="deactivateEmployee('${e.employee_id}')">ปิดใช้งาน</button>` : '';
   return `<tr><td>${esc(e.employee_code)}</td><td>${esc(e.first_name)} ${esc(e.last_name)} (${esc(e.nickname||'')})</td><td>${esc(e.phone)}</td><td>${e.branches?esc(e.branches.name):'-'}</td><td>`+
     `<button class="ebtn" onclick="showDetail('${e.employee_id}')">ดูข้อมูล</button> ${editBtn}${deactBtn}</td></tr>`;
 }
@@ -1060,6 +1060,7 @@ async function deactivateBranch(id){
 async function deactivateEmployee(id){
   const e=employeesData.find(x=>x.employee_id===id); if(!e)return;
   if(id===currentEmpId){ showMsg('e_msg',false,'ปิดใช้งานบัญชีตัวเองไม่ได้ (จะเข้าระบบไม่ได้ทันที) — ให้คนอื่นปิดให้แทน'); return; }
+  if(e.employee_code==='OWNER01'){ showMsg('e_msg',false,'ปิดใช้งานบัญชี OWNER01 ไม่ได้ — เป็นบัญชีเจ้าของหลักที่ระบบป้องกันไว้'); return; }
   if(!confirm('ปิดใช้งานพนักงาน "'+e.first_name+' '+e.last_name+'" ?\n(เช่น ลาออก — ข้อมูลไม่ถูกลบจริง)'))return;
   const { data:updData, error } = await db.from('employees').update({status:'inactive',updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('employee_id',id).select();
   if(error){showMsg('e_msg',false,'ปิดใช้งานไม่ได้: '+error.message);return;}
