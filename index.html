@@ -1079,10 +1079,11 @@ async function loadInactiveEmployees(){
   const { data, error } = await db.from('employees').select('*, branches:home_branch_id(name)').eq('status','inactive').order('employee_code');
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
   if(!data||!data.length){ box.innerHTML='<div class="empty">ไม่มีพนักงานที่ปิดใช้งาน</div>'; return; }
-  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เบอร์</th><th>สิทธิ์เดิม</th><th></th></tr>';
+  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เบอร์</th><th>สิทธิ์เดิม</th><th>ปิดใช้งานโดย</th><th></th></tr>';
   data.forEach(e=>{
     const btn = canManageEmp(e) ? `<button class="ebtn" onclick="reactivateEmployee('${e.employee_id}')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/></svg> เปิดใช้งาน</button>` : '';
-    h+=`<tr><td>${esc(e.employee_code)}</td><td>${esc(e.first_name)} ${esc(e.last_name)} (${esc(e.nickname||'')})</td><td>${esc(e.phone)}</td><td>${roleLabel(e.role)}</td><td>${btn}</td></tr>`;
+    const deactBy = e.updated_by ? `${whoName(e.updated_by)}<br><span style="font-size:11px;color:var(--muted)">${fmtTime(e.updated_at)}</span>` : '<span style="color:var(--muted)">—</span>';
+    h+=`<tr><td>${esc(e.employee_code)}</td><td>${esc(e.first_name)} ${esc(e.last_name)} (${esc(e.nickname||'')})</td><td>${esc(e.phone)}</td><td>${roleLabel(e.role)}</td><td style="font-size:12.5px">${deactBy}</td><td>${btn}</td></tr>`;
   });
   box.innerHTML=h+'</table>';
 }
