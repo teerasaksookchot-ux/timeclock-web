@@ -378,7 +378,15 @@ function fillRoleOptions(curr){
     currentRole==='owner' ? 'คุณเป็นเจ้าของ — ตั้ง Role ได้ทุกระดับ' : 'ผู้ดูแล HR ตั้งได้เฉพาะ "พนักงาน" (เปลี่ยนเป็น HR/เจ้าของ ต้องให้เจ้าของทำ)';
 }
 function lmsg(ok,t){const m=document.getElementById('l_msg');m.className='msg '+(ok?'ok':'err');m.textContent=t;}
-function showMsg(id,ok,t){const m=document.getElementById(id);m.className='msg '+(ok?'ok':'err');m.textContent=t;}
+const OK_ICON='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ';
+// เดิม m.textContent=t; ทำให้ไอคอน SVG ที่ผู้เรียกแนบมาในข้อความโชว์เป็นโค้ด HTML ดิบๆ แทนที่จะเรนเดอร์เป็นไอคอน
+// แก้โดยแยกไอคอน (คงที่ ไม่มีข้อมูลผู้ใช้ปน) มาแทรกผ่าน innerHTML เอง ส่วนข้อความ t ยังคง append เป็น text node เหมือนเดิม
+// (ปลอดภัยจาก XSS เท่าของเดิมทุกประการ ต่อให้ t มีชื่อพนักงาน/ข้อความ error ที่ไม่ได้ผ่าน esc() มาก็ตาม)
+function showMsg(id,ok,t){
+  const m=document.getElementById(id); m.className='msg '+(ok?'ok':'err');
+  m.innerHTML = ok ? OK_ICON : '';
+  m.appendChild(document.createTextNode(t));
+}
 // กันชื่อพนักงาน/สาขาที่มีอักขระ HTML แทรกสคริปต์ผ่านช่องกรอกข้อมูล (stored XSS) — ทุกจุดที่เอาข้อความที่คนพิมพ์มาใส่ผ่าน innerHTML ต้องผ่านฟังก์ชันนี้ก่อน
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -715,7 +723,7 @@ async function addBackdated(){
   }
   await db.from('audit_logs').insert({ actor_id:currentEmpId, action:'hr_backdate_attendance', target_ref:empId,
     detail:{ work_date:day, time:hhmm, ot_time:otHHMM||null } });
-  showMsg('bd_msg',true,'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> เพิ่มบันทึกย้อนหลังแล้ว');
+  showMsg('bd_msg',true,'เพิ่มบันทึกย้อนหลังแล้ว');
   document.getElementById('bd_time').value='';
   document.getElementById('bd_ottime').value='';
   await loadAttendance();
@@ -793,7 +801,7 @@ function parseMapLink(){
   }
   document.getElementById('b_lat').value=c.lat;
   document.getElementById('b_lng').value=c.lng;
-  showMsg('b_locmsg',true,'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ดึงพิกัดสำเร็จ: '+c.lat+', '+c.lng);
+  showMsg('b_locmsg',true,'ดึงพิกัดสำเร็จ: '+c.lat+', '+c.lng);
 }
 
 // ---------- ตำแหน่งสาขา วิธีที่ 3: เปิดแผนที่ปักหมุดเอง (Leaflet + OpenStreetMap) ----------
@@ -848,7 +856,7 @@ function confirmMapPick(){
   document.getElementById('b_lat').value=p.lat.toFixed(6);
   document.getElementById('b_lng').value=p.lng.toFixed(6);
   closeMapPicker();
-  showMsg('b_locmsg',true,'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ปักหมุดสำเร็จ: '+p.lat.toFixed(6)+', '+p.lng.toFixed(6));
+  showMsg('b_locmsg',true,'ปักหมุดสำเร็จ: '+p.lat.toFixed(6)+', '+p.lng.toFixed(6));
 }
 function closeMapPicker(){ document.getElementById('map_modal').style.display='none'; }
 
@@ -864,7 +872,7 @@ async function addBranch(){
   if(editBranchId){ payload.updated_at=new Date().toISOString(); payload.updated_by=currentEmpId; ({ error } = await db.from('branches').update(payload).eq('branch_id',editBranchId)); }
   else { payload.created_by=currentEmpId; payload.updated_by=currentEmpId; ({ error } = await db.from('branches').insert(payload)); }
   if(error){showMsg('b_msg',false,'บันทึกไม่ได้: '+error.message);return;}
-  showMsg('b_msg',true, editBranchId ? '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> แก้ไขสาขา "'+name+'" แล้ว' : '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> บันทึกสาขา "'+name+'" แล้ว');
+  showMsg('b_msg',true, editBranchId ? 'แก้ไขสาขา "'+name+'" แล้ว' : 'บันทึกสาขา "'+name+'" แล้ว');
   cancelBranchEdit();
   await loadBranches(); loadDashboard();
 }
@@ -1015,7 +1023,7 @@ async function addEmployee(){
   if(editEmpId && (!updData || !updData.length)){
     showMsg('e_msg',false,'ไม่มีสิทธิ์แก้ไขบัญชีนี้ — ผู้ดูแล HR แก้ไขได้เฉพาะบัญชีพนักงาน (staff) เท่านั้น');return;
   }
-  showMsg('e_msg',true, editEmpId ? '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> แก้ไขพนักงาน "'+first+'" แล้ว' : '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> บันทึกพนักงาน "'+first+'" (รหัส '+code+') แล้ว');
+  showMsg('e_msg',true, editEmpId ? 'แก้ไขพนักงาน "'+first+'" แล้ว' : 'บันทึกพนักงาน "'+first+'" (รหัส '+code+') แล้ว');
   cancelEmpEdit();
   await loadEmployees(); loadDashboard();
 }
@@ -1046,7 +1054,7 @@ async function deactivateBranch(id){
   if(!confirm('ปิดใช้งานสาขา "'+b.name+'" ?\n(ข้อมูลไม่ถูกลบจริง ยังกู้คืนได้ แต่จะไม่แสดงในรายการ)'))return;
   const { error } = await db.from('branches').update({status:'deactivated',updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('branch_id',id);
   if(error){showMsg('b_msg',false,'ปิดใช้งานไม่ได้: '+error.message);return;}
-  showMsg('b_msg',true,'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ปิดใช้งานสาขา "'+b.name+'" แล้ว');
+  showMsg('b_msg',true,'ปิดใช้งานสาขา "'+b.name+'" แล้ว');
   await loadBranches(); loadDashboard();
 }
 async function deactivateEmployee(id){
@@ -1066,11 +1074,11 @@ async function deactivateEmployee(id){
           headers:{ 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json' },
           body: JSON.stringify({ action:'deactivate', employee_id:id })
         });
-        if(!res.ok){ const d=await res.json().catch(()=>({})); showMsg('e_msg',true,'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ปิดใช้งานพนักงาน "'+e.first_name+'" แล้ว (แต่ปิดบัญชี login ไม่สำเร็จ: '+(d.error||'')+' — เบอร์นี้อาจใช้ซ้ำไม่ได้ทันที)'); await loadEmployees(); loadDashboard(); return; }
+        if(!res.ok){ const d=await res.json().catch(()=>({})); showMsg('e_msg',true,'ปิดใช้งานพนักงาน "'+e.first_name+'" แล้ว (แต่ปิดบัญชี login ไม่สำเร็จ: '+(d.error||'')+' — เบอร์นี้อาจใช้ซ้ำไม่ได้ทันที)'); await loadEmployees(); loadDashboard(); return; }
       }
     }catch(err){ /* ไม่บล็อกการปิดใช้งานพนักงาน แม้ปิดบัญชี login จะพลาด */ }
   }
-  showMsg('e_msg',true,'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ปิดใช้งานพนักงาน "'+e.first_name+'" แล้ว');
+  showMsg('e_msg',true,'ปิดใช้งานพนักงาน "'+e.first_name+'" แล้ว');
   await loadEmployees(); loadDashboard();
 }
 async function loadInactiveEmployees(){
@@ -1237,7 +1245,7 @@ async function preparePayroll(){
     const scopeTxt = branchId ? (branchesData.find(b=>b.branch_id===branchId)?.name || 'สาขาที่เลือก')
                     : regionId ? ('ภาค '+(document.getElementById('pr_region').selectedOptions[0]?.textContent||''))
                     : 'ทุกสาขา';
-    showMsg('pr_msg', true, '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> เตรียมข้อมูลสำเร็จ '+rows.length+' คน · '+scopeTxt+' (ช่วง '+start+' ถึง '+end+')');
+    showMsg('pr_msg', true, 'เตรียมข้อมูลสำเร็จ '+rows.length+' คน · '+scopeTxt+' (ช่วง '+start+' ถึง '+end+')');
   }catch(err){
     showMsg('pr_msg', false, 'เตรียมข้อมูลไม่สำเร็จ: '+(err.message||err));
   }
