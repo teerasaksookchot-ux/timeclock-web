@@ -1125,6 +1125,26 @@ async function reactivateEmployee(id){
 let payrollRows=[], payrollPeriod=null;
 const PR_HEADERS=['รหัสพนักงาน','ชื่อ-สกุล','สาขาประจำ','สาขาที่ทำงาน','วันทำงาน','ชั่วโมงทำงาน','สถานะ OT','ชั่วโมง OT','สายรวม (นาที)','ลากิจรวม (นาที)'];
 
+// ดึงทุกแถวโดยไม่ติดเพดาน 1,000 แถวของ PostgREST — build() คืน query ใหม่ทุกครั้ง
+async function prFetchAll(build){
+  const PAGE=1000; let from=0, all=[];
+  for(;;){
+    const { data, error } = await build().range(from, from+PAGE-1);
+    if(error) throw error;
+    all = all.concat(data||[]);
+    if(!data || data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+// เลือก ot_records แถวเดียวต่อ attendance (กันข้อมูลซ้ำของเก่าก่อน migration) — เอาแถวชั่วโมงมากสุด
+function prPickOt(arr){
+  if(!Array.isArray(arr) || !arr.length) return null;
+  return arr.slice().sort((a,b)=>
+    (Number(b.ot_hours)||0)-(Number(a.ot_hours)||0)
+    || String(b.ot_clock_out_time||'').localeCompare(String(a.ot_clock_out_time||'')))[0];
+}
+
 // คิดชั่วโมงทำงานปกติสด ๆ จากเวลาเข้างานจริง (ไม่พึ่งคอลัมน์ work_hours ที่ปรับด้วย cron ตอน 16:00
 // เพราะ cron จะข้ามบันทึกที่เพิ่ม/แก้ทีหลัง 16:00 ของวันนั้นไปตลอดกาล) — เข้างาน..16:00 (BR-004)
 // ปัดเวลาออกลงทุก 30 นาที + หักพักเที่ยง 12:00-13:00 เสมอ ถ้าออกก่อน 16:00 นับถึงเวลาที่ออกจริง (ปัดลง)
@@ -1172,50 +1192,45 @@ async function preparePayroll(){
   const btn=document.getElementById('pr_prepbtn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>กำลังเตรียมข้อมูล…';
   document.getElementById('pr_resultcard').style.display='none';
   try{
-    let attQ = db.from('attendance_records')
-      .select('id,employee_id,work_date,status,late_minutes,clock_in_time,working_branch_id')
-      .gte('work_date', start).lte('work_date', end);
-    if(branchId){
-      attQ = attQ.eq('working_branch_id', branchId);
-    }else if(regionId){
-      const ids = branchesData.filter(b=>b.region_id===regionId).map(b=>b.branch_id);
-      attQ = attQ.in('working_branch_id', ids.length ? ids : ['00000000-0000-0000-0000-000000000000']);
+    let regionIds = null;
+    if(!branchId && regionId){
+      regionIds = branchesData.filter(b=>b.region_id===regionId).map(b=>b.branch_id);
+      if(!regionIds.length) regionIds = ['00000000-0000-0000-0000-000000000000'];
     }
-    const { data: att, error: aerr } = await attQ;
-    if(aerr) throw aerr;
-    const attIds = (att||[]).map(a=>a.id);
-    let ot=[];
-    if(attIds.length){
-      const { data: otData, error: oerr } = await db.from('ot_records')
-        .select('attendance_id,ot_hours,ot_clock_out_time').in('attendance_id', attIds);
-      if(oerr) throw oerr;
-      ot = otData||[];
-    }
-    const { data: leaves, error: lerr } = await db.from('personal_leaves')
-      .select('employee_id,leave_minutes,leave_date').gte('leave_date', start).lte('leave_date', end);
-    if(lerr) throw lerr;
+    // ดึง ot_records ติดมากับบันทึกเข้างานเลย (embedded) — ไม่ต้องยิง .in() ด้วย id เป็นพัน ๆ ตัว
+    const att = await prFetchAll(()=>{
+      let q = db.from('attendance_records')
+        .select('id,employee_id,work_date,status,late_minutes,clock_in_time,working_branch_id,ot_records(ot_hours,ot_status,ot_clock_out_time)')
+        .gte('work_date', start).lte('work_date', end);
+      if(branchId) q = q.eq('working_branch_id', branchId);
+      else if(regionIds) q = q.in('working_branch_id', regionIds);
+      return q;
+    });
+    const leaves = await prFetchAll(()=> db.from('personal_leaves')
+      .select('employee_id,leave_minutes,leave_date').gte('leave_date', start).lte('leave_date', end));
+    // คนที่ HR อนุมัติ "ไม่ทำ OT" ของวันนั้น → ไม่นับ OT ให้ ถึงบันทึกจะมีชั่วโมงค้างอยู่
+    const waivers = await prFetchAll(()=> db.from('ot_waiver_requests')
+      .select('employee_id,request_date').eq('status','approved')
+      .gte('request_date', start).lte('request_date', end));
+    const waivedSet = new Set((waivers||[]).map(w=> w.employee_id+'|'+w.request_date));
 
     // ดึงพนักงาน+สาขา "ทุกสถานะ" (รวมคนลาออก/สาขาที่ปิดแล้ว) เพื่อให้ชื่อในรอบย้อนหลังไม่หาย
-    const { data: allEmp } = await db.from('employees').select('employee_id,employee_code,first_name,last_name,home_branch_id');
-    const { data: allBr } = await db.from('branches').select('branch_id,name');
+    const allEmp = await prFetchAll(()=> db.from('employees').select('employee_id,employee_code,first_name,last_name,home_branch_id'));
+    const allBr = await prFetchAll(()=> db.from('branches').select('branch_id,name'));
     const brNameById = {}; (allBr||[]).forEach(b=>brNameById[b.branch_id]=b.name);
     const branchName = id => brNameById[id] || '-';
     const empById = {}; (allEmp||[]).forEach(e=>empById[e.employee_id]=e);
-
-    const otOutByAtt = {}; ot.forEach(o=>{ if(o.ot_clock_out_time) otOutByAtt[o.attendance_id]=o.ot_clock_out_time; });
 
     const agg={};
     (att||[]).forEach(a=>{
       const g = agg[a.employee_id] || (agg[a.employee_id] = { workDays:0, workHours:0, lateMin:0, otHours:0, leaveMin:0, branchSet:new Set() });
       if(a.status!=='absent') g.workDays++;
-      g.workHours += calcRegularHours(a.work_date, a.clock_in_time, otOutByAtt[a.id]);
+      const otRec = prPickOt(a.ot_records);
+      g.workHours += calcRegularHours(a.work_date, a.clock_in_time, otRec && otRec.ot_clock_out_time ? otRec.ot_clock_out_time : null);
       g.lateMin += Number(a.late_minutes)||0;
+      if(otRec && otRec.ot_status==='YES' && !waivedSet.has(a.employee_id+'|'+a.work_date))
+        g.otHours += Number(otRec.ot_hours)||0;
       if(a.working_branch_id) g.branchSet.add(a.working_branch_id);
-    });
-    ot.forEach(o=>{
-      const att1 = (att||[]).find(a=>a.id===o.attendance_id); if(!att1) return;
-      const g = agg[att1.employee_id]; if(!g) return;
-      g.otHours += Number(o.ot_hours)||0;
     });
     (leaves||[]).forEach(l=>{
       // ไม่สร้างแถวใหม่จากแค่ข้อมูลลากิจ — ลากิจไม่มีสาขาผูกอยู่ ต้องมีบันทึกเข้างาน (ที่ผ่านตัวกรองสาขา/ภาคแล้ว) มาก่อนถึงจะนับให้

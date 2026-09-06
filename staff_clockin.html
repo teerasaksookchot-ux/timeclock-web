@@ -380,8 +380,10 @@ async function renderExtra(){
   box.style.display='block';
 
   // --- OT (DL-13..19) ---
-  const { data: otRec } = await db.from('ot_records')
-    .select('ot_hours,ot_status').eq('attendance_id', todayAttendance.id).maybeSingle();
+  const { data: otRows } = await db.from('ot_records')
+    .select('ot_hours,ot_status').eq('attendance_id', todayAttendance.id)
+    .order('ot_hours',{ascending:false});
+  const otRec = (otRows && otRows.length) ? otRows[0] : null;   // กันเคสมีแถวซ้ำของเก่า — เอาแถวชั่วโมงมากสุด
   const { data: waiver } = await db.from('ot_waiver_requests')
     .select('status').eq('employee_id', me.employee_id).eq('request_date', bkkDate()).maybeSingle();
   todayWaiver = waiver || null;
