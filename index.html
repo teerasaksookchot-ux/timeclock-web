@@ -1373,7 +1373,7 @@ async function loadPendingCases(){
     const ageDays = caseAgeDays(r.opened_date);
     const locked = ageDays >= 60 && currentRole!=='owner';
     const escColor = ageDays>=30 ? 'var(--red)' : (ageDays>=7 ? 'var(--tan2)' : 'var(--muted)');
-    const ageLabel = ageDays<=0 ? 'วันนี้' : ('ค้าง '+ageDays+' วัน');
+    const ageLabel = ageDays<=0 ? 'วันนี้' : (ageDays+' วัน');
     const btn = locked
       ? '<span style="color:var(--muted);font-size:12px">รอเจ้าของปิด</span>'
       : `<button class="ebtn" onclick="resolvePending('${r.id}')">ปิดเคส</button>`;
