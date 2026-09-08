@@ -165,6 +165,7 @@
       <button type="button" class="tab" data-t="employees"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"/></svg> พนักงาน</button>
       <button type="button" class="tab" data-t="roles"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z"/></svg> สิทธิ์</button>
       <button type="button" class="tab" data-t="payroll"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ส่งออกเงินเดือน</button>
+      <button type="button" class="tab" data-t="stats"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg> สถิติรายคน</button>
     </nav>
     <div class="who"><span id="whoami"></span> <button class="logout" onclick="doLogout()">ออกจากระบบ</button></div>
   </div>
@@ -299,6 +300,10 @@
       <div class="card">
         <h2>เตรียมข้อมูลเงินเดือน</h2>
         <p style="font-size:13px;color:var(--muted);margin-bottom:10px">เลือกช่วงวันที่ → ระบบรวมข้อมูลเข้างาน/OT/ลากิจให้ · <b>ไม่คำนวณเงินจริง</b> (ไม่มีเงินเดือนฐาน/คอมมิชชัน) เอาไฟล์นี้ไปคิดต่อเองได้ (DL-46/DL-48)</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <button class="ebtn" type="button" onclick="setPayrollRange('month')">เดือนนี้</button>
+          <button class="ebtn" type="button" onclick="setPayrollRange('7d')">7 วันที่ผ่านมา</button>
+        </div>
         <div class="grid2">
           <div><label>ตั้งแต่วันที่</label><input id="pr_start" type="date"></div>
           <div><label>ถึงวันที่</label><input id="pr_end" type="date"></div>
@@ -320,6 +325,30 @@
         </h2>
         <div class="kpis" id="pr_kpis" style="margin-bottom:14px"></div>
         <div id="pr_table"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="p-stats">
+      <div class="card">
+        <h2>สถิติการเข้างานรายบุคคล</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:10px">เลือกพนักงาน + ช่วงวันที่ → ดูสรุปวันทำงาน / มาสาย / ขาด / OT / ลากิจ</p>
+        <label>พนักงาน</label>
+        <select id="st_emp"><option value="">— เลือกพนักงาน —</option></select>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
+          <button class="ebtn" type="button" onclick="setStatRange('month')">เดือนนี้</button>
+          <button class="ebtn" type="button" onclick="setStatRange('7d')">7 วันที่ผ่านมา</button>
+        </div>
+        <div class="grid2">
+          <div><label>ตั้งแต่วันที่</label><input id="st_start" type="date"></div>
+          <div><label>ถึงวันที่</label><input id="st_end" type="date"></div>
+        </div>
+        <button class="btn" id="st_btn" onclick="loadPersonStats()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> ดูสถิติ</button>
+        <div id="st_msg" class="msg"></div>
+      </div>
+      <div class="card" id="st_resultcard" style="display:none">
+        <h2 id="st_title">ผลลัพธ์</h2>
+        <div class="kpis" id="st_kpis"></div>
+        <div id="st_detail" style="margin-top:12px"></div>
       </div>
     </div>
   </div>
@@ -344,6 +373,16 @@
       </select>
       <div id="ae_timewrap"><label>เวลาเข้างาน</label><input id="ae_time" type="time"><div style="font-size:11.5px;color:var(--muted);margin-top:4px">ระบบคิดสายอัตโนมัติจากเวลานี้ (เริ่มนับ 07:00)</div></div>
       <div id="ae_otwrap"><label>เวลาออกงาน (OT)</label><input id="ae_ottime" type="time"><div style="font-size:11.5px;color:var(--muted);margin-top:4px">เว้นว่างไว้ถ้ายังไม่ออกงาน · ระบบคิดชั่วโมง OT อัตโนมัติจากเวลานี้</div></div>
+      <div id="ae_leavewrap" style="display:none;border-top:1px solid var(--line);margin-top:12px;padding-top:10px">
+        <label style="font-weight:600">ออกไปทำธุระ (วันนี้)</label>
+        <div class="grid2">
+          <div><label>เวลาออก</label><input id="ae_leaveout" type="time"></div>
+          <div><label>เวลากลับ</label><input id="ae_leavereturn" type="time"></div>
+        </div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:4px">เว้น "เวลากลับ" ว่างถ้ายังไม่กลับ · ระบบคิดนาทีที่ออกใหม่อัตโนมัติ</div>
+      </div>
+      <label style="margin-top:12px">หมายเหตุการแก้ไข (ไม่บังคับ)</label>
+      <textarea id="ae_note" rows="2" placeholder="เช่น พนักงานลืมกดออก แจ้งทางไลน์ / แก้ตามใบลา" style="width:100%;resize:vertical"></textarea>
       <button class="btn" onclick="saveAttEdit()">บันทึกการแก้ไข</button>
       <button class="btn" onclick="closeAttEdit()" style="background:#8C8479;margin-top:8px">ยกเลิก</button>
       <div id="ae_msg" class="msg"></div>
@@ -423,6 +462,7 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   if(t.dataset.t==='attend'){ const d=document.getElementById('at_date'); if(!d.value) d.value=bkkToday(); loadAtFilters(); loadAttendance(); }
   if(t.dataset.t==='approvals') loadApprovals();
   if(t.dataset.t==='payroll') loadPrFilters();
+  if(t.dataset.t==='stats') loadStatFilters();
   toggleNav(false);
 });
 
@@ -587,7 +627,7 @@ async function loadAttendance(){
   const box=document.getElementById('at_list'), kpi=document.getElementById('at_kpis');
   box.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>'; kpi.innerHTML='';
   let q = db.from('attendance_records')
-    .select('id,clock_in_time,status,late_minutes,selfie_path,employee_id,updated_at,updated_by,employees!attendance_records_employee_id_fkey(employee_code,first_name,last_name,nickname),branches(name),ot_records(id,ot_clock_out_time,ot_hours,ot_status,selfie_path),personal_leaves(id,leave_out_time,return_time,leave_minutes,status,selfie_path)')
+    .select('id,clock_in_time,status,late_minutes,selfie_path,employee_id,updated_at,updated_by,hr_edit_note,employees!attendance_records_employee_id_fkey(employee_code,first_name,last_name,nickname),branches(name),ot_records(id,ot_clock_out_time,ot_hours,ot_status,selfie_path),personal_leaves(id,leave_out_time,return_time,leave_minutes,status,selfie_path,return_selfie_path)')
     .eq('work_date', day);
   if(branchId){
     q = q.eq('working_branch_id', branchId);
@@ -624,12 +664,16 @@ async function loadAttendance(){
     const photoIn = r.selfie_path ? `<button class="ebtn" onclick="viewSelfie('${r.selfie_path}')">ดูรูป</button>` : '-';
     const photoOut = (otRec && otRec.selfie_path) ? `<button class="ebtn" onclick="viewSelfie('${otRec.selfie_path}')">ดูรูป</button>` : '-';
     const leaveRec = Array.isArray(r.personal_leaves) ? r.personal_leaves[0] : r.personal_leaves;
-    const leavePhoto = (leaveRec && leaveRec.selfie_path) ? `<button class="ebtn" onclick="viewSelfie('${leaveRec.selfie_path}')">ดูรูป</button>` : (leaveRec ? '-' : '');
+    const leavePhoto = !leaveRec ? '' : (
+      (leaveRec.selfie_path ? `<button class="ebtn" onclick="viewSelfie('${leaveRec.selfie_path}')">รูปออก</button>` : '')
+      + (leaveRec.return_selfie_path ? ` <button class="ebtn" onclick="viewSelfie('${leaveRec.return_selfie_path}')">รูปกลับ</button>` : '')
+    ) || '-';
     const leaveMinTxt = !leaveRec ? '-'
       : leaveRec.return_time ? (leaveRec.leave_minutes||0)+' นาที'
       : '<span style="color:var(--amber)">ยังไม่กลับ</span>';
     const editBtn = editable ? `<button class="ebtn" onclick="openAttEdit('${r.id}')">แก้ไข</button>` : '';
-    const editedTxt = r.updated_by ? `${whoName(r.updated_by)}<br><span style="font-size:11px;color:var(--muted)">${fmtTime(r.updated_at)}</span>` : '<span style="color:var(--muted)">—</span>';
+    const noteTxt = r.hr_edit_note ? `<br><span style="font-size:11px;color:var(--ink2)">📝 ${esc(r.hr_edit_note)}</span>` : '';
+    const editedTxt = r.updated_by ? `${whoName(r.updated_by)}<br><span style="font-size:11px;color:var(--muted)">${fmtTime(r.updated_at)}</span>${noteTxt}` : '<span style="color:var(--muted)">—</span>';
     h+=`<tr><td>${esc(e.employee_code)||'-'}</td><td>${esc(name)}</td><td>${t}${lateTxt}</td><td>${outT}</td><td>${r.branches?esc(r.branches.name):'-'}</td><td>${stTxt}</td><td>${photoIn}</td><td>${photoOut}</td><td>${leavePhoto}</td><td>${leaveMinTxt}</td><td style="font-size:12.5px">${editedTxt}</td><td>${editBtn}</td></tr>`;
   });
   box.innerHTML=h+'</table>';
@@ -649,6 +693,13 @@ function openAttEdit(id){
   const otRec = Array.isArray(r.ot_records) ? r.ot_records[0] : r.ot_records;
   const otHHMM = otRec && otRec.ot_clock_out_time ? new Date(otRec.ot_clock_out_time).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Bangkok'}) : '';
   document.getElementById('ae_ottime').value = otHHMM;
+  // ออกไปทำธุระ — โชว์เฉพาะถ้ามีบันทึกลากิจของวันนั้น
+  const lv = Array.isArray(r.personal_leaves) ? r.personal_leaves[0] : r.personal_leaves;
+  const toHM = iso => iso ? new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Bangkok'}) : '';
+  document.getElementById('ae_leavewrap').style.display = lv ? 'block' : 'none';
+  document.getElementById('ae_leaveout').value = lv ? toHM(lv.leave_out_time) : '';
+  document.getElementById('ae_leavereturn').value = lv ? toHM(lv.return_time) : '';
+  document.getElementById('ae_note').value = r.hr_edit_note || '';
   aeToggleTime();
   document.getElementById('ae_msg').className='msg'; document.getElementById('ae_msg').textContent='';
   document.getElementById('att_modal').style.display='flex';
@@ -670,6 +721,8 @@ async function saveAttEdit(){
   if(status==='absent'){ payload={status:'absent', clock_in_time:null, late_minutes:0}; }
   else { if(!hhmm){ showMsg('ae_msg',false,'กรุณาใส่เวลาเข้างาน'); return; }
          payload={status, clock_in_time:bkkTimestamp(day,hhmm), late_minutes:calcLate(day,hhmm)}; }
+  const editNote = document.getElementById('ae_note').value.trim();
+  payload.hr_edit_note = editNote || null;
   payload.updated_at = new Date().toISOString(); payload.updated_by = currentEmpId;
   const { error } = await db.from('attendance_records').update(payload).eq('id',attEditId);
   if(error){ showMsg('ae_msg',false,'บันทึกไม่สำเร็จ: '+error.message); return; }
@@ -690,8 +743,26 @@ async function saveAttEdit(){
     await db.from('ot_records').update({ ot_clock_out_time:null, ot_hours:0, ot_status:'NO' }).eq('id', existingOt.id);
   }
 
+  // จัดการเวลา "ออกไปทำธุระ" (ถ้ามีบันทึกลากิจของวันนั้น)
+  const lv = Array.isArray(r.personal_leaves) ? r.personal_leaves[0] : r.personal_leaves;
+  let leaveEdit = null;
+  if(lv){
+    const outHM = document.getElementById('ae_leaveout').value;
+    const retHM = document.getElementById('ae_leavereturn').value;
+    if(!outHM){ showMsg('ae_msg',false,'กรุณาใส่เวลาออก (ออกไปทำธุระ) หรือถ้าจะยกเลิกลากิจ ให้ทำในระบบพนักงาน'); return; }
+    const outISO = bkkTimestamp(day, outHM);
+    const retISO = retHM ? bkkTimestamp(day, retHM) : null;
+    if(retISO && new Date(retISO) < new Date(outISO)){ showMsg('ae_msg',false,'เวลากลับต้องไม่ก่อนเวลาออก'); return; }
+    const lvPayload = { leave_out_time: outISO, return_time: retISO,
+      leave_minutes: retISO ? Math.max(0, Math.floor((new Date(retISO)-new Date(outISO))/60000)) : 0,
+      status: retISO ? 'returned' : 'open' };
+    const { error: lvErr } = await db.from('personal_leaves').update(lvPayload).eq('id', lv.id);
+    if(lvErr){ showMsg('ae_msg',false,'บันทึกเวลาออกไปทำธุระไม่สำเร็จ: '+lvErr.message); return; }
+    leaveEdit = { from:{ out:lv.leave_out_time, ret:lv.return_time }, to:lvPayload };
+  }
+
   await db.from('audit_logs').insert({ actor_id:currentEmpId, action:'hr_edit_attendance', target_ref:attEditId,
-    detail:{ work_date:day, from:{status:r.status,late:r.late_minutes}, to:payload, ot_time:otHHMM||null } });
+    detail:{ work_date:day, from:{status:r.status,late:r.late_minutes}, to:payload, ot_time:otHHMM||null, note:editNote||null, leave:leaveEdit } });
   closeAttEdit(); await loadAttendance();
 }
 async function addBackdated(){
@@ -1166,6 +1237,92 @@ function calcRegularHours(workDate, clockInISO, otOutISO){
   const lunchMs = lunchEnd > lunchStart ? (lunchEnd - lunchStart) : 0;
   const ms = (end - start) - lunchMs;
   return ms>0 ? Math.round((ms/3600000)*100)/100 : 0;
+}
+
+// ปุ่มลัดช่วงวันที่ในหน้าส่งออกเงินเดือน — เดือนนี้ / 7 วันที่ผ่านมา (นับถึงวันนี้)
+function setPayrollRange(kind){
+  const today = bkkToday();               // YYYY-MM-DD (Asia/Bangkok)
+  let start;
+  if(kind==='month'){
+    start = today.slice(0,8)+'01';        // วันที่ 1 ของเดือนปัจจุบัน
+  }else{                                   // '7d' = 7 วันที่ผ่านมา (รวมวันนี้)
+    const d = new Date(today+'T00:00:00+07:00');
+    d.setDate(d.getDate()-6);
+    start = d.toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'});
+  }
+  document.getElementById('pr_start').value = start;
+  document.getElementById('pr_end').value = today;
+}
+
+// ---------- สถิติรายคน (HR) ----------
+function rangeStart(kind){
+  const today = bkkToday();
+  if(kind==='month') return today.slice(0,8)+'01';
+  const d = new Date(today+'T00:00:00+07:00'); d.setDate(d.getDate()-6);
+  return d.toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'});
+}
+function setStatRange(kind){
+  document.getElementById('st_start').value = rangeStart(kind);
+  document.getElementById('st_end').value = bkkToday();
+}
+async function loadStatFilters(){
+  if(!employeesData.length) await loadEmployees();
+  const s=document.getElementById('st_emp'); const cur=s.value;
+  s.innerHTML='<option value="">— เลือกพนักงาน —</option>';
+  employeesData.slice().sort((a,b)=>String(a.employee_code).localeCompare(String(b.employee_code)))
+    .forEach(e=>s.innerHTML+=`<option value="${e.employee_id}">${esc(e.employee_code)} · ${esc(e.first_name)} ${esc(e.last_name||'')}</option>`);
+  if([...s.options].some(o=>o.value===cur)) s.value=cur;
+  if(!document.getElementById('st_start').value) setStatRange('month');
+}
+// สูตรรวมสถิติ (เหมือนฝั่งพนักงาน)
+function computeAttStats(att, leaves){
+  let workDays=0, lateDays=0, lateMin=0, absentDays=0, otHours=0, pendDays=0;
+  att.forEach(a=>{
+    if(a.status==='absent'){ absentDays++; return; }
+    workDays++;
+    if(a.status==='pending') pendDays++;
+    if((a.late_minutes||0)>0){ lateDays++; lateMin+=a.late_minutes; }
+    const ot=(Array.isArray(a.ot_records)?a.ot_records:[a.ot_records]).filter(Boolean)
+      .sort((x,y)=>(Number(y.ot_hours)||0)-(Number(x.ot_hours)||0))[0];
+    if(ot && ot.ot_status==='YES') otHours+=Number(ot.ot_hours)||0;
+  });
+  const leaveMin=(leaves||[]).reduce((n,l)=>n+(Number(l.leave_minutes)||0),0);
+  return { workDays, lateDays, lateMin, absentDays, pendDays, otHours:Math.round(otHours*10)/10, leaveMin };
+}
+async function loadPersonStats(){
+  const empId=document.getElementById('st_emp').value;
+  const start=document.getElementById('st_start').value, end=document.getElementById('st_end').value;
+  if(!empId){ showMsg('st_msg',false,'กรุณาเลือกพนักงาน'); return; }
+  if(!start||!end){ showMsg('st_msg',false,'กรุณาเลือกช่วงวันที่'); return; }
+  if(start>end){ showMsg('st_msg',false,'วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด'); return; }
+  const btn=document.getElementById('st_btn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>กำลังโหลด…';
+  try{
+    const att = await prFetchAll(()=> db.from('attendance_records')
+      .select('work_date,status,late_minutes,clock_in_time,ot_records(ot_hours,ot_status,ot_clock_out_time)')
+      .eq('employee_id', empId).gte('work_date', start).lte('work_date', end));
+    const leaves = await prFetchAll(()=> db.from('personal_leaves')
+      .select('leave_minutes,leave_date').eq('employee_id', empId).gte('leave_date', start).lte('leave_date', end));
+    const s = computeAttStats(att, leaves);
+    const emp = employeesData.find(e=>e.employee_id===empId);
+    document.getElementById('st_resultcard').style.display='block';
+    document.getElementById('st_title').textContent =
+      (emp ? (emp.employee_code+' · '+emp.first_name+' '+(emp.last_name||'')) : 'พนักงาน') + ' — ' + thDateRangeLabel(start,end);
+    document.getElementById('st_kpis').innerHTML =
+      `<div class="kpi"><div class="n">${s.workDays}</div><div class="l">วันทำงาน</div></div>`+
+      `<div class="kpi"><div class="n">${s.lateDays}</div><div class="l">วันที่มาสาย</div></div>`+
+      `<div class="kpi"><div class="n">${s.absentDays}</div><div class="l">วันขาด</div></div>`+
+      `<div class="kpi"><div class="n">${s.otHours}</div><div class="l">ชม. OT รวม</div></div>`;
+    document.getElementById('st_detail').innerHTML =
+      '<table>'+
+      `<tr><td>สายรวม (นาที)</td><td>${s.lateMin}</td></tr>`+
+      `<tr><td>ออกไปทำธุระรวม (นาที)</td><td>${s.leaveMin}</td></tr>`+
+      `<tr><td>วันที่ยังรอ HR ยืนยัน</td><td>${s.pendDays}</td></tr>`+
+      '</table>';
+    showMsg('st_msg',true,'โหลดสถิติสำเร็จ ('+start+' ถึง '+end+')');
+  }catch(err){
+    showMsg('st_msg',false,'โหลดสถิติไม่สำเร็จ: '+(err.message||err));
+  }
+  btn.disabled=false; btn.innerHTML='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> ดูสถิติ';
 }
 
 async function loadPrFilters(){
