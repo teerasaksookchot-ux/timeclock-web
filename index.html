@@ -1327,7 +1327,8 @@ async function downloadPayroll(fmt){
 
 // ---------- อนุมัติ/เคสค้าง (B1 + B2) ----------
 const SRC_LABEL={gps_fail:'GPS ไม่ผ่าน',ot_forgot:'ลืมกดออก OT',anomaly:'ผิดปกติ (ออกก่อนเวลา/อื่นๆ)',half_day:'มาครึ่งวันแล้วหาย',face_assist:'ขอ HR ช่วยยืนยันใบหน้า',late_checkin:'เลยเวลาเข้างาน (หลัง 08:00 ยังไม่กด)'};
-const ESC_LABEL={day0:'วันนี้',day7:'ค้าง ≥7 วัน',day30:'ค้าง ≥30 วัน',day60:'ค้าง ≥60 วัน'};
+// อายุเคส (วัน) คำนวณสดจาก opened_date — ไม่พึ่ง escalation_level ที่อัปเดตโดย cron วันละครั้ง
+function caseAgeDays(openedDate){ return Math.floor((Date.now() - new Date(openedDate+'T00:00:00'))/86400000); }
 function empName(e){ if(!e) return '(ไม่พบชื่อ)'; return esc((e.first_name||'')+' '+(e.last_name||'')+(e.nickname?' ('+e.nickname+')':'')); }
 
 async function loadApprovals(){ await loadWaivers(); await loadPendingCases(); }
@@ -1362,22 +1363,23 @@ async function decideWaiver(id, decision){
 async function loadPendingCases(){
   const box=document.getElementById('pc_list'); box.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>';
   const { data, error } = await db.from('pending_cases')
-    .select('id,employee_id,source,opened_date,escalation_level,employees!pending_cases_employee_id_fkey(employee_code,first_name,last_name,nickname)')
+    .select('id,employee_id,source,opened_date,employees!pending_cases_employee_id_fkey(employee_code,first_name,last_name,nickname)')
     .eq('status','open').order('opened_date',{ascending:true});
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
   if(!data||!data.length){ box.innerHTML='<div class="empty">ไม่มีเคสค้าง <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.182 15.182a4.5 4.5 0 0 1-6.364 0M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-13.5-3h.008v.008H7.5V9Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.125 0h.008v.008h-.008V9Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg></div>'; return; }
-  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>สาเหตุ</th><th>เปิดเมื่อ</th><th>สถานะ</th><th></th><th></th></tr>';
+  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>สาเหตุ</th><th>เปิดเมื่อ</th><th>อายุเคส</th><th></th><th></th></tr>';
   data.forEach(r=>{
     const e=r.employees||{};
-    const isDay60 = r.escalation_level==='day60';
-    const locked = isDay60 && currentRole!=='owner';
-    const escColor = (r.escalation_level==='day30'||r.escalation_level==='day60')?'var(--red)':(r.escalation_level==='day7'?'var(--tan2)':'var(--muted)');
+    const ageDays = caseAgeDays(r.opened_date);
+    const locked = ageDays >= 60 && currentRole!=='owner';
+    const escColor = ageDays>=30 ? 'var(--red)' : (ageDays>=7 ? 'var(--tan2)' : 'var(--muted)');
+    const ageLabel = ageDays<=0 ? 'วันนี้' : ('ค้าง '+ageDays+' วัน');
     const btn = locked
       ? '<span style="color:var(--muted);font-size:12px">รอเจ้าของปิด</span>'
       : `<button class="ebtn" onclick="resolvePending('${r.id}')">ปิดเคส</button>`;
     const editBtn = `<button class="ebtn" onclick="jumpToAttendance('${r.opened_date}','${r.employee_id}')">แก้ไขเวลางาน</button>`;
     h+=`<tr><td>${e.employee_code||'-'}</td><td>${empName(e)}</td><td>${SRC_LABEL[r.source]||r.source}</td>`+
-       `<td>${r.opened_date}</td><td style="color:${escColor}">${ESC_LABEL[r.escalation_level]||r.escalation_level}</td><td>${editBtn}</td><td>${btn}</td></tr>`;
+       `<td>${r.opened_date}</td><td style="color:${escColor}">${ageLabel}</td><td>${editBtn}</td><td>${btn}</td></tr>`;
   });
   box.innerHTML=h+'</table>';
 }
