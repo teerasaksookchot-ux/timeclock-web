@@ -395,8 +395,11 @@ async function renderExtra(){
     if(waiver){
       const lbl={pending:'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> รอ HR อนุมัติ',approved:'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> อนุมัติแล้ว — ออกได้ตั้งแต่ 16:00 น. โดยไม่ติด Pending',rejected:'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ไม่อนุมัติ'}[waiver.status]||waiver.status;
       waiverHtml = `<div class="msg" style="display:block;margin-bottom:10px">คำขอไม่ทำ OT วันนี้: ${lbl}</div>`;
+    }else if(bkkMinutesNow() < 780){   // 13:00 = 780 — ต้องแจ้งล่วงหน้าอย่างน้อย 3 ชม. ก่อนเลิกงาน 16:00
+      waiverHtml = `<button class="btn ghost" onclick="requestOtWaiver()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg> ขอไม่ทำ OT วันนี้</button>`
+        + `<div class="msg" style="display:block;margin-top:6px;font-size:12px">ต้องกดก่อน <b>13:00 น.</b> (แจ้งล่วงหน้าอย่างน้อย 3 ชม. ก่อนเลิกงาน 16:00) · เลยเวลานี้แล้วต้องแจ้ง HR โดยตรง</div>`;
     }else{
-      waiverHtml = `<button class="btn ghost" onclick="requestOtWaiver()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg> ขอไม่ทำ OT วันนี้</button>`;
+      waiverHtml = `<div class="msg" style="display:block;margin-bottom:10px">เลย <b>13:00 น.</b> แล้ว — ขอไม่ทำ OT ล่วงหน้าไม่ได้ · ถ้าจำเป็นต้องออกก่อน 19:00 น. ให้แจ้ง HR โดยตรง</div>`;
     }
     const waiverApproved = waiver && waiver.status==='approved';
     const canExit = (waiverApproved && bkkMinutesNow() >= 960) || bkkMinutesNow() >= 1140;
@@ -543,6 +546,11 @@ async function processOtClockOut(blob){
   showResult('ok','<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>','ออกงาน OT สำเร็จ','บันทึกเรียบร้อยแล้ว', rows);
 }
 async function requestOtWaiver(){
+  if(bkkMinutesNow() >= 780){   // กันกดหลัง 13:00 (เผื่อค้างหน้าเว็บไว้ข้ามเวลา)
+    alert('เลยเวลา 13:00 น. แล้ว — ขอไม่ทำ OT ล่วงหน้าไม่ได้\nถ้าจำเป็นต้องออกก่อนเวลา ให้แจ้ง HR โดยตรง');
+    await renderExtra();
+    return;
+  }
   const { error } = await db.from('ot_waiver_requests').insert({ employee_id: me.employee_id, request_date: bkkDate() });
   if(error){
     alert(/duplicate|unique/i.test(error.message||'') ? 'วันนี้ขอไปแล้ว รอ HR อนุมัติ' : ('ขอไม่สำเร็จ: '+error.message));
