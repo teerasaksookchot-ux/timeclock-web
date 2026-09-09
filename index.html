@@ -1269,7 +1269,8 @@ async function loadStatFilters(){
   if(!employeesData.length) await loadEmployees();
   const s=document.getElementById('st_emp'); const cur=s.value;
   s.innerHTML='<option value="">— เลือกพนักงาน —</option>';
-  employeesData.slice().sort((a,b)=>String(a.employee_code).localeCompare(String(b.employee_code)))
+  employeesData.filter(e=>e.role==='staff')   // เฉพาะพนักงาน — เจ้าของ/HR ไม่มีบันทึกเข้างาน
+    .slice().sort((a,b)=>String(a.employee_code).localeCompare(String(b.employee_code)))
     .forEach(e=>s.innerHTML+=`<option value="${e.employee_id}">${esc(e.employee_code)} · ${esc(e.first_name)} ${esc(e.last_name||'')}</option>`);
   if([...s.options].some(o=>o.value===cur)) s.value=cur;
   if(!document.getElementById('st_start').value) setStatRange('month');
