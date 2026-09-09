@@ -65,6 +65,7 @@
   .btn:hover{background:#000}
   .ebtn{padding:4px 12px;border:1px solid var(--line);background:var(--paper);border-radius:7px;cursor:pointer;font-family:var(--font);font-size:12px;color:var(--tan2);font-weight:600}
   .ebtn:hover{background:var(--tan-soft)}
+  .ebtn.on{background:var(--tan);color:#fff;border-color:var(--tan)}
   .ebtn.del{color:var(--red);border-color:#e8c4ba}
   .ebtn.del:hover{background:var(--red-bg)}
   .kpis{display:flex;flex-wrap:wrap;gap:12px}
@@ -196,12 +197,18 @@
         <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
           <span>การเข้างาน</span>
           <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <select id="at_region" style="width:auto;padding:6px 10px" onchange="fillAtBranchFilter();loadAttendance();"><option value="">ทุกภาค</option></select>
-            <select id="at_branch" style="width:auto;padding:6px 10px" onchange="loadAttendance()"><option value="">ทุกสาขา</option></select>
-            <input id="at_date" type="date" style="width:auto;padding:6px 10px" onchange="loadAttendance()">
-            <button class="ebtn" onclick="loadAttendance()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> ดู</button>
+            <select id="at_region" style="width:auto;padding:6px 10px" onchange="fillAtBranchFilter();atRefresh();"><option value="">ทุกภาค</option></select>
+            <select id="at_branch" style="width:auto;padding:6px 10px" onchange="atRefresh()"><option value="">ทุกสาขา</option></select>
+            <input id="at_date" type="date" style="width:auto;padding:6px 10px" onchange="pickAtDay()">
+            <button class="ebtn" onclick="atRefresh()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> ดู</button>
           </span>
         </h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          <button class="ebtn on" type="button" data-atm="day" onclick="setAtRange('day')">วันเดียว</button>
+          <button class="ebtn" type="button" data-atm="7d" onclick="setAtRange('7d')">7 วัน</button>
+          <button class="ebtn" type="button" data-atm="month" onclick="setAtRange('month')">เดือนนี้</button>
+          <button class="ebtn" type="button" data-atm="lastmonth" onclick="setAtRange('lastmonth')">เดือนที่แล้ว</button>
+        </div>
         <div class="kpis" id="at_kpis" style="margin-bottom:14px"></div>
         <div id="at_list"><div class="empty">เลือกวันที่แล้วกด "ดู"</div></div>
       </div>
@@ -335,8 +342,9 @@
         <label>พนักงาน</label>
         <select id="st_emp"><option value="">— เลือกพนักงาน —</option></select>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
+          <button class="ebtn" type="button" onclick="setStatRange('7d')">7 วัน</button>
           <button class="ebtn" type="button" onclick="setStatRange('month')">เดือนนี้</button>
-          <button class="ebtn" type="button" onclick="setStatRange('7d')">7 วันที่ผ่านมา</button>
+          <button class="ebtn" type="button" onclick="setStatRange('lastmonth')">เดือนที่แล้ว</button>
         </div>
         <div class="grid2">
           <div><label>ตั้งแต่วันที่</label><input id="st_start" type="date"></div>
@@ -349,6 +357,8 @@
         <h2 id="st_title">ผลลัพธ์</h2>
         <div class="kpis" id="st_kpis"></div>
         <div id="st_detail" style="margin-top:12px"></div>
+        <h2 style="font-size:15px;margin-top:18px">รายวัน</h2>
+        <div id="st_days" style="overflow-x:auto"></div>
       </div>
     </div>
   </div>
@@ -447,6 +457,7 @@ function toggleNav(force){
 }
 function jumpToBranchAttendance(branchId){
   switchTab('attend');
+  atRange=null; markAtPreset('day');
   const bgDate=document.getElementById('bg_date').value || bkkToday();
   document.getElementById('at_date').value = bgDate;
   loadAtFilters().then(()=>{
@@ -459,7 +470,7 @@ function jumpToBranchAttendance(branchId){
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   switchTab(t.dataset.t);
   if(t.dataset.t==='dash'){ loadDashboard(); loadBranchGrid(); }
-  if(t.dataset.t==='attend'){ const d=document.getElementById('at_date'); if(!d.value) d.value=bkkToday(); loadAtFilters(); loadAttendance(); }
+  if(t.dataset.t==='attend'){ const d=document.getElementById('at_date'); if(!d.value) d.value=bkkToday(); loadAtFilters(); atRefresh(); }
   if(t.dataset.t==='approvals') loadApprovals();
   if(t.dataset.t==='payroll') loadPrFilters();
   if(t.dataset.t==='stats') loadStatFilters();
@@ -1254,16 +1265,97 @@ function setPayrollRange(kind){
   document.getElementById('pr_end').value = today;
 }
 
-// ---------- สถิติรายคน (HR) ----------
-function rangeStart(kind){
-  const today = bkkToday();
-  if(kind==='month') return today.slice(0,8)+'01';
-  const d = new Date(today+'T00:00:00+07:00'); d.setDate(d.getDate()-6);
-  return d.toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'});
+// ---------- ช่วงวันที่สำเร็จรูป (ใช้ร่วม: เข้างาน + สถิติรายคน) ----------
+function presetRange(kind){
+  const today = bkkToday();                 // YYYY-MM-DD (Asia/Bangkok)
+  if(kind==='month')  return { start: today.slice(0,8)+'01', end: today, label:'เดือนนี้' };
+  if(kind==='lastmonth'){
+    let y=+today.slice(0,4), m=+today.slice(5,7);
+    m-=1; if(m===0){ m=12; y--; }
+    const mm=String(m).padStart(2,'0');
+    const lastDay=new Date(Date.UTC(y, m, 0)).getUTCDate();   // วันสุดท้ายของเดือน m
+    return { start: y+'-'+mm+'-01', end: y+'-'+mm+'-'+String(lastDay).padStart(2,'0'), label:'เดือนที่แล้ว' };
+  }
+  const d=new Date(today+'T00:00:00+07:00'); d.setDate(d.getDate()-6);
+  return { start: d.toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'}), end: today, label:'7 วันล่าสุด' };
 }
 function setStatRange(kind){
-  document.getElementById('st_start').value = rangeStart(kind);
-  document.getElementById('st_end').value = bkkToday();
+  const r=presetRange(kind);
+  document.getElementById('st_start').value = r.start;
+  document.getElementById('st_end').value = r.end;
+}
+
+// ---------- เข้างาน: โหมดวันเดียว / ช่วงวันที่ ----------
+let atRange = null;   // null = โหมดวันเดียว · {start,end,label} = โหมดช่วง
+function atRefresh(){ atRange ? loadAttendanceRange() : loadAttendance(); }
+function markAtPreset(kind){
+  document.querySelectorAll('#p-attend [data-atm]').forEach(b=>b.classList.toggle('on', b.dataset.atm===kind));
+}
+function pickAtDay(){ atRange=null; markAtPreset('day'); loadAttendance(); }
+function setAtRange(kind){
+  if(kind==='day'){ pickAtDay(); return; }
+  atRange = presetRange(kind); markAtPreset(kind);
+  loadAttendanceRange();
+}
+function atBranchFilterIds(){
+  const branchId=document.getElementById('at_branch').value, regionId=document.getElementById('at_region').value;
+  if(branchId) return [branchId];
+  if(regionId){ const ids=branchesData.filter(b=>b.region_id===regionId).map(b=>b.branch_id); return ids.length?ids:['00000000-0000-0000-0000-000000000000']; }
+  return null;
+}
+async function loadAttendanceRange(){
+  const { start, end, label } = atRange;
+  const box=document.getElementById('at_list'), kpi=document.getElementById('at_kpis');
+  box.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>'; kpi.innerHTML='';
+  document.getElementById('at_backdate_card').style.display='none';   // ย้อนหลังทำในโหมดวันเดียว
+  const ids = atBranchFilterIds();
+  try{
+    const att = await prFetchAll(()=>{
+      let q = db.from('attendance_records')
+        .select('employee_id,work_date,status,late_minutes,working_branch_id,employees!attendance_records_employee_id_fkey(employee_code,first_name,last_name,nickname),ot_records(ot_hours,ot_status)')
+        .gte('work_date', start).lte('work_date', end);
+      if(ids) q = q.in('working_branch_id', ids);
+      return q;
+    });
+    if(!att.length){ box.innerHTML='<div class="empty">ไม่มีข้อมูลการเข้างานในช่วงนี้</div>'; return; }
+    const empIds=[...new Set(att.map(a=>a.employee_id))];
+    const leaves = await prFetchAll(()=> db.from('personal_leaves')
+      .select('employee_id,leave_minutes,leave_date').in('employee_id', empIds)
+      .gte('leave_date', start).lte('leave_date', end));
+    const byEmp={};
+    att.forEach(a=>{ (byEmp[a.employee_id] || (byEmp[a.employee_id]={att:[],lv:[],e:a.employees||{}})).att.push(a); });
+    leaves.forEach(l=>{ if(byEmp[l.employee_id]) byEmp[l.employee_id].lv.push(l); });
+    const rows = Object.keys(byEmp).map(id=>{
+      const g=byEmp[id], s=computeAttStats(g.att, g.lv);
+      return { id, code:g.e.employee_code||'-', name:((g.e.first_name||'')+' '+(g.e.last_name||'')).trim()||'(ไม่พบชื่อ)', ...s };
+    }).sort((a,b)=>String(a.code).localeCompare(String(b.code)));
+    kpi.innerHTML =
+      `<div class="kpi"><div class="n" style="font-size:20px">${thDateRangeLabel(start,end)}</div><div class="l">${label}</div></div>`+
+      `<div class="kpi"><div class="n">${rows.length}</div><div class="l">พนักงานที่มีบันทึก</div></div>`+
+      `<div class="kpi"><div class="n">${rows.reduce((n,r)=>n+r.absentDays,0)}</div><div class="l">วัน-ขาด รวม</div></div>`+
+      `<div class="kpi"><div class="n">${Math.round(rows.reduce((n,r)=>n+r.otHours,0)*10)/10}</div><div class="l">ชม. OT รวม</div></div>`;
+    let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>วันทำงาน</th><th>มาสาย (วัน)</th><th>สายรวม (นาที)</th><th>ขาด</th><th>ชม. OT</th><th>ลากิจ (นาที)</th><th></th></tr>';
+    rows.forEach(r=>{
+      h+=`<tr><td>${esc(r.code)}</td><td>${esc(r.name)}</td><td>${r.workDays}</td>`+
+         `<td>${r.lateDays}</td><td>${r.lateMin}</td>`+
+         `<td>${r.absentDays? '<span style="color:var(--red)">'+r.absentDays+'</span>':'0'}</td>`+
+         `<td>${r.otHours}</td><td>${r.leaveMin}</td>`+
+         `<td><button class="ebtn" onclick="openPersonDetail('${r.id}','${start}','${end}')">ดูรายวัน + รูป</button></td></tr>`;
+    });
+    box.innerHTML=h+'</table>';
+  }catch(err){
+    box.innerHTML='<div class="empty">โหลดไม่ได้: '+(err.message||err)+'</div>';
+  }
+}
+// เปิดแท็บ "สถิติรายคน" ของคนนั้น พร้อมช่วงวันที่ที่กำลังดูอยู่
+async function openPersonDetail(empId, start, end){
+  switchTab('stats');
+  await loadStatFilters();
+  document.getElementById('st_emp').value = empId;
+  document.getElementById('st_start').value = start;
+  document.getElementById('st_end').value = end;
+  await loadPersonStats();
+  document.getElementById('st_resultcard').scrollIntoView({behavior:'smooth',block:'start'});
 }
 async function loadStatFilters(){
   if(!employeesData.length) await loadEmployees();
@@ -1299,8 +1391,8 @@ async function loadPersonStats(){
   const btn=document.getElementById('st_btn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>กำลังโหลด…';
   try{
     const att = await prFetchAll(()=> db.from('attendance_records')
-      .select('work_date,status,late_minutes,clock_in_time,ot_records(ot_hours,ot_status,ot_clock_out_time)')
-      .eq('employee_id', empId).gte('work_date', start).lte('work_date', end));
+      .select('work_date,status,late_minutes,clock_in_time,selfie_path,ot_records(ot_hours,ot_status,ot_clock_out_time,selfie_path),personal_leaves(leave_out_time,return_time,leave_minutes,selfie_path,return_selfie_path)')
+      .eq('employee_id', empId).gte('work_date', start).lte('work_date', end).order('work_date',{ascending:false}));
     const leaves = await prFetchAll(()=> db.from('personal_leaves')
       .select('leave_minutes,leave_date').eq('employee_id', empId).gte('leave_date', start).lte('leave_date', end));
     const s = computeAttStats(att, leaves);
@@ -1319,11 +1411,36 @@ async function loadPersonStats(){
       `<tr><td>ออกไปทำธุระรวม (นาที)</td><td>${s.leaveMin}</td></tr>`+
       `<tr><td>วันที่ยังรอ HR ยืนยัน</td><td>${s.pendDays}</td></tr>`+
       '</table>';
+    renderPersonDays(att);
     showMsg('st_msg',true,'โหลดสถิติสำเร็จ ('+start+' ถึง '+end+')');
   }catch(err){
     showMsg('st_msg',false,'โหลดสถิติไม่สำเร็จ: '+(err.message||err));
   }
   btn.disabled=false; btn.innerHTML='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> ดูสถิติ';
+}
+// ตารางรายวันของพนักงานคนนั้น + ปุ่มดูรูป (เข้า/ออก OT/ออกไปทำธุระ)
+function renderPersonDays(att){
+  const box=document.getElementById('st_days');
+  if(!att || !att.length){ box.innerHTML='<div class="empty">ไม่มีบันทึกในช่วงนี้</div>'; return; }
+  const hm = iso => iso ? new Date(iso).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}) : '';
+  const photo = (p,txt) => p ? `<button class="ebtn" onclick="viewSelfie('${p}')">${txt}</button> ` : '';
+  let h='<table><tr><th>วันที่</th><th>เข้า</th><th>ออก (OT)</th><th>สถานะ</th><th>ออกไปทำธุระ</th><th>รูป</th></tr>';
+  att.forEach(a=>{
+    const ot=(Array.isArray(a.ot_records)?a.ot_records:[a.ot_records]).filter(Boolean)
+      .sort((x,y)=>(Number(y.ot_hours)||0)-(Number(x.ot_hours)||0))[0];
+    const lv=Array.isArray(a.personal_leaves)?a.personal_leaves[0]:a.personal_leaves;
+    const inTxt = a.status==='absent' ? '-' : (hm(a.clock_in_time)||'-') + (a.late_minutes>0?` <span style="color:var(--amber)">(สาย ${a.late_minutes}น.)</span>`:'');
+    const outTxt = ot && ot.ot_clock_out_time ? hm(ot.ot_clock_out_time)+(ot.ot_hours>0?` (OT ${ot.ot_hours} ชม.)`:'') : '-';
+    const stTxt = a.status==='pending' ? '<span style="color:var(--red)">รอยืนยัน</span>'
+                : a.status==='absent' ? '<span style="color:var(--red)">ขาด</span>'
+                : a.late_minutes>0 ? '<span style="color:var(--amber)">สาย</span>'
+                : '<span style="color:var(--green)">ปกติ</span>';
+    const lvTxt = !lv ? '-' : (hm(lv.leave_out_time)+' → '+(lv.return_time?hm(lv.return_time):'ยังไม่กลับ')+(lv.return_time?` (${lv.leave_minutes||0} น.)`:''));
+    const pics = (photo(a.selfie_path,'เข้า') + photo(ot&&ot.selfie_path,'ออก')
+      + photo(lv&&lv.selfie_path,'ธุระ-ออก') + photo(lv&&lv.return_selfie_path,'ธุระ-กลับ')) || '-';
+    h+=`<tr><td>${thShortDate(a.work_date)}</td><td>${inTxt}</td><td>${outTxt}</td><td>${stTxt}</td><td>${esc(lvTxt)}</td><td>${pics}</td></tr>`;
+  });
+  box.innerHTML=h+'</table>';
 }
 
 async function loadPrFilters(){
@@ -1544,6 +1661,7 @@ async function loadPendingCases(){
 // เปิดแท็บ "เข้างานวันนี้" ตรงวัน+พนักงานของเคสนั้นเลย — ถ้ามีบันทึกอยู่แล้วเปิดแก้ไข ถ้ายังไม่มีเลื่อนไปการ์ด "เพิ่มบันทึกย้อนหลัง" พร้อมเลือกพนักงานให้
 async function jumpToAttendance(day, employeeId){
   switchTab('attend');
+  atRange=null; markAtPreset('day');
   document.getElementById('at_date').value = day;
   await loadAtFilters();
   await loadAttendance();
