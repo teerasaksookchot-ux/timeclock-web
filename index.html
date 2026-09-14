@@ -176,10 +176,17 @@
         <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
           <span>สถานะรายสาขา</span>
           <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <input id="bg_date" type="date" style="width:auto;padding:6px 10px">
-            <button class="ebtn" onclick="loadBranchGrid()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> ดู</button>
+            <input id="bg_date" type="date" style="width:auto;padding:6px 10px" onchange="pickBgDay()">
+            <button class="ebtn" onclick="bgRefresh()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> ดู</button>
           </span>
         </h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="ebtn on" type="button" data-bgm="day" onclick="setBgRange('day')">วันเดียว</button>
+          <button class="ebtn" type="button" data-bgm="7d" onclick="setBgRange('7d')">7 วัน</button>
+          <button class="ebtn" type="button" data-bgm="month" onclick="setBgRange('month')">เดือนนี้</button>
+          <button class="ebtn" type="button" data-bgm="lastmonth" onclick="setBgRange('lastmonth')">เดือนที่แล้ว</button>
+        </div>
+        <div id="bg_rangelabel" style="font-size:12px;color:var(--muted);margin:-4px 0 10px"></div>
         <div style="font-size:12px;color:var(--muted);margin:-4px 0 10px">
           <span class="dot g"></span>ปกติ · <span class="dot y"></span>มีคนสาย · <span class="dot r"></span>มีคนขาด/รอตรวจ · <span class="dot n"></span>ยังไม่มีข้อมูล · <b>กติกา "แย่สุดชนะ"</b>
         </div>
@@ -457,19 +464,18 @@ function toggleNav(force){
 }
 function jumpToBranchAttendance(branchId){
   switchTab('attend');
-  atRange=null; markAtPreset('day');
-  const bgDate=document.getElementById('bg_date').value || bkkToday();
-  document.getElementById('at_date').value = bgDate;
+  if(bgRange){ atRange={...bgRange}; markAtPreset(bgRange.kind); }
+  else { atRange=null; markAtPreset('day'); const bgDate=document.getElementById('bg_date').value || bkkToday(); document.getElementById('at_date').value = bgDate; }
   loadAtFilters().then(()=>{
     document.getElementById('at_region').value = '';
     fillAtBranchFilter();
     document.getElementById('at_branch').value = branchId;
-    loadAttendance();
+    atRefresh();
   });
 }
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   switchTab(t.dataset.t);
-  if(t.dataset.t==='dash'){ loadDashboard(); loadBranchGrid(); }
+  if(t.dataset.t==='dash'){ loadDashboard(); bgRefresh(); }
   if(t.dataset.t==='attend'){ const d=document.getElementById('at_date'); if(!d.value) d.value=bkkToday(); loadAtFilters(); atRefresh(); }
   if(t.dataset.t==='approvals') loadApprovals();
   if(t.dataset.t==='payroll') loadPrFilters();
@@ -549,11 +555,23 @@ async function loadDashboard(){
   document.getElementById('dash_by_province').innerHTML = branchesData.length? h2+'</table>' : '<div class="empty">ยังไม่มีสาขา</div>';
 }
 // ---------- การ์ดสถานะรายสาขา (DL-34/35/36) — คำนวณ roll-up ฝั่งเว็บ ----------
-let branchGridData=[];
+// โหมดวันเดียว / ช่วงวันที่ (เหมือนแท็บ "เข้างานวันนี้") — ใช้ presetRange() ร่วมกัน
+let branchGridData=[], bgRange=null;   // null = โหมดวันเดียว · {start,end,label} = โหมดช่วง
+function bgRefresh(){ bgRange ? loadBranchGridRange() : loadBranchGrid(); }
+function markBgPreset(kind){
+  document.querySelectorAll('#p-dash [data-bgm]').forEach(b=>b.classList.toggle('on', b.dataset.bgm===kind));
+}
+function pickBgDay(){ bgRange=null; markBgPreset('day'); loadBranchGrid(); }
+function setBgRange(kind){
+  if(kind==='day'){ pickBgDay(); return; }
+  bgRange = {...presetRange(kind), kind}; markBgPreset(kind);
+  loadBranchGridRange();
+}
 async function loadBranchGrid(){
   const dEl=document.getElementById('bg_date'); if(!dEl.value) dEl.value=bkkToday();
   const day=dEl.value, today=bkkToday();
   const grid=document.getElementById('branch_grid'); grid.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>';
+  document.getElementById('bg_rangelabel').innerHTML='';
   const { data: att, error } = await db.from('attendance_records')
     .select('employee_id,working_branch_id,status,late_minutes').eq('work_date', day);
   if(error){ grid.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
@@ -578,6 +596,43 @@ async function loadBranchGrid(){
   });
   renderBranchGrid();
 }
+// เหมือน loadBranchGrid แต่รวมทั้งช่วง — ต่อพนักงาน 1 คน ใช้ "วันที่แย่ที่สุด" ในช่วงตัดสินสถานะ (กติกา "แย่สุดชนะ")
+async function loadBranchGridRange(){
+  const { start, end, label } = bgRange;
+  const grid=document.getElementById('branch_grid'); grid.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>';
+  document.getElementById('bg_rangelabel').innerHTML =
+    `กำลังดู: <b>${esc(label)}</b> (${thDateRangeLabel(start,end)})`;
+  let att;
+  try{
+    att = await prFetchAll(()=> db.from('attendance_records')
+      .select('employee_id,working_branch_id,status,late_minutes')
+      .gte('work_date', start).lte('work_date', end));
+  }catch(err){ grid.innerHTML='<div class="empty">โหลดไม่ได้: '+(err.message||err)+'</div>'; return; }
+  const worstByEmp={};
+  att.forEach(r=>{
+    const rank = r.status==='absent' ? 3 : r.status==='pending' ? 2 : (r.late_minutes>0 ? 1 : 0);
+    const cur=worstByEmp[r.employee_id];
+    if(!cur || rank>cur.rank) worstByEmp[r.employee_id]={rank, rec:r};
+  });
+  const staff=employeesData.filter(e=>e.role==='staff');
+  const rangeIsPast = end < bkkToday();   // ช่วงที่จบไปแล้วทั้งช่วง (เช่น "เดือนที่แล้ว") — ไม่มีบันทึกเลย = ขาด เหมือนโหมดวันเดียว
+  const b={}; branchesData.forEach(br=>b[br.branch_id]={br,on_time:0,late:0,pending:0,absent:0,notyet:0,total:0});
+  staff.forEach(s=>{
+    const w=worstByEmp[s.employee_id]; let bid, bucket;
+    if(w){
+      bid = w.rec.working_branch_id || s.home_branch_id;
+      bucket = w.rank===3?'absent' : w.rank===2?'pending' : w.rank===1?'late' : 'on_time';
+    } else { bid=s.home_branch_id; bucket=rangeIsPast?'absent':'notyet'; }
+    if(!bid||!b[bid]) return;
+    b[bid][bucket]++; b[bid].total++;
+  });
+  branchGridData=Object.values(b).map(x=>{
+    let color; if(x.pending>0||x.absent>0) color='red'; else if(x.late>0) color='yellow';
+    else if(x.on_time>0) color='green'; else color='gray';
+    return {...x, color};
+  });
+  renderBranchGrid();
+}
 function renderBranchGrid(){
   const q=(document.getElementById('bg_search').value||'').trim().toLowerCase();
   const cnt={red:0,yellow:0,green:0,gray:0}; branchGridData.forEach(x=>cnt[x.color]++);
@@ -589,6 +644,7 @@ function renderBranchGrid(){
   if(!rows.length){ document.getElementById('branch_grid').innerHTML='<div class="empty">ไม่พบสาขา</div>'; return; }
   const byReg={}; rows.forEach(x=>{ const rn=x.br.regions?x.br.regions.name:'(ไม่ระบุภูมิภาค)'; (byReg[rn]=byReg[rn]||[]).push(x); });
   const order={red:0,yellow:1,green:2,gray:3};
+  const notyetLabel = bgRange ? 'ไม่มีบันทึกในช่วงนี้ ' : 'ยังไม่เข้า ';
   let html='';
   Object.keys(byReg).sort().forEach(rn=>{
     const list=byReg[rn].sort((a,c)=>order[a.color]-order[c.color]||a.br.name.localeCompare(c.br.name));
@@ -599,7 +655,7 @@ function renderBranchGrid(){
       if(x.late) parts.push('สาย '+x.late);
       if(x.pending) parts.push('รอตรวจ '+x.pending);
       if(x.absent) parts.push('ขาด '+x.absent);
-      if(x.notyet) parts.push('ยังไม่เข้า '+x.notyet);
+      if(x.notyet) parts.push(notyetLabel+x.notyet);
       const detail=x.total? parts.join(' · ') : 'ไม่มีพนักงานประจำ';
       html+=`<div class="bcard ${x.color}" style="cursor:pointer" onclick="jumpToBranchAttendance('${x.br.branch_id}')"><div class="bn">${esc(x.br.name)}</div><div class="bs">${esc(detail)}</div></div>`;
     });
@@ -637,17 +693,12 @@ async function loadAttendance(){
   const branchId = document.getElementById('at_branch').value;
   const box=document.getElementById('at_list'), kpi=document.getElementById('at_kpis');
   box.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>'; kpi.innerHTML='';
-  let q = db.from('attendance_records')
-    .select('id,clock_in_time,status,late_minutes,selfie_path,employee_id,updated_at,updated_by,hr_edit_note,employees!attendance_records_employee_id_fkey(employee_code,first_name,last_name,nickname),branches(name),ot_records(id,ot_clock_out_time,ot_hours,ot_status,selfie_path),personal_leaves(id,leave_out_time,return_time,leave_minutes,status,selfie_path,return_selfie_path)')
-    .eq('work_date', day);
-  if(branchId){
-    q = q.eq('working_branch_id', branchId);
-  }else if(regionId){
-    const ids = branchesData.filter(b=>b.region_id===regionId).map(b=>b.branch_id);
-    q = q.in('working_branch_id', ids.length ? ids : ['00000000-0000-0000-0000-000000000000']);
-  }
-  const { data, error } = await q.order('clock_in_time',{ascending:true});
+  const { data: raw, error } = await db.from('attendance_records')
+    .select('id,clock_in_time,status,late_minutes,selfie_path,employee_id,working_branch_id,updated_at,updated_by,hr_edit_note,employees!attendance_records_employee_id_fkey(employee_code,first_name,last_name,nickname,home_branch_id),branches(name),ot_records(id,ot_clock_out_time,ot_hours,ot_status,selfie_path),personal_leaves(id,leave_out_time,return_time,leave_minutes,status,selfie_path,return_selfie_path)')
+    .eq('work_date', day)
+    .order('clock_in_time',{ascending:true});
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
+  const data = filterByBranchScope(raw||[], branchId, regionId);
   attendanceData = data||[];
   // แก้ย้อนหลังได้ไม่เกิน 60 วัน และไม่ใช่วันในอนาคต (DL-51)
   const diff = daysBetween(day);
@@ -1294,29 +1345,31 @@ function markAtPreset(kind){
 function pickAtDay(){ atRange=null; markAtPreset('day'); loadAttendance(); }
 function setAtRange(kind){
   if(kind==='day'){ pickAtDay(); return; }
-  atRange = presetRange(kind); markAtPreset(kind);
+  atRange = {...presetRange(kind), kind}; markAtPreset(kind);
   loadAttendanceRange();
 }
-function atBranchFilterIds(){
-  const branchId=document.getElementById('at_branch').value, regionId=document.getElementById('at_region').value;
-  if(branchId) return [branchId];
-  if(regionId){ const ids=branchesData.filter(b=>b.region_id===regionId).map(b=>b.branch_id); return ids.length?ids:['00000000-0000-0000-0000-000000000000']; }
-  return null;
+// บันทึกเข้างานเก่าบางแถว working_branch_id เป็น null (ยังไม่ผูก GPS) — fallback ไปสาขาประจำของพนักงาน
+// เหมือนกติกาที่การ์ด "สถานะรายสาขา" ใช้บักเก็ตสี ไม่งั้นกรองตาม working_branch_id เพียวๆ จะตกหล่นแถวพวกนี้ (คลิกเข้าไปแล้วว่างเปล่า)
+function effectiveBranchOf(row){ return row.working_branch_id || (row.employees && row.employees.home_branch_id) || null; }
+function filterByBranchScope(rows, branchId, regionId){
+  if(branchId) return rows.filter(r => effectiveBranchOf(r) === branchId);
+  if(regionId){
+    const ids = new Set(branchesData.filter(b=>b.region_id===regionId).map(b=>b.branch_id));
+    return rows.filter(r => ids.has(effectiveBranchOf(r)));
+  }
+  return rows;
 }
 async function loadAttendanceRange(){
   const { start, end, label } = atRange;
   const box=document.getElementById('at_list'), kpi=document.getElementById('at_kpis');
   box.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>'; kpi.innerHTML='';
   document.getElementById('at_backdate_card').style.display='none';   // ย้อนหลังทำในโหมดวันเดียว
-  const ids = atBranchFilterIds();
+  const branchId=document.getElementById('at_branch').value, regionId=document.getElementById('at_region').value;
   try{
-    const att = await prFetchAll(()=>{
-      let q = db.from('attendance_records')
-        .select('employee_id,work_date,status,late_minutes,working_branch_id,employees!attendance_records_employee_id_fkey(employee_code,first_name,last_name,nickname),ot_records(ot_hours,ot_status)')
-        .gte('work_date', start).lte('work_date', end);
-      if(ids) q = q.in('working_branch_id', ids);
-      return q;
-    });
+    const rawAtt = await prFetchAll(()=> db.from('attendance_records')
+      .select('employee_id,work_date,status,late_minutes,working_branch_id,employees!attendance_records_employee_id_fkey(employee_code,first_name,last_name,nickname,home_branch_id),ot_records(ot_hours,ot_status)')
+      .gte('work_date', start).lte('work_date', end));
+    const att = filterByBranchScope(rawAtt, branchId, regionId);
     if(!att.length){ box.innerHTML='<div class="empty">ไม่มีข้อมูลการเข้างานในช่วงนี้</div>'; return; }
     const empIds=[...new Set(att.map(a=>a.employee_id))];
     const leaves = await prFetchAll(()=> db.from('personal_leaves')
