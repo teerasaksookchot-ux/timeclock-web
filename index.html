@@ -346,6 +346,10 @@
       <div class="card">
         <h2>สถิติการเข้างานรายบุคคล</h2>
         <p style="font-size:13px;color:var(--muted);margin-bottom:10px">เลือกพนักงาน + ช่วงวันที่ → ดูสรุปวันทำงาน / มาสาย / ขาด / OT / ลากิจ</p>
+        <div class="grid2">
+          <div><label>ภาค</label><select id="st_region" onchange="fillStBranchFilter();fillStEmpFilter();"><option value="">ทุกภาค</option></select></div>
+          <div><label>สาขา</label><select id="st_branch" onchange="fillStEmpFilter()"><option value="">ทุกสาขา</option></select></div>
+        </div>
         <label>พนักงาน</label>
         <select id="st_emp"><option value="">— เลือกพนักงาน —</option></select>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
@@ -1403,6 +1407,8 @@ async function loadAttendanceRange(){
 // เปิดแท็บ "สถิติรายคน" ของคนนั้น พร้อมช่วงวันที่ที่กำลังดูอยู่
 async function openPersonDetail(empId, start, end){
   switchTab('stats');
+  document.getElementById('st_region').value='';
+  document.getElementById('st_branch').value='';
   await loadStatFilters();
   document.getElementById('st_emp').value = empId;
   document.getElementById('st_start').value = start;
@@ -1412,13 +1418,35 @@ async function openPersonDetail(empId, start, end){
 }
 async function loadStatFilters(){
   if(!employeesData.length) await loadEmployees();
+  if(!branchesData.length) await loadBranches();
+  const { data } = await db.from('regions').select('*').eq('is_active',true).order('name');
+  const rs=document.getElementById('st_region'); const curReg=rs.value;
+  rs.innerHTML='<option value="">ทุกภาค</option>';
+  (data||[]).forEach(r=>rs.innerHTML+=`<option value="${r.region_id}">${r.name}</option>`);
+  if([...rs.options].some(o=>o.value===curReg)) rs.value=curReg;
+  fillStBranchFilter();
+  fillStEmpFilter();
+  if(!document.getElementById('st_start').value) setStatRange('month');
+}
+function fillStBranchFilter(){
+  const regionId=document.getElementById('st_region').value;
+  const s=document.getElementById('st_branch'); const cur=s.value;
+  const list = regionId ? branchesData.filter(b=>b.region_id===regionId) : branchesData;
+  s.innerHTML='<option value="">ทุกสาขา</option>';
+  list.forEach(b=>s.innerHTML+=`<option value="${b.branch_id}">${esc(b.name)}</option>`);
+  if(list.some(b=>b.branch_id===cur)) s.value=cur;
+}
+function fillStEmpFilter(){
+  const regionId=document.getElementById('st_region').value;
+  const branchId=document.getElementById('st_branch').value;
+  const branchIds = branchId ? [branchId] : (regionId ? branchesData.filter(b=>b.region_id===regionId).map(b=>b.branch_id) : null);
   const s=document.getElementById('st_emp'); const cur=s.value;
   s.innerHTML='<option value="">— เลือกพนักงาน —</option>';
   employeesData.filter(e=>e.role==='staff')   // เฉพาะพนักงาน — เจ้าของ/HR ไม่มีบันทึกเข้างาน
+    .filter(e=>!branchIds || branchIds.includes(e.home_branch_id))
     .slice().sort((a,b)=>String(a.employee_code).localeCompare(String(b.employee_code)))
     .forEach(e=>s.innerHTML+=`<option value="${e.employee_id}">${esc(e.employee_code)} · ${esc(e.first_name)} ${esc(e.last_name||'')}</option>`);
   if([...s.options].some(o=>o.value===cur)) s.value=cur;
-  if(!document.getElementById('st_start').value) setStatRange('month');
 }
 // สูตรรวมสถิติ (เหมือนฝั่งพนักงาน)
 function computeAttStats(att, leaves){
