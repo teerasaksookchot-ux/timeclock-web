@@ -182,7 +182,7 @@
           </span>
         </h2>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-          <button class="ebtn on" type="button" data-bgm="day" onclick="setBgRange('day')">วันเดียว</button>
+          <button class="ebtn on" type="button" data-bgm="day" onclick="setBgRange('day')">วันนี้</button>
           <button class="ebtn" type="button" data-bgm="7d" onclick="setBgRange('7d')">7 วัน</button>
           <button class="ebtn" type="button" data-bgm="month" onclick="setBgRange('month')">เดือนนี้</button>
           <button class="ebtn" type="button" data-bgm="lastmonth" onclick="setBgRange('lastmonth')">เดือนที่แล้ว</button>
@@ -568,7 +568,7 @@ function markBgPreset(kind){
 }
 function pickBgDay(){ bgRange=null; markBgPreset('day'); loadBranchGrid(); }
 function setBgRange(kind){
-  if(kind==='day'){ pickBgDay(); return; }
+  if(kind==='day'){ document.getElementById('bg_date').value = bkkToday(); pickBgDay(); return; }   // ปุ่ม "วันนี้" ต้องกลับมาโชว์วันนี้เสมอ ไม่ใช่วันที่ที่เคยเลือกค้างไว้
   bgRange = {...presetRange(kind), kind}; markBgPreset(kind);
   loadBranchGridRange();
 }
