@@ -589,7 +589,7 @@ async function loadBranchGrid(){
       else if(rec.status==='pending'){ bid=rec.working_branch_id||s.home_branch_id; bucket='pending'; }
       else if(rec.late_minutes>0){ bid=rec.working_branch_id||s.home_branch_id; bucket='late'; }
       else { bid=rec.working_branch_id||s.home_branch_id; bucket='on_time'; }
-    } else { bid=s.home_branch_id; bucket=(day<today)?'absent':'notyet'; }
+    } else { bid=s.home_branch_id; bucket=(day<today || (day===today && bkkNowHM()>='08:00'))?'absent':'notyet'; }   // หลัง 08:00 ปุ่มเข้างานกดไม่ได้แล้ว (LATE_CUTOFF) — ยังไม่เข้า = ขาดทันที ไม่ต้องรอสิ้นวัน
     if(!bid||!b[bid]) return;
     b[bid][bucket]++; b[bid].total++;
   });
@@ -619,7 +619,7 @@ async function loadBranchGridRange(){
     if(!cur || rank>cur.rank) worstByEmp[r.employee_id]={rank, rec:r};
   });
   const staff=employeesData.filter(e=>e.role==='staff');
-  const rangeIsPast = end < bkkToday();   // ช่วงที่จบไปแล้วทั้งช่วง (เช่น "เดือนที่แล้ว") — ไม่มีบันทึกเลย = ขาด เหมือนโหมดวันเดียว
+  const rangeIsPast = end < bkkToday() || (end===bkkToday() && bkkNowHM()>='08:00');   // ช่วงที่จบไปแล้วทั้งช่วง (เช่น "เดือนที่แล้ว") หรือช่วงที่จบวันนี้แต่เลย 08:00 (LATE_CUTOFF) แล้ว — ไม่มีบันทึกเลย = ขาด เหมือนโหมดวันเดียว
   const b={}; branchesData.forEach(br=>b[br.branch_id]={br,on_time:0,late:0,pending:0,absent:0,notyet:0,total:0});
   staff.forEach(s=>{
     const w=worstByEmp[s.employee_id]; let bid, bucket;
@@ -668,6 +668,7 @@ function renderBranchGrid(){
   document.getElementById('branch_grid').innerHTML=html;
 }
 function bkkToday(){ return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'}); }
+function bkkNowHM(){ return new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Bangkok'}); }
 async function makeSignedSelfie(path){
   if(!path) return null;
   const { data } = await db.storage.from('selfies').createSignedUrl(path, 300);
