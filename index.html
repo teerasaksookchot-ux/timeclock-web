@@ -36,8 +36,9 @@
   .dot.g{background:var(--green)}.dot.y{background:var(--amber)}.dot.r{background:var(--red)}.dot.n{background:var(--muted)}
   body{font-family:var(--font);background:var(--paper);color:var(--ink);line-height:1.5}
   .top{background:var(--ink);color:#fff;padding:0 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:nowrap;gap:10px;position:relative}
-  .brand{font-weight:700;font-size:18px;display:flex;align-items:center;gap:10px;flex:0 1 auto;min-width:0;padding:14px 0}
-  .brand .mk{width:30px;height:30px;border-radius:8px;background:var(--tan);display:grid;place-items:center;flex-shrink:0}
+  .brand{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px;flex:0 1 auto;min-width:0;padding:10px 0;background:none;border:none;color:inherit;font-family:inherit;cursor:pointer}
+  .brand:hover{opacity:.85}
+  .brand .mk{width:24px;height:24px;border-radius:7px;background:var(--tan);display:grid;place-items:center;flex-shrink:0}
   .brand .brandtext{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .who{font-size:13px;display:flex;align-items:center;gap:12px;flex:0 0 auto;min-width:0}
   .who #whoami{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;display:inline-block;vertical-align:middle}
@@ -91,14 +92,14 @@
   @media (max-width:1024px){
     nav.tabs{gap:2px}
     .tab{padding:8px 11px;font-size:12.5px}
-    .brand{font-size:16px}
+    .brand{font-size:14px}
     .who{font-size:12px;gap:8px}
     .who #whoami{max-width:150px}
   }
   /* Mobile: ซ่อนเมนูเป็น hamburger เปิด/ปิด drawer ใต้ Header */
   @media (max-width:767px){
     .top{flex-wrap:wrap;padding:10px 14px}
-    .brand{font-size:15px;padding:8px 0;order:1}
+    .brand{font-size:13px;padding:8px 0;order:1}
     .navToggle{display:inline-flex;order:2}
     .who{order:3;font-size:12px;gap:6px}
     .who #whoami{max-width:110px}
@@ -154,7 +155,7 @@
 <!-- APP -->
 <div id="appshell" style="display:none">
   <div class="top">
-    <div class="brand"><span class="mk"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></span><span class="brandtext">ระบบลงเวลา · เว็บแอดมิน HR</span></div>
+    <button type="button" class="brand" onclick="document.querySelector('.tab[data-t=&quot;dash&quot;]').click()" title="กลับหน้าภาพรวม"><span class="mk"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></span><span class="brandtext">ระบบลงเวลา · เว็บแอดมิน HR</span></button>
     <button type="button" class="navToggle" id="navToggle" aria-label="เปิดเมนู" aria-expanded="false" aria-controls="mainNav" onclick="toggleNav()">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
     </button>
