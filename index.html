@@ -270,6 +270,7 @@
         <div id="b_msg" class="msg"></div>
       </div>
       <div class="card"><h2>รายการสาขา</h2><div id="b_list"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div></div>
+      <div class="card"><h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>สาขาที่ปิดใช้งานแล้ว</span><button class="ebtn" onclick="loadInactiveBranches()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> แสดง</button></h2><div id="b_list_inactive"><div class="empty">กดปุ่ม "แสดง" เพื่อดูรายชื่อ</div></div></div>
     </div>
 
     <div class="panel" id="p-employees">
@@ -1195,6 +1196,26 @@ async function deactivateBranch(id){
   if(error){showMsg('b_msg',false,'ปิดใช้งานไม่ได้: '+error.message);return;}
   showMsg('b_msg',true,'ปิดใช้งานสาขา "'+b.name+'" แล้ว');
   await loadBranches(); loadDashboard();
+}
+async function loadInactiveBranches(){
+  const box=document.getElementById('b_list_inactive');
+  box.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>';
+  const { data, error } = await db.from('branches').select('*, regions(name)').eq('status','deactivated').order('name');
+  if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
+  if(!data||!data.length){ box.innerHTML='<div class="empty">ไม่มีสาขาที่ปิดใช้งาน</div>'; return; }
+  let h='<table><tr><th>ชื่อสาขา</th><th>จังหวัด</th><th>ภูมิภาค</th><th>ปิดใช้งานโดย</th><th></th></tr>';
+  data.forEach(b=>{
+    const deactBy = b.updated_by ? `${whoName(b.updated_by)}<br><span style="font-size:11px;color:var(--muted)">${fmtTime(b.updated_at)}</span>` : '<span style="color:var(--muted)">—</span>';
+    h+=`<tr><td>${esc(b.name)}</td><td>${esc(b.province||'-')}</td><td>${b.regions?esc(b.regions.name):'-'}</td><td style="font-size:12.5px">${deactBy}</td><td><button class="ebtn" onclick="reactivateBranch('${b.branch_id}')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/></svg> เปิดใช้งาน</button></td></tr>`;
+  });
+  box.innerHTML=h+'</table>';
+}
+async function reactivateBranch(id){
+  if(!confirm('เปิดใช้งานสาขานี้กลับมาใหม่?'))return;
+  const { data:updData, error } = await db.from('branches').update({status:'active',updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('branch_id',id).select();
+  if(error){ alert('เปิดใช้งานไม่ได้: '+error.message); return; }
+  if(!updData || !updData.length){ alert('ไม่มีสิทธิ์เปิดใช้งานสาขานี้'); return; }
+  await loadBranches(); loadDashboard(); await loadInactiveBranches();
 }
 async function deactivateEmployee(id){
   const e=employeesData.find(x=>x.employee_id===id); if(!e)return;
