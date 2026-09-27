@@ -228,6 +228,11 @@
           <div><label>เวลาเข้างาน</label><input id="bd_time" type="time"></div>
         </div>
         <label>เวลาออกงาน (OT) — เว้นว่างได้ถ้าไม่มี</label><input id="bd_ottime" type="time">
+        <label style="margin-top:12px;font-weight:600">ออกไปทำธุระ — เว้นว่างได้ถ้าไม่มี</label>
+        <div class="grid2">
+          <div><label>เวลาออก</label><input id="bd_leaveout" type="time"></div>
+          <div><label>เวลากลับ</label><input id="bd_leavereturn" type="time"></div>
+        </div>
         <button class="btn" onclick="addBackdated()">บันทึกย้อนหลัง</button>
         <div id="bd_msg" class="msg"></div>
       </div>
@@ -397,7 +402,7 @@
       <div id="ae_timewrap"><label>เวลาเข้างาน</label><input id="ae_time" type="time"><div style="font-size:11.5px;color:var(--muted);margin-top:4px">ระบบคิดสายอัตโนมัติจากเวลานี้ (เริ่มนับ 07:00)</div></div>
       <div id="ae_otwrap"><label>เวลาออกงาน (OT)</label><input id="ae_ottime" type="time"><div style="font-size:11.5px;color:var(--muted);margin-top:4px">เว้นว่างไว้ถ้ายังไม่ออกงาน · ระบบคิดชั่วโมง OT อัตโนมัติจากเวลานี้</div></div>
       <div id="ae_leavewrap" style="display:none;border-top:1px solid var(--line);margin-top:12px;padding-top:10px">
-        <label style="font-weight:600">ออกไปทำธุระ (วันนี้)</label>
+        <label style="font-weight:600">ออกไปทำธุระ — เว้นว่างได้ถ้าไม่มี</label>
         <div class="grid2">
           <div><label>เวลาออก</label><input id="ae_leaveout" type="time"></div>
           <div><label>เวลากลับ</label><input id="ae_leavereturn" type="time"></div>
@@ -777,10 +782,9 @@ function openAttEdit(id){
   const otRec = Array.isArray(r.ot_records) ? r.ot_records[0] : r.ot_records;
   const otHHMM = otRec && otRec.ot_clock_out_time ? new Date(otRec.ot_clock_out_time).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Bangkok'}) : '';
   document.getElementById('ae_ottime').value = otHHMM;
-  // ออกไปทำธุระ — โชว์เฉพาะถ้ามีบันทึกลากิจของวันนั้น
+  // ออกไปทำธุระ — เติมค่าถ้ามีบันทึกอยู่แล้ว ไม่งั้นเว้นว่างไว้ให้ HR เพิ่มใหม่ได้
   const lv = Array.isArray(r.personal_leaves) ? r.personal_leaves[0] : r.personal_leaves;
   const toHM = iso => iso ? new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Bangkok'}) : '';
-  document.getElementById('ae_leavewrap').style.display = lv ? 'block' : 'none';
   document.getElementById('ae_leaveout').value = lv ? toHM(lv.leave_out_time) : '';
   document.getElementById('ae_leavereturn').value = lv ? toHM(lv.return_time) : '';
   document.getElementById('ae_note').value = r.hr_edit_note || '';
@@ -792,6 +796,7 @@ function aeToggleTime(){
   const show = document.getElementById('ae_status').value!=='absent' ? 'block' : 'none';
   document.getElementById('ae_timewrap').style.display = show;
   document.getElementById('ae_otwrap').style.display = show;
+  document.getElementById('ae_leavewrap').style.display = show;
 }
 function closeAttEdit(){ document.getElementById('att_modal').style.display='none'; attEditId=null; }
 async function saveAttEdit(){
@@ -827,22 +832,29 @@ async function saveAttEdit(){
     await db.from('ot_records').update({ ot_clock_out_time:null, ot_hours:0, ot_status:'NO' }).eq('id', existingOt.id);
   }
 
-  // จัดการเวลา "ออกไปทำธุระ" (ถ้ามีบันทึกลากิจของวันนั้น)
+  // จัดการเวลา "ออกไปทำธุระ" — แก้ของเดิมถ้ามีอยู่แล้ว หรือเพิ่มใหม่ถ้ายังไม่มี
   const lv = Array.isArray(r.personal_leaves) ? r.personal_leaves[0] : r.personal_leaves;
   let leaveEdit = null;
-  if(lv){
-    const outHM = document.getElementById('ae_leaveout').value;
-    const retHM = document.getElementById('ae_leavereturn').value;
-    if(!outHM){ showMsg('ae_msg',false,'กรุณาใส่เวลาออก (ออกไปทำธุระ) หรือถ้าจะยกเลิกลากิจ ให้ทำในระบบพนักงาน'); return; }
+  const outHM = status==='absent' ? '' : document.getElementById('ae_leaveout').value;
+  const retHM = document.getElementById('ae_leavereturn').value;
+  if(lv && !outHM){ showMsg('ae_msg',false,'กรุณาใส่เวลาออก (ออกไปทำธุระ) หรือถ้าจะยกเลิกลากิจ ให้ทำในระบบพนักงาน'); return; }
+  if(outHM){
     const outISO = bkkTimestamp(day, outHM);
     const retISO = retHM ? bkkTimestamp(day, retHM) : null;
     if(retISO && new Date(retISO) < new Date(outISO)){ showMsg('ae_msg',false,'เวลากลับต้องไม่ก่อนเวลาออก'); return; }
     const lvPayload = { leave_out_time: outISO, return_time: retISO,
       leave_minutes: retISO ? Math.max(0, Math.floor((new Date(retISO)-new Date(outISO))/60000)) : 0,
       status: retISO ? 'returned' : 'open' };
-    const { error: lvErr } = await db.from('personal_leaves').update(lvPayload).eq('id', lv.id);
-    if(lvErr){ showMsg('ae_msg',false,'บันทึกเวลาออกไปทำธุระไม่สำเร็จ: '+lvErr.message); return; }
-    leaveEdit = { from:{ out:lv.leave_out_time, ret:lv.return_time }, to:lvPayload };
+    if(lv){
+      const { error: lvErr } = await db.from('personal_leaves').update(lvPayload).eq('id', lv.id);
+      if(lvErr){ showMsg('ae_msg',false,'บันทึกเวลาออกไปทำธุระไม่สำเร็จ: '+lvErr.message); return; }
+      leaveEdit = { from:{ out:lv.leave_out_time, ret:lv.return_time }, to:lvPayload };
+    }else{
+      const { error: lvErr } = await db.from('personal_leaves').insert({
+        attendance_id:attEditId, employee_id:r.employee_id, leave_date:day, ...lvPayload });
+      if(lvErr){ showMsg('ae_msg',false,'บันทึกออกไปทำธุระไม่สำเร็จ: '+lvErr.message); return; }
+      leaveEdit = { added: lvPayload };
+    }
   }
 
   await db.from('audit_logs').insert({ actor_id:currentEmpId, action:'hr_edit_attendance', target_ref:attEditId,
@@ -877,11 +889,26 @@ async function addBackdated(){
       ot_status:(otHours>0?'YES':'NO'), face_verified:true, status:'complete' });
     if(otErr){ showMsg('bd_msg',false,'บันทึกเวลาออกงานไม่สำเร็จ: '+otErr.message); return; }
   }
+  const leaveOutHM=document.getElementById('bd_leaveout').value;
+  const leaveRetHM=document.getElementById('bd_leavereturn').value;
+  if(leaveOutHM){
+    const outISO=bkkTimestamp(day,leaveOutHM);
+    const retISO=leaveRetHM ? bkkTimestamp(day,leaveRetHM) : null;
+    if(retISO && new Date(retISO) < new Date(outISO)){ showMsg('bd_msg',false,'เวลากลับต้องไม่ก่อนเวลาออก'); return; }
+    const { error: lvErr } = await db.from('personal_leaves').insert({
+      attendance_id:newAtt.id, employee_id:empId, leave_date:day,
+      leave_out_time:outISO, return_time:retISO,
+      leave_minutes: retISO ? Math.max(0, Math.floor((new Date(retISO)-new Date(outISO))/60000)) : 0,
+      status: retISO ? 'returned' : 'open' });
+    if(lvErr){ showMsg('bd_msg',false,'บันทึกออกไปทำธุระไม่สำเร็จ: '+lvErr.message); return; }
+  }
   await db.from('audit_logs').insert({ actor_id:currentEmpId, action:'hr_backdate_attendance', target_ref:empId,
-    detail:{ work_date:day, time:hhmm, ot_time:otHHMM||null } });
+    detail:{ work_date:day, time:hhmm, ot_time:otHHMM||null, leave_out:leaveOutHM||null, leave_return:leaveRetHM||null } });
   await resolveRelatedPendingCases(empId, newAtt.id, day);
   showMsg('bd_msg',true,'เพิ่มบันทึกย้อนหลังแล้ว');
   document.getElementById('bd_time').value='';
+  document.getElementById('bd_leaveout').value='';
+  document.getElementById('bd_leavereturn').value='';
   document.getElementById('bd_ottime').value='';
   await loadAttendance();
 }
