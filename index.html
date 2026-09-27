@@ -751,6 +751,21 @@ async function loadAttendance(){
 function bkkTimestamp(day, hhmm){ return new Date(day+'T'+hhmm+':00+07:00').toISOString(); }
 function calcLate(day, hhmm){ const t=new Date(day+'T'+hhmm+':00+07:00'), seven=new Date(day+'T07:00:00+07:00'); return Math.max(0, Math.floor((t-seven)/60000)); }
 
+// ปิดเคสค้างที่เกี่ยวข้องให้อัตโนมัติ เมื่อ HR แก้ไข/เพิ่มบันทึกย้อนหลังของวันนั้นแล้ว
+// ครอบคลุมทั้งเคสที่ผูกกับบันทึกเข้างานโดยตรง (GPS ไม่ผ่าน/ลืมออก OT) และเคส "ยังไม่คลิกอิน" ที่ยังไม่มีบันทึกตอนเปิดเคส
+// เคสค้างเกิน 60 วัน ยังคงต้องให้เจ้าของ (Owner) ปิดเองเท่านั้น ตามกติกาเดิม
+async function resolveRelatedPendingCases(employeeId, attendanceId, day){
+  const { data } = await db.from('pending_cases')
+    .select('id,opened_date')
+    .eq('status','open')
+    .or(`related_attendance_id.eq.${attendanceId},and(related_attendance_id.is.null,employee_id.eq.${employeeId},opened_date.eq.${day})`);
+  const ids = (data||[]).filter(c => !(caseAgeDays(c.opened_date) >= 60 && currentRole!=='owner')).map(c=>c.id);
+  if(!ids.length) return;
+  await db.from('pending_cases')
+    .update({ status:'resolved', acknowledged_by:currentEmpId, acknowledged_at:new Date().toISOString() })
+    .in('id', ids);
+}
+
 function openAttEdit(id){
   const r=attendanceData.find(x=>x.id===id); if(!r) return;
   attEditId=id;
@@ -832,6 +847,7 @@ async function saveAttEdit(){
 
   await db.from('audit_logs').insert({ actor_id:currentEmpId, action:'hr_edit_attendance', target_ref:attEditId,
     detail:{ work_date:day, from:{status:r.status,late:r.late_minutes}, to:payload, ot_time:otHHMM||null, note:editNote||null, leave:leaveEdit } });
+  await resolveRelatedPendingCases(r.employee_id, attEditId, day);
   closeAttEdit(); await loadAttendance();
 }
 async function addBackdated(){
@@ -863,6 +879,7 @@ async function addBackdated(){
   }
   await db.from('audit_logs').insert({ actor_id:currentEmpId, action:'hr_backdate_attendance', target_ref:empId,
     detail:{ work_date:day, time:hhmm, ot_time:otHHMM||null } });
+  await resolveRelatedPendingCases(empId, newAtt.id, day);
   showMsg('bd_msg',true,'เพิ่มบันทึกย้อนหลังแล้ว');
   document.getElementById('bd_time').value='';
   document.getElementById('bd_ottime').value='';
