@@ -1534,7 +1534,7 @@ function renderPersonDays(att){
       .sort((x,y)=>(Number(y.ot_hours)||0)-(Number(x.ot_hours)||0))[0];
     const lv=Array.isArray(a.personal_leaves)?a.personal_leaves[0]:a.personal_leaves;
     const inTxt = a.status==='absent' ? '-' : (hm(a.clock_in_time)||'-') + (a.late_minutes>0?` <span style="color:var(--amber)">(สาย ${a.late_minutes}น.)</span>`:'');
-    const closeTxt = hm(a.normal_close_time) || '-';
+    const closeTxt = (ot && ot.ot_clock_out_time ? hm(ot.ot_clock_out_time) : hm(a.normal_close_time)) || '-';
     const otTxt = ot && ot.ot_hours>0 ? `${ot.ot_hours} ชม.` : '-';
     const stTxt = a.status==='pending' ? '<span style="color:var(--red)">รอยืนยัน</span>'
                 : a.status==='absent' ? '<span style="color:var(--red)">ขาด</span>'
