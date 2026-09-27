@@ -1829,6 +1829,8 @@ async function jumpToAttendance(day, employeeId){
   switchTab('attend');
   atRange=null; markAtPreset('day');
   document.getElementById('at_date').value = day;
+  document.getElementById('at_region').value = '';   // เคลียร์ตัวกรองภาค/สาขาที่ค้างไว้ ไม่งั้นถ้าพนักงานคนนี้ไม่ได้อยู่สาขาที่กรองไว้ จะหาบันทึกเดิมไม่เจอ
+  document.getElementById('at_branch').value = '';
   await loadAtFilters();
   await loadAttendance();
   const existing = attendanceData.find(r=>r.employee_id===employeeId);
