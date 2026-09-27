@@ -363,6 +363,7 @@ async function loadMyStats(){
       statRow('วันทำงาน', s.workDays+' วัน')+
       statRow('มาสาย', s.lateDays+' วัน (รวม '+s.lateMin+' นาที)')+
       statRow('ขาดงาน', s.absentDays+' วัน')+
+      statRow('ลา', s.leaveDays+' วัน')+
       statRow('ชั่วโมง OT รวม', s.otHours+' ชม.')+
       statRow('ออกไปทำธุระ', s.leaveMin+' นาที');
   }catch(e){
@@ -373,9 +374,10 @@ function statRow(k,v){ return `<div style="display:flex;justify-content:space-be
 function thMonth(iso){ const m=+iso.slice(5,7); return ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][m-1]+' '+(+iso.slice(0,4)+543); }
 // รวมสถิติจากบันทึกเข้างาน + ลากิจ (ใช้ทั้งฝั่งพนักงานและ HR)
 function computeAttStats(att, leaves){
-  let workDays=0, lateDays=0, lateMin=0, absentDays=0, otHours=0;
+  let workDays=0, lateDays=0, lateMin=0, absentDays=0, leaveDays=0, otHours=0;
   att.forEach(a=>{
     if(a.status==='absent'){ absentDays++; return; }
+    if(a.status==='leave'){ leaveDays++; return; }
     workDays++;
     if((a.late_minutes||0)>0){ lateDays++; lateMin+=a.late_minutes; }
     const ot=(Array.isArray(a.ot_records)?a.ot_records:[a.ot_records]).filter(Boolean)
@@ -383,7 +385,7 @@ function computeAttStats(att, leaves){
     if(ot && ot.ot_status==='YES') otHours+=Number(ot.ot_hours)||0;
   });
   const leaveMin=(leaves||[]).reduce((n,l)=>n+(Number(l.leave_minutes)||0),0);
-  return { workDays, lateDays, lateMin, absentDays, otHours:Math.round(otHours*10)/10, leaveMin };
+  return { workDays, lateDays, lateMin, absentDays, leaveDays, otHours:Math.round(otHours*10)/10, leaveMin };
 }
 async function loadBranches(){
   const { data } = await db.from('branches')
@@ -403,6 +405,9 @@ async function refreshTodayStatus(){
     const pend = data.status==='pending' ? ' (รอ HR ยืนยัน)' : '';
     st.className='msg ok'; st.textContent='วันนี้เข้างานแล้วเมื่อ '+t+' น.'+lateTxt+pend;
     btn.disabled=true; btn.innerHTML='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> เข้างานวันนี้แล้ว';
+  }else if(data && data.status==='leave'){
+    st.className='msg warn'; st.textContent='วันนี้บันทึกเป็นวันลา (อนุมัติแล้ว)';
+    btn.disabled=true; btn.innerHTML='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg> วันนี้ลา';
   }else if(data && data.status==='absent'){
     st.className='msg err'; st.textContent='วันนี้ถูกบันทึกว่าขาดงาน — หากไม่ถูกต้องกรุณาติดต่อ HR';
     btn.disabled=true; btn.innerHTML='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg> ขาดงานวันนี้';
