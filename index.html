@@ -712,6 +712,7 @@ async function loadAttendance(){
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
   const data = filterByBranchScope(raw||[], branchId, regionId);
   attendanceData = data||[];
+  fillBackdateEmps(raw||[]);
   // แก้ย้อนหลังได้ไม่เกิน 60 วัน และไม่ใช่วันในอนาคต (DL-51)
   const diff = daysBetween(day);
   const editable = diff>=0 && diff<=60;
@@ -912,9 +913,12 @@ async function addBackdated(){
   document.getElementById('bd_ottime').value='';
   await loadAttendance();
 }
-function fillBackdateEmps(){
+// existingRecords (ถ้ามี) = บันทึกของวันที่กำลังเลือกอยู่ (ไม่กรองสาขา) ใช้ตัด
+// พนักงานที่มีบันทึกแล้วออกจาก dropdown กันเลือกซ้ำแล้วเจอ error "มีบันทึกแล้ว"
+function fillBackdateEmps(existingRecords){
   const sel=document.getElementById('bd_emp'); if(!sel) return;
-  const staff=employeesData.filter(e=>e.role==='staff');
+  const excludeIds = new Set((existingRecords||[]).map(r=>r.employee_id));
+  const staff=employeesData.filter(e=>e.role==='staff' && !excludeIds.has(e.employee_id));
   sel.innerHTML='<option value="">— เลือกพนักงาน —</option>';
   staff.forEach(e=>sel.innerHTML+=`<option value="${e.employee_id}">${esc(e.employee_code)} · ${esc(e.first_name)} ${esc(e.last_name)}</option>`);
 }
@@ -1820,7 +1824,6 @@ async function jumpToAttendance(day, employeeId){
   if(existing){
     openAttEdit(existing.id);
   }else{
-    fillBackdateEmps();
     const sel=document.getElementById('bd_emp');
     if(sel) sel.value = employeeId;
     document.getElementById('at_backdate_card').scrollIntoView({behavior:'smooth',block:'start'});
