@@ -1495,7 +1495,7 @@ async function loadPersonStats(){
   const btn=document.getElementById('st_btn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>กำลังโหลด…';
   try{
     const att = await prFetchAll(()=> db.from('attendance_records')
-      .select('work_date,status,late_minutes,clock_in_time,selfie_path,ot_records(ot_hours,ot_status,ot_clock_out_time,selfie_path),personal_leaves(leave_out_time,return_time,leave_minutes,selfie_path,return_selfie_path)')
+      .select('work_date,status,late_minutes,clock_in_time,normal_close_time,selfie_path,ot_records(ot_hours,ot_status,ot_clock_out_time,selfie_path),personal_leaves(leave_out_time,return_time,leave_minutes,selfie_path,return_selfie_path)')
       .eq('employee_id', empId).gte('work_date', start).lte('work_date', end).order('work_date',{ascending:false}));
     const leaves = await prFetchAll(()=> db.from('personal_leaves')
       .select('leave_minutes,leave_date').eq('employee_id', empId).gte('leave_date', start).lte('leave_date', end));
@@ -1528,13 +1528,14 @@ function renderPersonDays(att){
   if(!att || !att.length){ box.innerHTML='<div class="empty">ไม่มีบันทึกในช่วงนี้</div>'; return; }
   const hm = iso => iso ? new Date(iso).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}) : '';
   const photo = (p,txt) => p ? `<button class="ebtn" onclick="viewSelfie('${p}')">${txt}</button> ` : '';
-  let h='<table><tr><th>วันที่</th><th>เข้า</th><th>ออก (OT)</th><th>สถานะ</th><th>ออกไปทำธุระ</th><th>รูป</th></tr>';
+  let h='<table><tr><th>วันที่</th><th>เข้า</th><th>เวลาออกงาน</th><th>ชั่วโมง OT</th><th>สถานะ</th><th>ออกไปทำธุระ</th><th>รูป</th></tr>';
   att.forEach(a=>{
     const ot=(Array.isArray(a.ot_records)?a.ot_records:[a.ot_records]).filter(Boolean)
       .sort((x,y)=>(Number(y.ot_hours)||0)-(Number(x.ot_hours)||0))[0];
     const lv=Array.isArray(a.personal_leaves)?a.personal_leaves[0]:a.personal_leaves;
     const inTxt = a.status==='absent' ? '-' : (hm(a.clock_in_time)||'-') + (a.late_minutes>0?` <span style="color:var(--amber)">(สาย ${a.late_minutes}น.)</span>`:'');
-    const outTxt = ot && ot.ot_clock_out_time ? hm(ot.ot_clock_out_time)+(ot.ot_hours>0?` (OT ${ot.ot_hours} ชม.)`:'') : '-';
+    const closeTxt = hm(a.normal_close_time) || '-';
+    const otTxt = ot && ot.ot_hours>0 ? `${ot.ot_hours} ชม.` : '-';
     const stTxt = a.status==='pending' ? '<span style="color:var(--red)">รอยืนยัน</span>'
                 : a.status==='absent' ? '<span style="color:var(--red)">ขาด</span>'
                 : a.late_minutes>0 ? '<span style="color:var(--amber)">สาย</span>'
@@ -1542,7 +1543,7 @@ function renderPersonDays(att){
     const lvTxt = !lv ? '-' : (hm(lv.leave_out_time)+' → '+(lv.return_time?hm(lv.return_time):'ยังไม่กลับ')+(lv.return_time?` (${lv.leave_minutes||0} น.)`:''));
     const pics = (photo(a.selfie_path,'เข้า') + photo(ot&&ot.selfie_path,'ออก')
       + photo(lv&&lv.selfie_path,'ธุระ-ออก') + photo(lv&&lv.return_selfie_path,'ธุระ-กลับ')) || '-';
-    h+=`<tr><td>${thShortDate(a.work_date)}</td><td>${inTxt}</td><td>${outTxt}</td><td>${stTxt}</td><td>${esc(lvTxt)}</td><td>${pics}</td></tr>`;
+    h+=`<tr><td>${thShortDate(a.work_date)}</td><td>${inTxt}</td><td>${closeTxt}</td><td>${otTxt}</td><td>${stTxt}</td><td>${esc(lvTxt)}</td><td>${pics}</td></tr>`;
   });
   box.innerHTML=h+'</table>';
 }
