@@ -709,7 +709,7 @@ async function loadAttendance(){
   const box=document.getElementById('at_list'), kpi=document.getElementById('at_kpis');
   box.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>'; kpi.innerHTML='';
   const { data: raw, error } = await db.from('attendance_records')
-    .select('id,clock_in_time,status,late_minutes,selfie_path,employee_id,working_branch_id,updated_at,updated_by,hr_edit_note,employees!attendance_records_employee_id_fkey(employee_code,first_name,last_name,nickname,home_branch_id),branches(name),ot_records(id,ot_clock_out_time,ot_hours,ot_status,selfie_path),personal_leaves(id,leave_out_time,return_time,leave_minutes,status,selfie_path,return_selfie_path)')
+    .select('id,clock_in_time,normal_close_time,status,late_minutes,selfie_path,employee_id,working_branch_id,updated_at,updated_by,hr_edit_note,employees!attendance_records_employee_id_fkey(employee_code,first_name,last_name,nickname,home_branch_id),branches(name),ot_records(id,ot_clock_out_time,ot_hours,ot_status,selfie_path),personal_leaves(id,leave_out_time,return_time,leave_minutes,status,selfie_path,return_selfie_path)')
     .eq('work_date', day)
     .order('clock_in_time',{ascending:true});
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
@@ -734,7 +734,9 @@ async function loadAttendance(){
     const otRec = Array.isArray(r.ot_records) ? r.ot_records[0] : r.ot_records;
     const outT = otRec && otRec.ot_clock_out_time
       ? new Date(otRec.ot_clock_out_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}) + (otRec.ot_hours>0 ? ' (OT '+otRec.ot_hours+' ชม.)' : '')
-      : '<span style="color:var(--muted)">ยังไม่ออก</span>';
+      : (r.clock_in_time && r.normal_close_time
+          ? new Date(r.normal_close_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})
+          : '<span style="color:var(--muted)">ยังไม่ออก</span>');
     const stTxt = r.status==='pending' ? '<span style="color:var(--red)">รอยืนยัน</span>'
                 : r.status==='absent' ? '<span style="color:var(--red)">ขาด</span>'
                 : r.status==='leave' ? '<span style="color:var(--muted)">ลา</span>'
