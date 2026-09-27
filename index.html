@@ -1066,6 +1066,7 @@ function whoName(uid){ if(!uid)return '—'; const p=employeesData.find(x=>x.emp
 function fmtTime(t){ return t? new Date(t).toLocaleString('th-TH') : '—'; }
 function showDetail(id){
   const e=employeesData.find(x=>x.employee_id===id); if(!e)return;
+  document.querySelector('#detail_modal h2').textContent='ข้อมูลพนักงาน';
   const manage = canManageEmp(e);
   let authSection;
   if(e.auth_user_id){
@@ -1121,6 +1122,7 @@ async function manageAuth(employee_id, action){
 }
 function showBranchDetail(id){
   const b=branchesData.find(x=>x.branch_id===id); if(!b)return;
+  document.querySelector('#detail_modal h2').textContent='ข้อมูลสาขา';
   document.getElementById('detail_body').innerHTML=
     `<b>ชื่อสาขา:</b> ${esc(b.name)}<br>`+
     `<b>จังหวัด:</b> ${esc(b.province||'-')} · <b>ภูมิภาค:</b> ${b.regions?esc(b.regions.name):'-'}<br>`+
