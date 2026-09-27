@@ -189,7 +189,7 @@
         </div>
         <div id="bg_rangelabel" style="font-size:12px;color:var(--muted);margin:-4px 0 10px"></div>
         <div style="font-size:12px;color:var(--muted);margin:-4px 0 10px">
-          <span class="dot g"></span>ปกติ · <span class="dot y"></span>มีคนสาย · <span class="dot r"></span>มีคนขาด/รอตรวจ · <span class="dot n"></span>ยังไม่มีข้อมูล · <b>กติกา "แย่สุดชนะ"</b>
+          <span class="dot g"></span>ปกติ (รวมคนลาที่อนุมัติแล้ว) · <span class="dot y"></span>มีคนสาย · <span class="dot r"></span>มีคนขาด/รอตรวจ · <span class="dot n"></span>ยังไม่มีข้อมูล · <b>กติกา "แย่สุดชนะ"</b>
         </div>
         <input id="bg_search" placeholder="ค้นหาสาขา…" oninput="renderBranchGrid()" style="margin-bottom:10px">
         <div id="bg_summary" class="kpis" style="margin-bottom:12px"></div>
@@ -398,6 +398,7 @@
         <option value="normal">ปกติ</option>
         <option value="pending">รอยืนยัน</option>
         <option value="absent">ขาด (ไม่มาทำงาน)</option>
+        <option value="leave">ลา (อนุมัติแล้ว)</option>
       </select>
       <div id="ae_timewrap"><label>เวลาเข้างาน</label><input id="ae_time" type="time"><div style="font-size:11.5px;color:var(--muted);margin-top:4px">ระบบคิดสายอัตโนมัติจากเวลานี้ (เริ่มนับ 07:00)</div></div>
       <div id="ae_otwrap"><label>เวลาออกงาน (OT)</label><input id="ae_ottime" type="time"><div style="font-size:11.5px;color:var(--muted);margin-top:4px">เว้นว่างไว้ถ้ายังไม่ออกงาน · ระบบคิดชั่วโมง OT อัตโนมัติจากเวลานี้</div></div>
@@ -588,11 +589,12 @@ async function loadBranchGrid(){
   if(error){ grid.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
   const attByEmp={}; (att||[]).forEach(r=>attByEmp[r.employee_id]=r);
   const staff=employeesData.filter(e=>e.role==='staff');
-  const b={}; branchesData.forEach(br=>b[br.branch_id]={br,on_time:0,late:0,pending:0,absent:0,notyet:0,total:0});
+  const b={}; branchesData.forEach(br=>b[br.branch_id]={br,on_time:0,late:0,pending:0,absent:0,leave:0,notyet:0,total:0});
   staff.forEach(s=>{
     const rec=attByEmp[s.employee_id]; let bid, bucket;
     if(rec){
       if(rec.status==='absent'){ bid=s.home_branch_id; bucket='absent'; }
+      else if(rec.status==='leave'){ bid=s.home_branch_id; bucket='leave'; }
       else if(rec.status==='pending'){ bid=rec.working_branch_id||s.home_branch_id; bucket='pending'; }
       else if(rec.late_minutes>0){ bid=rec.working_branch_id||s.home_branch_id; bucket='late'; }
       else { bid=rec.working_branch_id||s.home_branch_id; bucket='on_time'; }
@@ -602,7 +604,7 @@ async function loadBranchGrid(){
   });
   branchGridData=Object.values(b).map(x=>{
     let color; if(x.pending>0||x.absent>0) color='red'; else if(x.late>0) color='yellow';
-    else if(x.on_time>0) color='green'; else color='gray';
+    else if(x.on_time>0||x.leave>0) color='green'; else color='gray';
     return {...x, color};
   });
   renderBranchGrid();
@@ -621,25 +623,25 @@ async function loadBranchGridRange(){
   }catch(err){ grid.innerHTML='<div class="empty">โหลดไม่ได้: '+(err.message||err)+'</div>'; return; }
   const worstByEmp={};
   att.forEach(r=>{
-    const rank = r.status==='absent' ? 3 : r.status==='pending' ? 2 : (r.late_minutes>0 ? 1 : 0);
+    const rank = r.status==='absent' ? 4 : r.status==='pending' ? 3 : r.late_minutes>0 ? 2 : r.status==='leave' ? 1 : 0;
     const cur=worstByEmp[r.employee_id];
     if(!cur || rank>cur.rank) worstByEmp[r.employee_id]={rank, rec:r};
   });
   const staff=employeesData.filter(e=>e.role==='staff');
   const rangeIsPast = end < bkkToday() || (end===bkkToday() && bkkNowHM()>='08:00');   // ช่วงที่จบไปแล้วทั้งช่วง (เช่น "เดือนที่แล้ว") หรือช่วงที่จบวันนี้แต่เลย 08:00 (LATE_CUTOFF) แล้ว — ไม่มีบันทึกเลย = ขาด เหมือนโหมดวันเดียว
-  const b={}; branchesData.forEach(br=>b[br.branch_id]={br,on_time:0,late:0,pending:0,absent:0,notyet:0,total:0});
+  const b={}; branchesData.forEach(br=>b[br.branch_id]={br,on_time:0,late:0,pending:0,absent:0,leave:0,notyet:0,total:0});
   staff.forEach(s=>{
     const w=worstByEmp[s.employee_id]; let bid, bucket;
     if(w){
       bid = w.rec.working_branch_id || s.home_branch_id;
-      bucket = w.rank===3?'absent' : w.rank===2?'pending' : w.rank===1?'late' : 'on_time';
+      bucket = w.rank===4?'absent' : w.rank===3?'pending' : w.rank===2?'late' : w.rank===1?'leave' : 'on_time';
     } else { bid=s.home_branch_id; bucket=rangeIsPast?'absent':'notyet'; }
     if(!bid||!b[bid]) return;
     b[bid][bucket]++; b[bid].total++;
   });
   branchGridData=Object.values(b).map(x=>{
     let color; if(x.pending>0||x.absent>0) color='red'; else if(x.late>0) color='yellow';
-    else if(x.on_time>0) color='green'; else color='gray';
+    else if(x.on_time>0||x.leave>0) color='green'; else color='gray';
     return {...x, color};
   });
   renderBranchGrid();
@@ -666,6 +668,7 @@ function renderBranchGrid(){
       if(x.late) parts.push('สาย '+x.late);
       if(x.pending) parts.push('รอตรวจ '+x.pending);
       if(x.absent) parts.push('ขาด '+x.absent);
+      if(x.leave) parts.push('ลา '+x.leave);
       if(x.notyet) parts.push(notyetLabel+x.notyet);
       const detail=x.total? parts.join(' · ') : 'ไม่มีพนักงานประจำ';
       html+=`<div class="bcard ${x.color}" style="cursor:pointer" onclick="jumpToBranchAttendance('${x.br.branch_id}')"><div class="bn">${esc(x.br.name)}</div><div class="bs">${esc(detail)}</div></div>`;
@@ -734,6 +737,7 @@ async function loadAttendance(){
       : '<span style="color:var(--muted)">ยังไม่ออก</span>';
     const stTxt = r.status==='pending' ? '<span style="color:var(--red)">รอยืนยัน</span>'
                 : r.status==='absent' ? '<span style="color:var(--red)">ขาด</span>'
+                : r.status==='leave' ? '<span style="color:var(--muted)">ลา</span>'
                 : r.late_minutes>0 ? '<span style="color:var(--amber)">สาย</span>'
                 : '<span style="color:var(--green)">ปกติ</span>';
     const photoIn = r.selfie_path ? `<button class="ebtn" onclick="viewSelfie('${r.selfie_path}')">ดูรูป</button>` : '-';
@@ -794,7 +798,8 @@ function openAttEdit(id){
   document.getElementById('att_modal').style.display='flex';
 }
 function aeToggleTime(){
-  const show = document.getElementById('ae_status').value!=='absent' ? 'block' : 'none';
+  const st = document.getElementById('ae_status').value;
+  const show = (st!=='absent' && st!=='leave') ? 'block' : 'none';
   document.getElementById('ae_timewrap').style.display = show;
   document.getElementById('ae_otwrap').style.display = show;
   document.getElementById('ae_leavewrap').style.display = show;
@@ -809,6 +814,7 @@ async function saveAttEdit(){
   const hhmm=document.getElementById('ae_time').value;
   let payload;
   if(status==='absent'){ payload={status:'absent', clock_in_time:null, late_minutes:0}; }
+  else if(status==='leave'){ payload={status:'leave', clock_in_time:null, late_minutes:0}; }
   else { if(!hhmm){ showMsg('ae_msg',false,'กรุณาใส่เวลาเข้างาน'); return; }
          payload={status, clock_in_time:bkkTimestamp(day,hhmm), late_minutes:calcLate(day,hhmm)}; }
   const editNote = document.getElementById('ae_note').value.trim();
@@ -818,7 +824,7 @@ async function saveAttEdit(){
   if(error){ showMsg('ae_msg',false,'บันทึกไม่สำเร็จ: '+error.message); return; }
 
   // จัดการเวลาออกงาน (OT)
-  const otHHMM = status==='absent' ? '' : document.getElementById('ae_ottime').value;
+  const otHHMM = (status==='absent'||status==='leave') ? '' : document.getElementById('ae_ottime').value;
   const existingOt = Array.isArray(r.ot_records) ? r.ot_records[0] : r.ot_records;
   if(otHHMM){
     const otTime = bkkTimestamp(day, otHHMM);
@@ -836,7 +842,7 @@ async function saveAttEdit(){
   // จัดการเวลา "ออกไปทำธุระ" — แก้ของเดิมถ้ามีอยู่แล้ว หรือเพิ่มใหม่ถ้ายังไม่มี
   const lv = Array.isArray(r.personal_leaves) ? r.personal_leaves[0] : r.personal_leaves;
   let leaveEdit = null;
-  const outHM = status==='absent' ? '' : document.getElementById('ae_leaveout').value;
+  const outHM = (status==='absent'||status==='leave') ? '' : document.getElementById('ae_leaveout').value;
   const retHM = document.getElementById('ae_leavereturn').value;
   if(lv && !outHM){ showMsg('ae_msg',false,'กรุณาใส่เวลาออก (ออกไปทำธุระ) หรือถ้าจะยกเลิกลากิจ ให้ทำในระบบพนักงาน'); return; }
   if(outHM){
@@ -1463,12 +1469,14 @@ async function loadAttendanceRange(){
       `<div class="kpi"><div class="n" style="font-size:20px">${thDateRangeLabel(start,end)}</div><div class="l">${label}</div></div>`+
       `<div class="kpi"><div class="n">${rows.length}</div><div class="l">พนักงานที่มีบันทึก</div></div>`+
       `<div class="kpi"><div class="n">${rows.reduce((n,r)=>n+r.absentDays,0)}</div><div class="l">วัน-ขาด รวม</div></div>`+
+      `<div class="kpi"><div class="n">${rows.reduce((n,r)=>n+r.leaveDays,0)}</div><div class="l">วัน-ลา รวม</div></div>`+
       `<div class="kpi"><div class="n">${Math.round(rows.reduce((n,r)=>n+r.otHours,0)*10)/10}</div><div class="l">ชม. OT รวม</div></div>`;
-    let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>วันทำงาน</th><th>มาสาย (วัน)</th><th>สายรวม (นาที)</th><th>ขาด</th><th>ชม. OT</th><th>ลากิจ (นาที)</th><th></th></tr>';
+    let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>วันทำงาน</th><th>มาสาย (วัน)</th><th>สายรวม (นาที)</th><th>ขาด</th><th>ลา</th><th>ชม. OT</th><th>ลากิจ (นาที)</th><th></th></tr>';
     rows.forEach(r=>{
       h+=`<tr><td>${esc(r.code)}</td><td>${esc(r.name)}</td><td>${r.workDays}</td>`+
          `<td>${r.lateDays}</td><td>${r.lateMin}</td>`+
          `<td>${r.absentDays? '<span style="color:var(--red)">'+r.absentDays+'</span>':'0'}</td>`+
+         `<td>${r.leaveDays? '<span style="color:var(--muted)">'+r.leaveDays+'</span>':'0'}</td>`+
          `<td>${r.otHours}</td><td>${r.leaveMin}</td>`+
          `<td><button class="ebtn" onclick="openPersonDetail('${r.id}','${start}','${end}')">ดูรายวัน + รูป</button></td></tr>`;
     });
@@ -1523,9 +1531,10 @@ function fillStEmpFilter(){
 }
 // สูตรรวมสถิติ (เหมือนฝั่งพนักงาน)
 function computeAttStats(att, leaves){
-  let workDays=0, lateDays=0, lateMin=0, absentDays=0, otHours=0, pendDays=0;
+  let workDays=0, lateDays=0, lateMin=0, absentDays=0, leaveDays=0, otHours=0, pendDays=0;
   att.forEach(a=>{
     if(a.status==='absent'){ absentDays++; return; }
+    if(a.status==='leave'){ leaveDays++; return; }
     workDays++;
     if(a.status==='pending') pendDays++;
     if((a.late_minutes||0)>0){ lateDays++; lateMin+=a.late_minutes; }
@@ -1534,7 +1543,7 @@ function computeAttStats(att, leaves){
     if(ot && ot.ot_status==='YES') otHours+=Number(ot.ot_hours)||0;
   });
   const leaveMin=(leaves||[]).reduce((n,l)=>n+(Number(l.leave_minutes)||0),0);
-  return { workDays, lateDays, lateMin, absentDays, pendDays, otHours:Math.round(otHours*10)/10, leaveMin };
+  return { workDays, lateDays, lateMin, absentDays, leaveDays, pendDays, otHours:Math.round(otHours*10)/10, leaveMin };
 }
 async function loadPersonStats(){
   const empId=document.getElementById('st_emp').value;
@@ -1558,6 +1567,7 @@ async function loadPersonStats(){
       `<div class="kpi"><div class="n">${s.workDays}</div><div class="l">วันทำงาน</div></div>`+
       `<div class="kpi"><div class="n">${s.lateDays}</div><div class="l">วันที่มาสาย</div></div>`+
       `<div class="kpi"><div class="n">${s.absentDays}</div><div class="l">วันขาด</div></div>`+
+      `<div class="kpi"><div class="n">${s.leaveDays}</div><div class="l">วันลา</div></div>`+
       `<div class="kpi"><div class="n">${s.otHours}</div><div class="l">ชม. OT รวม</div></div>`;
     document.getElementById('st_detail').innerHTML =
       '<table>'+
@@ -1588,6 +1598,7 @@ function renderPersonDays(att){
     const otTxt = ot && ot.ot_hours>0 ? `${ot.ot_hours} ชม.` : '-';
     const stTxt = a.status==='pending' ? '<span style="color:var(--red)">รอยืนยัน</span>'
                 : a.status==='absent' ? '<span style="color:var(--red)">ขาด</span>'
+                : a.status==='leave' ? '<span style="color:var(--muted)">ลา</span>'
                 : a.late_minutes>0 ? '<span style="color:var(--amber)">สาย</span>'
                 : '<span style="color:var(--green)">ปกติ</span>';
     const lvTxt = !lv ? '-' : (hm(lv.leave_out_time)+' → '+(lv.return_time?hm(lv.return_time):'ยังไม่กลับ')+(lv.return_time?` (${lv.leave_minutes||0} น.)`:''));
@@ -1654,7 +1665,7 @@ async function preparePayroll(){
     const agg={};
     (att||[]).forEach(a=>{
       const g = agg[a.employee_id] || (agg[a.employee_id] = { workDays:0, workHours:0, lateMin:0, otHours:0, leaveMin:0, branchSet:new Set() });
-      if(a.status!=='absent') g.workDays++;
+      if(a.status!=='absent' && a.status!=='leave') g.workDays++;
       const otRec = prPickOt(a.ot_records);
       g.workHours += calcRegularHours(a.work_date, a.clock_in_time, otRec && otRec.ot_clock_out_time ? otRec.ot_clock_out_time : null);
       g.lateMin += Number(a.late_minutes)||0;
