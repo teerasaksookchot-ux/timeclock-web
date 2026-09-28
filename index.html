@@ -59,8 +59,14 @@
   h2{font-size:17px;margin-bottom:14px}
   label{display:block;font-size:12px;color:var(--ink2);font-weight:500;margin:10px 0 4px}
   input,select{width:100%;max-width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-family:var(--font);font-size:14px;background:var(--paper)}
-  input:focus,select:focus{outline:2px solid var(--tan);outline-offset:-1px}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;min-width:0}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--tan);outline-offset:-1px}
+  /* iPad/iOS Safari: ช่องวันที่/เวลามีความกว้างขั้นต่ำของตัวเอง ทำให้ล้นกรอบการ์ด → บังคับให้ยืดตามช่อง */
+  input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;min-width:0;display:block;min-height:42px;line-height:1.3}
+  input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{text-align:left;margin:0}
+  /* กรอบหมายเหตุ: เดิมใช้กรอบเริ่มต้นของเบราว์เซอร์ บาง/จางมากบน iPad */
+  textarea{width:100%;max-width:100%;padding:10px 12px;border:1.5px solid #B9AE9F;border-radius:9px;font-family:var(--font);font-size:14px;background:#fff;color:var(--ink);line-height:1.5}
+  textarea::placeholder{color:#A39A8D}
+  .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;min-width:0}
   .grid2>div{min-width:0}
   .btn{margin-top:14px;background:var(--ink);color:#fff;border:none;padding:12px 20px;border-radius:10px;font-weight:600;font-size:15px;cursor:pointer;font-family:var(--font);width:100%}
   .btn:hover{background:#000}
@@ -78,7 +84,7 @@
   th{color:var(--muted);font-weight:600;font-size:12px}
   /* ตารางที่สร้างด้วย JS ทุกจุด แสดงในกล่องนี้ — ให้เลื่อนแนวนอนได้แทนที่จะดันหน้าเว็บให้กว้างเกิน */
   #b_list,#e_list_owner,#e_list_hr,#e_list_staff,#e_list_inactive,
-  #dash_by_branch,#dash_by_province,#at_list,#wv_list,#pc_list,#pr_table{
+  #dash_by_branch,#dash_by_province,#at_list,#wv_list,#pc_list,#pr_table,#b_list_inactive,#st_detail{
     overflow-x:auto;-webkit-overflow-scrolling:touch;
   }
   @media (max-width:640px){
@@ -86,7 +92,7 @@
     .grid2{grid-template-columns:1fr}
     .card{padding:16px}
     .loginbox{padding:22px}
-    input,select{font-size:16px}   /* กัน iOS Safari ซูมจอเองตอนแตะช่องกรอก */
+    input,select,textarea{font-size:16px}   /* กัน iOS Safari ซูมจอเองตอนแตะช่องกรอก */
   }
   /* Tablet: คงเมนูแนวนอนใน Header แต่ลดระยะห่าง/ขนาดตัวอักษร */
   @media (max-width:1024px){
@@ -138,7 +144,7 @@
   <div class="loginbox">
     <div class="mk"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></div>
     <h1>เข้าสู่ระบบ — ผู้ดูแล HR</h1>
-    <p>กรอกอีเมล (เจ้าของ) หรือเบอร์โทร (HR/พนักงาน) + รหัสผ่านที่ตั้งไว้</p>
+    <p>กรอกอีเมล (แอดมิน) หรือเบอร์โทร (HR/พนักงาน) + รหัสผ่านที่ตั้งไว้</p>
     <label>อีเมล หรือ เบอร์โทร</label>
     <input id="l_email" type="text" placeholder="hr@yourshop.com หรือ 0812345678">
     <label>รหัสผ่าน</label>
@@ -169,7 +175,7 @@
       <button type="button" class="tab" data-t="payroll"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ส่งออกเงินเดือน</button>
       <button type="button" class="tab" data-t="stats"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg> สถิติรายคน</button>
     </nav>
-    <div class="who"><span id="whoami"></span> <button class="logout" onclick="doLogout()">ออกจากระบบ</button></div>
+    <div class="who"><span id="whoami"></span> <button type="button" class="logout" onclick="openChangePw(false)" title="เปลี่ยนรหัสผ่านของตัวเอง">เปลี่ยนรหัสผ่าน</button><button class="logout" onclick="doLogout()">ออกจากระบบ</button></div>
   </div>
   <div class="wrap">
     <div class="panel on" id="p-dash">
@@ -247,7 +253,7 @@
       </div>
       <div class="card">
         <h2>เคสค้าง (Pending Cases)</h2>
-        <p style="font-size:12.5px;color:var(--muted);margin:-6px 0 10px">เคสที่ระบบตั้งให้ตรวจ เช่น GPS ไม่ผ่าน, ลืมกดออก OT, ออกก่อนเวลา · เคสค้างเกิน 60 วัน เฉพาะเจ้าของปิดได้</p>
+        <p style="font-size:12.5px;color:var(--muted);margin:-6px 0 10px">เคสที่ระบบตั้งให้ตรวจ เช่น GPS ไม่ผ่าน, ลืมกดออก OT, ออกก่อนเวลา · เคสค้างเกิน 60 วัน เฉพาะแอดมินปิดได้</p>
         <div id="pc_list"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div>
       </div>
     </div>
@@ -277,7 +283,7 @@
         <div id="b_msg" class="msg"></div>
       </div>
       <div class="card"><h2>รายการสาขา</h2><div id="b_list"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div></div>
-      <div class="card"><h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>สาขาที่ปิดใช้งานแล้ว</span><button class="ebtn" onclick="loadInactiveBranches()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> แสดง</button></h2><div id="b_list_inactive"><div class="empty">กดปุ่ม "แสดง" เพื่อดูรายชื่อ</div></div></div>
+      <div class="card"><h2>สาขาที่ปิดใช้งานแล้ว <span id="b_inactive_count" style="font-size:13px;color:var(--muted);font-weight:500"></span></h2><div id="b_list_inactive"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div></div>
     </div>
 
     <div class="panel" id="p-employees">
@@ -292,7 +298,7 @@
         <button class="btn" id="e_cancelbtn" onclick="cancelEmpEdit()" style="display:none;background:#8C8479;margin-top:8px">ยกเลิกการแก้ไข</button>
         <div id="e_msg" class="msg"></div>
       </div>
-      <div class="card"><h2>เจ้าของ (Owner)</h2><div id="e_list_owner"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div></div>
+      <div class="card"><h2>แอดมิน (Admin)</h2><div id="e_list_owner"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div></div>
       <div class="card"><h2>ผู้ดูแล HR</h2><div id="e_list_hr"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div></div>
       <div class="card"><h2>พนักงาน</h2><div id="e_list_staff"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div></div>
       <div class="card"><h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>พนักงานที่ปิดใช้งานแล้ว</span><button class="ebtn" onclick="loadInactiveEmployees()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> แสดง</button></h2><div id="e_list_inactive"><div class="empty">กดปุ่ม "แสดง" เพื่อดูรายชื่อ</div></div></div>
@@ -302,20 +308,28 @@
       <div class="card">
         <h2>สิทธิ์การเข้าถึงของแต่ละ Role</h2>
         <table>
-          <tr><th>ความสามารถ</th><th>พนักงาน</th><th>ผู้ดูแล HR</th><th>เจ้าของ</th></tr>
-          <tr><td>เข้างาน / ดูข้อมูลของตัวเอง</td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
-          <tr><td>ดู/เพิ่ม/แก้ไขพนักงานทุกคน</td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
-          <tr><td>เพิ่ม/แก้ไข/ปิดสาขา</td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
-          <tr><td>ดูภาพรวม (Dashboard) ทุกสาขา</td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
-          <tr><td>ออกไฟล์เงินเดือน (Payroll)</td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
-          <tr><td>ตั้ง Role เป็น HR / เจ้าของ</td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> เท่านั้น</td></tr>
-          <tr><td>อนุมัติเคสค้างเกิน 60 วัน</td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
+          <tr><th>ความสามารถ</th><th>พนักงาน</th><th>ผู้ดูแล HR</th><th>แอดมิน</th></tr>
+          <tr><td>เข้างาน / ออกงาน / OT / ออกไปทำธุระ (แอปพนักงาน)</td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
+          <tr><td>ดูสถิติการเข้างานของตัวเอง</td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
+          <tr><td>ดู/เพิ่ม/แก้ไข/ปิดใช้งาน บัญชีพนักงาน</td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
+          <tr><td>แก้ไข/ปิดใช้งาน/รีเซตรหัส บัญชี HR</td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
+          <tr><td>แก้ไข/ปิดใช้งาน/รีเซตรหัส บัญชีแอดมินคนอื่น</td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
+          <tr><td>แก้ไขข้อมูล/เปลี่ยนรหัสผ่าน ของบัญชีตัวเอง</td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
+          <tr><td>เพิ่ม/แก้ไข/ปิดสาขา</td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
+          <tr><td>ดูภาพรวม (Dashboard) ทุกสาขา</td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
+          <tr><td>แก้ไขบันทึกเข้างาน / เพิ่มย้อนหลัง</td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
+          <tr><td>ออกไฟล์เงินเดือน / สถิติรายคน</td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
+          <tr><td>ตั้ง Role เป็น HR / แอดมิน</td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
+          <tr><td>ปิดเคสค้างเกิน 60 วัน</td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td><td><svg class="icon" style="color:var(--green)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ได้"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></td></tr>
         </table>
+        <p style="font-size:12.5px;color:var(--muted);margin-top:10px"><svg class="icon" style="color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="ไม่ได้"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> <b>ผู้ดูแล HR และแอดมิน ลงเวลาเข้างานไม่ได้</b> — ระบบลงเวลาใช้เฉพาะพนักงาน (บัญชี HR/แอดมินไม่นับวันทำงาน ไม่อยู่ในไฟล์เงินเดือน และไม่ถูกตัด "ขาด" อัตโนมัติ)</p>
       </div>
       <div class="card">
         <h2>วิธีเปลี่ยน Role</h2>
         <p style="font-size:13.5px;color:var(--ink2)">ไปที่แท็บ <b>"พนักงาน"</b> → กด <b>"แก้ไข"</b> ที่คนนั้น → เลือก <b>สิทธิ์ (Role)</b> → บันทึก<br><br>
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg> <b>เฉพาะเจ้าของ (Owner)</b> เท่านั้นที่ตั้ง Role เป็น HR หรือ Owner ได้ · ผู้ดูแล HR ตั้งได้แค่ "พนักงาน"</p>
+        • <b>เฉพาะแอดมิน</b> เท่านั้นที่ตั้ง Role เป็น HR หรือแอดมินได้ · ผู้ดูแล HR ตั้งได้แค่ "พนักงาน"<br>
+        • บัญชีแอดมินแต่ละคน <b>แก้ไข / ปิดใช้งาน / รีเซตรหัสผ่าน ได้เฉพาะแอดมินบัญชีนั้นเอง</b> — แอดมินด้วยกันแตะบัญชีกันไม่ได้<br>
+        • เปลี่ยนรหัสผ่านของตัวเอง: กดปุ่ม <b>"เปลี่ยนรหัสผ่าน"</b> มุมขวาบน</p>
       </div>
     </div>
 
@@ -375,7 +389,13 @@
         <div id="st_msg" class="msg"></div>
       </div>
       <div class="card" id="st_resultcard" style="display:none">
-        <h2 id="st_title">ผลลัพธ์</h2>
+        <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <span id="st_title">ผลลัพธ์</span>
+          <span style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="ebtn" onclick="downloadPersonStats('xlsx')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> XLSX</button>
+            <button class="ebtn" onclick="downloadPersonStats('csv')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> CSV</button>
+          </span>
+        </h2>
         <div class="kpis" id="st_kpis"></div>
         <div id="st_detail" style="margin-top:12px"></div>
         <h2 style="font-size:15px;margin-top:18px">รายวัน</h2>
@@ -422,6 +442,22 @@
     </div>
   </div>
 
+  <div id="cp_modal" style="display:none;position:fixed;inset:0;background:rgba(28,26,23,.45);align-items:center;justify-content:center;z-index:40;padding:20px">
+    <div style="background:#fff;border-radius:16px;max-width:380px;width:100%;padding:24px;box-shadow:0 16px 50px rgba(0,0,0,.25)">
+      <h2 style="margin-bottom:6px">เปลี่ยนรหัสผ่าน</h2>
+      <div id="cp_forced" style="display:none;font-size:13px;background:var(--amber-bg);color:var(--amber);padding:10px 12px;border-radius:9px;margin-bottom:6px">บัญชีนี้ใช้รหัสผ่านชั่วคราวอยู่ — กรุณาตั้งรหัสใหม่ก่อนใช้งาน</div>
+      <label>รหัสผ่านปัจจุบัน</label>
+      <div class="pwwrap"><input id="cp_old" type="password" autocomplete="current-password"><button type="button" class="pwtoggle" onclick="togglePw('cp_old',this)" aria-label="แสดง/ซ่อนรหัสผ่าน"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg></button></div>
+      <label>รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)</label>
+      <div class="pwwrap"><input id="cp_new1" type="password" autocomplete="new-password"><button type="button" class="pwtoggle" onclick="togglePw('cp_new1',this)" aria-label="แสดง/ซ่อนรหัสผ่าน"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg></button></div>
+      <label>ยืนยันรหัสผ่านใหม่</label>
+      <div class="pwwrap"><input id="cp_new2" type="password" autocomplete="new-password"><button type="button" class="pwtoggle" onclick="togglePw('cp_new2',this)" aria-label="แสดง/ซ่อนรหัสผ่าน"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg></button></div>
+      <button class="btn" id="cp_btn" onclick="saveChangePw()">บันทึกรหัสผ่านใหม่</button>
+      <button class="btn" id="cp_cancel" onclick="closeChangePw()" style="background:#8C8479;margin-top:8px">ปิด</button>
+      <div id="cp_msg" class="msg"></div>
+    </div>
+  </div>
+
   <div id="map_modal" style="display:none;position:fixed;inset:0;background:rgba(28,26,23,.45);align-items:center;justify-content:center;z-index:30;padding:20px">
     <div style="background:#fff;border-radius:16px;max-width:560px;width:100%;padding:20px;box-shadow:0 16px 50px rgba(0,0,0,.25)">
       <h2 style="margin-bottom:8px">ปักหมุดตำแหน่งสาขา</h2>
@@ -440,14 +476,14 @@
 
 <script>
 let db=null, branchesData=[], editBranchId=null, employeesData=[], editEmpId=null, currentRole='staff', currentEmpId=null;
-function roleLabel(r){return {owner:'เจ้าของ (Owner)',hr:'ผู้ดูแล HR',staff:'พนักงาน (Staff)'}[r]||r;}
+function roleLabel(r){return {owner:'แอดมิน (Admin)',hr:'ผู้ดูแล HR',staff:'พนักงาน (Staff)'}[r]||r;}
 function fillRoleOptions(curr){
   const sel=document.getElementById('e_role');
   let opts = currentRole==='owner' ? ['staff','hr','owner'] : ['staff'];
   if(curr && !opts.includes(curr)) opts=[curr,...opts];      // ให้เห็น role เดิมตอนแก้ไข
   sel.innerHTML=''; opts.forEach(r=>sel.innerHTML+=`<option value="${r}">${roleLabel(r)}</option>`);
   document.getElementById('e_rolehint').textContent =
-    currentRole==='owner' ? 'คุณเป็นเจ้าของ — ตั้ง Role ได้ทุกระดับ' : 'ผู้ดูแล HR ตั้งได้เฉพาะ "พนักงาน" (เปลี่ยนเป็น HR/เจ้าของ ต้องให้เจ้าของทำ)';
+    currentRole==='owner' ? 'คุณเป็นแอดมิน — ตั้ง Role ได้ทุกระดับ' : 'ผู้ดูแล HR ตั้งได้เฉพาะ "พนักงาน" (เปลี่ยนเป็น HR/แอดมิน ต้องให้แอดมินทำ)';
 }
 function lmsg(ok,t){const m=document.getElementById('l_msg');m.className='msg '+(ok?'ok':'err');m.textContent=t;}
 const OK_ICON='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ';
@@ -524,7 +560,7 @@ async function doLogin(){
   const btn=document.getElementById('l_btn'); const orig=btn.innerHTML;
   btn.disabled=true; btn.innerHTML='<span class="spin"></span>กำลังเข้าสู่ระบบ…';
   try{
-    // รองรับ HR/พนักงานที่บัญชีสร้างด้วยเบอร์โทร (แปลงเป็นอีเมลภายในแบบเดียวกับหน้าพนักงาน) รวมถึงอีเมลจริงของเจ้าของ
+    // รองรับ HR/พนักงานที่บัญชีสร้างด้วยเบอร์โทร (แปลงเป็นอีเมลภายในแบบเดียวกับหน้าพนักงาน) รวมถึงอีเมลจริงของแอดมิน
     const email = input.includes('@') ? input : (input + '@staff.timeclock.local');
     const { error } = await db.auth.signInWithPassword({ email, password:pw });
     if(error){ lmsg(false,'อีเมลหรือรหัสผ่านไม่ถูกต้อง'); return; }
@@ -536,10 +572,10 @@ async function doLogin(){
 
 async function afterLogin(){
   const { data:{ user } } = await db.auth.getUser();
-  const { data: emp, error } = await db.from('employees').select('role,first_name,employee_id').eq('auth_user_id',user.id).maybeSingle();
+  const { data: emp, error } = await db.from('employees').select('role,first_name,employee_id,must_change_password').eq('auth_user_id',user.id).maybeSingle();
   if(error){ lmsg(false,'ตรวจสิทธิ์ไม่ได้: '+error.message); return; }
   if(!emp || !['hr','owner'].includes(emp.role)){
-    lmsg(false,'บัญชีนี้ยังไม่มีสิทธิ์ผู้ดูแล (ต้องผูกเป็น HR/Owner ก่อน — ดูคู่มือ Phase B)');
+    lmsg(false,'บัญชีนี้ยังไม่มีสิทธิ์ผู้ดูแล (ต้องผูกเป็น HR/Admin ก่อน — ดูคู่มือ Phase B)');
     await db.auth.signOut(); return;
   }
   currentRole=emp.role; currentEmpId=emp.employee_id; fillRoleOptions();
@@ -547,9 +583,46 @@ async function afterLogin(){
   document.getElementById('appshell').style.display='block';
   document.getElementById('whoami').textContent='สวัสดี, '+(emp.first_name||user.email)+' · '+roleLabel(emp.role);
   await loadRegions(); await loadBranches(); await loadEmployees(); loadDashboard(); loadBranchGrid();
+  // HR ที่แอดมินเพิ่งสร้าง/รีเซตรหัสให้ (รหัสชั่วคราว) → บังคับตั้งรหัสใหม่ก่อนใช้งาน
+  // (ไม่บังคับแอดมิน: แถวแอดมินเดิมมีค่าเริ่มต้น must_change_password=true ค้างอยู่ — เปลี่ยนเองได้ที่ปุ่มมุมขวาบน)
+  if(emp.role==='hr' && emp.must_change_password) openChangePw(true);
+}
+
+// ---------- เปลี่ยนรหัสผ่านของตัวเอง (HR / แอดมิน) ----------
+let cpForced=false;
+function openChangePw(forced){
+  cpForced=!!forced;
+  ['cp_old','cp_new1','cp_new2'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('cp_forced').style.display = cpForced ? 'block' : 'none';
+  document.getElementById('cp_cancel').style.display = cpForced ? 'none' : 'block';
+  const m=document.getElementById('cp_msg'); m.className='msg'; m.textContent='';
+  document.getElementById('cp_modal').style.display='flex';
+}
+function closeChangePw(){ if(!cpForced) document.getElementById('cp_modal').style.display='none'; }
+async function saveChangePw(){
+  const oldPw=document.getElementById('cp_old').value, p1=document.getElementById('cp_new1').value, p2=document.getElementById('cp_new2').value;
+  if(!oldPw){ showMsg('cp_msg',false,'กรุณาใส่รหัสผ่านปัจจุบัน'); return; }
+  if(p1.length<6){ showMsg('cp_msg',false,'รหัสใหม่ต้องยาวอย่างน้อย 6 ตัวอักษร'); return; }
+  if(p1!==p2){ showMsg('cp_msg',false,'รหัสใหม่สองช่องไม่ตรงกัน'); return; }
+  if(p1===oldPw){ showMsg('cp_msg',false,'รหัสใหม่ต้องไม่ซ้ำกับรหัสเดิม'); return; }
+  const btn=document.getElementById('cp_btn'); const orig=btn.innerHTML;
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>กำลังบันทึก…';
+  const done=(ok,t)=>{ btn.disabled=false; btn.innerHTML=orig; showMsg('cp_msg',ok,t); };
+  const { data:{ user } } = await db.auth.getUser();
+  // ยืนยันรหัสเดิมก่อน กันคนอื่นมาเปลี่ยนรหัสตอนเครื่องเปิดค้างไว้
+  const { error:verr } = await db.auth.signInWithPassword({ email:user.email, password:oldPw });
+  if(verr){ done(false,'รหัสผ่านปัจจุบันไม่ถูกต้อง'); return; }
+  const { error } = await db.auth.updateUser({ password:p1 });
+  if(error){ done(false,'เปลี่ยนรหัสไม่สำเร็จ: '+error.message); return; }
+  const { error:rerr } = await db.rpc('fn_complete_first_login');
+  if(rerr && cpForced){ done(false,'เปลี่ยนรหัสแล้ว แต่บันทึกสถานะไม่สำเร็จ: '+rerr.message); return; }
+  cpForced=false;
+  done(true,'เปลี่ยนรหัสผ่านเรียบร้อย — ครั้งหน้าใช้รหัสใหม่เข้าสู่ระบบ');
+  document.getElementById('cp_cancel').style.display='block';
+  document.getElementById('cp_forced').style.display='none';
 }
 async function loadDashboard(){
-  const staff = employeesData.filter(e=>e.role==='staff');   // แสดงแค่พนักงาน (ไม่รวมเจ้าของ/HR)
+  const staff = employeesData.filter(e=>e.role==='staff');   // แสดงแค่พนักงาน (ไม่รวมแอดมิน/HR)
   const provinces=[...new Set(branchesData.map(b=>b.province).filter(Boolean))];
   const regions=[...new Set(branchesData.map(b=>b.regions?b.regions.name:null).filter(Boolean))];
   document.getElementById('dash_kpis').innerHTML=
@@ -770,7 +843,7 @@ function calcLate(day, hhmm){ const t=new Date(day+'T'+hhmm+':00+07:00'), seven=
 
 // ปิดเคสค้างที่เกี่ยวข้องให้อัตโนมัติ เมื่อ HR แก้ไข/เพิ่มบันทึกย้อนหลังของวันนั้นแล้ว
 // ครอบคลุมทั้งเคสที่ผูกกับบันทึกเข้างานโดยตรง (GPS ไม่ผ่าน/ลืมออก OT) และเคส "ยังไม่คลิกอิน" ที่ยังไม่มีบันทึกตอนเปิดเคส
-// เคสค้างเกิน 60 วัน ยังคงต้องให้เจ้าของ (Owner) ปิดเองเท่านั้น ตามกติกาเดิม
+// เคสค้างเกิน 60 วัน ยังคงต้องให้แอดมิน (Admin) ปิดเองเท่านั้น ตามกติกาเดิม
 async function resolveRelatedPendingCases(employeeId, attendanceId, day){
   const { data } = await db.from('pending_cases')
     .select('id,opened_date')
@@ -975,6 +1048,7 @@ async function loadRegions(){
   s.onchange=fillProvinces; fillProvinces();
 }
 async function loadBranches(){
+  loadInactiveBranches();   // แสดงสาขาที่ปิดใช้งานตลอด และอัปเดตพร้อมรายการหลักทุกครั้ง
   const { data, error } = await db.from('branches').select('*, regions(name)').eq('status','active').order('name');
   const box=document.getElementById('b_list'), sel=document.getElementById('e_branch');
   sel.innerHTML='<option value="">— เลือกสาขา —</option>';
@@ -1115,7 +1189,12 @@ async function loadEmployees(){
   renderRoleList('staff','e_list_staff');
   fillBackdateEmps();
 }
-function canManageEmp(e){ return currentRole==='owner' || (currentRole==='hr' && e.role==='staff'); }
+// แอดมิน: จัดการได้ทุกบัญชี ยกเว้นบัญชีแอดมินคนอื่น (แอดมินแต่ละคนแก้ได้เฉพาะบัญชีตัวเอง)
+// HR: จัดการได้เฉพาะบัญชีพนักงาน
+function canManageEmp(e){
+  if(currentRole==='owner') return e.role!=='owner' || e.employee_id===currentEmpId;
+  return currentRole==='hr' && e.role==='staff';
+}
 function empRow(e){
   const manage = canManageEmp(e);
   const editBtn = manage ? `<button class="ebtn" onclick="editEmployee('${e.employee_id}')">แก้ไข</button> ` : '';
@@ -1138,11 +1217,15 @@ function showDetail(id){
   document.querySelector('#detail_modal h2').textContent='ข้อมูลพนักงาน';
   const manage = canManageEmp(e);
   let authSection;
-  if(e.auth_user_id){
+  if(e.role==='owner' && e.auth_user_id){
+    authSection = e.employee_id===currentEmpId
+      ? '<p style="font-size:13px;color:var(--ink2)">บัญชีของคุณเอง — เปลี่ยนรหัสผ่านได้ที่ปุ่ม <b>"เปลี่ยนรหัสผ่าน"</b> มุมขวาบน</p>'
+      : '<p style="font-size:12px;color:#8C8479">บัญชีแอดมิน — แก้ไข / ปิดใช้งาน / รีเซตรหัสผ่าน ได้เฉพาะแอดมินบัญชีนั้นเท่านั้น</p>';
+  } else if(e.auth_user_id){
     authSection = `<p style="color:#1E7D52"><b><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg> มีบัญชี login แล้ว</b> (เข้าด้วยเบอร์ ${esc(e.phone)})</p>`+
       (manage ? `<button class="btn" style="background:#B26A2B" onclick="manageAuth('${e.employee_id}','reset')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> รีเซตรหัสผ่าน</button> `+
                 `<button class="btn ghost" style="margin-top:8px" onclick="manageAuth('${e.employee_id}','reactivate')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437 1.745-1.437m6.615 8.206L3.75 12"/></svg> กู้บัญชี login (ถ้าเปิดใช้งานแล้วยังเข้าไม่ได้)</button>`
-              : '<p style="font-size:12px;color:#8C8479">ผู้ดูแล HR จัดการบัญชี login ของ HR/เจ้าของไม่ได้</p>');
+              : '<p style="font-size:12px;color:#8C8479">ผู้ดูแล HR จัดการบัญชี login ของ HR/แอดมินไม่ได้</p>');
   } else {
     authSection = `<p style="color:#8C8479">ยังไม่มีบัญชี login สำหรับเข้าแอป</p>`+
       (manage ? `<button class="btn" onclick="manageAuth('${e.employee_id}','create')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg> สร้างบัญชี login</button>` : '');
@@ -1212,7 +1295,11 @@ async function addEmployee(){
   if(!first||!last||!phone){showMsg('e_msg',false,'กรุณากรอก ชื่อ นามสกุล และเบอร์โทร');return;}
   if(editEmpId && editEmpId===currentEmpId){
     const me=employeesData.find(x=>x.employee_id===currentEmpId);
-    if(me && me.role!==role){showMsg('e_msg',false,'ห้ามเปลี่ยน Role ของตัวเอง (ให้เจ้าของอีกคนเปลี่ยนให้)');return;}
+    if(me && me.role!==role){showMsg('e_msg',false,'ห้ามเปลี่ยน Role ของตัวเอง');return;}
+  }
+  if(editEmpId){
+    const target=employeesData.find(x=>x.employee_id===editEmpId);
+    if(target && !canManageEmp(target)){showMsg('e_msg',false,'ไม่มีสิทธิ์แก้ไขบัญชีนี้ — บัญชีแอดมินแก้ได้เฉพาะแอดมินบัญชีเอง');return;}
   }
   let error, code, updData;
   if(editEmpId){
@@ -1228,11 +1315,11 @@ async function addEmployee(){
   if(error){
     let m=error.message;
     if(/uq_employees_phone/.test(m)) m='เบอร์นี้ซ้ำกับพนักงานที่ยังทำงานอยู่';
-    else if(/row-level security|policy|violates/i.test(m)) m='เฉพาะเจ้าของ (Owner) เท่านั้นที่ตั้ง Role เป็น HR/เจ้าของได้';
+    else if(/row-level security|policy|violates/i.test(m)) m='เฉพาะแอดมิน (Admin) เท่านั้นที่ตั้ง Role เป็น HR/แอดมินได้';
     showMsg('e_msg',false,'บันทึกไม่ได้: '+m);return;
   }
   if(editEmpId && (!updData || !updData.length)){
-    showMsg('e_msg',false,'ไม่มีสิทธิ์แก้ไขบัญชีนี้ — ผู้ดูแล HR แก้ไขได้เฉพาะบัญชีพนักงาน (staff) เท่านั้น');return;
+    showMsg('e_msg',false,'ไม่มีสิทธิ์แก้ไขบัญชีนี้ — ผู้ดูแล HR แก้ได้เฉพาะพนักงาน · บัญชีแอดมินแก้ได้เฉพาะแอดมินบัญชีเอง');return;
   }
   showMsg('e_msg',true, editEmpId ? 'แก้ไขพนักงาน "'+first+'" แล้ว' : 'บันทึกพนักงาน "'+first+'" (รหัส '+code+') แล้ว');
   cancelEmpEdit();
@@ -1273,6 +1360,7 @@ async function loadInactiveBranches(){
   box.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>';
   const { data, error } = await db.from('branches').select('*, regions(name)').eq('status','deactivated').order('name');
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
+  document.getElementById('b_inactive_count').textContent = data && data.length ? '('+data.length+' สาขา)' : '';
   if(!data||!data.length){ box.innerHTML='<div class="empty">ไม่มีสาขาที่ปิดใช้งาน</div>'; return; }
   let h='<table><tr><th>ชื่อสาขา</th><th>จังหวัด</th><th>ภูมิภาค</th><th>ปิดใช้งานโดย</th><th></th></tr>';
   data.forEach(b=>{
@@ -1286,12 +1374,12 @@ async function reactivateBranch(id){
   const { data:updData, error } = await db.from('branches').update({status:'active',updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('branch_id',id).select();
   if(error){ alert('เปิดใช้งานไม่ได้: '+error.message); return; }
   if(!updData || !updData.length){ alert('ไม่มีสิทธิ์เปิดใช้งานสาขานี้'); return; }
-  await loadBranches(); loadDashboard(); await loadInactiveBranches();
+  await loadBranches(); loadDashboard();
 }
 async function deactivateEmployee(id){
   const e=employeesData.find(x=>x.employee_id===id); if(!e)return;
   if(id===currentEmpId){ showMsg('e_msg',false,'ปิดใช้งานบัญชีตัวเองไม่ได้ (จะเข้าระบบไม่ได้ทันที) — ให้คนอื่นปิดให้แทน'); return; }
-  if(e.employee_code==='OWNER01'){ showMsg('e_msg',false,'ปิดใช้งานบัญชี OWNER01 ไม่ได้ — เป็นบัญชีเจ้าของหลักที่ระบบป้องกันไว้'); return; }
+  if(e.employee_code==='OWNER01'){ showMsg('e_msg',false,'ปิดใช้งานบัญชี OWNER01 ไม่ได้ — เป็นบัญชีแอดมินหลักที่ระบบป้องกันไว้'); return; }
   if(!confirm('ปิดใช้งานพนักงาน "'+e.first_name+' '+e.last_name+'" ?\n(เช่น ลาออก — ข้อมูลไม่ถูกลบจริง)'))return;
   const { data:updData, error } = await db.from('employees').update({status:'inactive',updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('employee_id',id).select();
   if(error){showMsg('e_msg',false,'ปิดใช้งานไม่ได้: '+error.message);return;}
@@ -1530,7 +1618,7 @@ function fillStEmpFilter(){
   const branchIds = branchId ? [branchId] : (regionId ? branchesData.filter(b=>b.region_id===regionId).map(b=>b.branch_id) : null);
   const s=document.getElementById('st_emp'); const cur=s.value;
   s.innerHTML='<option value="">— เลือกพนักงาน —</option>';
-  employeesData.filter(e=>e.role==='staff')   // เฉพาะพนักงาน — เจ้าของ/HR ไม่มีบันทึกเข้างาน
+  employeesData.filter(e=>e.role==='staff')   // เฉพาะพนักงาน — แอดมิน/HR ไม่มีบันทึกเข้างาน
     .filter(e=>!branchIds || branchIds.includes(e.home_branch_id))
     .slice().sort((a,b)=>String(a.employee_code).localeCompare(String(b.employee_code)))
     .forEach(e=>s.innerHTML+=`<option value="${e.employee_id}">${esc(e.employee_code)} · ${esc(e.first_name)} ${esc(e.last_name||'')}</option>`);
@@ -1583,11 +1671,56 @@ async function loadPersonStats(){
       `<tr><td>วันที่ยังรอ HR ยืนยัน</td><td>${s.pendDays}</td></tr>`+
       '</table>';
     renderPersonDays(att);
+    statExport = { emp, start, end, s, att };
     showMsg('st_msg',true,'โหลดสถิติสำเร็จ ('+start+' ถึง '+end+')');
   }catch(err){
     showMsg('st_msg',false,'โหลดสถิติไม่สำเร็จ: '+(err.message||err));
   }
   btn.disabled=false; btn.innerHTML='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> ดูสถิติ';
+}
+let statExport=null;
+// ส่งออกสถิติรายคน: ส่วนสรุป + ตารางรายวัน (XLSX = 2 ชีต · CSV = ไฟล์เดียวต่อกัน)
+function personStatsAOA(){
+  const { emp, start, end, s, att } = statExport;
+  const hm = iso => iso ? new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Bangkok'}) : '';
+  const stLabel = a => a.status==='pending'?'รอยืนยัน':a.status==='absent'?'ขาด':a.status==='leave'?'ลา':(a.late_minutes>0?'สาย':'ปกติ');
+  const summary = [
+    ['รหัสพนักงาน', emp?emp.employee_code:''], ['ชื่อ-สกุล', emp?(emp.first_name+' '+(emp.last_name||'')):''],
+    ['ชื่อเล่น', emp?(emp.nickname||''):''], ['ช่วงวันที่', start+' ถึง '+end],
+    ['วันทำงาน', s.workDays], ['วันที่มาสาย', s.lateDays], ['สายรวม (นาที)', s.lateMin],
+    ['วันขาด', s.absentDays], ['วันลา', s.leaveDays], ['วันที่รอ HR ยืนยัน', s.pendDays],
+    ['ชั่วโมง OT รวม', s.otHours], ['ออกไปทำธุระรวม (นาที)', s.leaveMin],
+  ];
+  const days = [['วันที่','เวลาเข้า','สาย (นาที)','เวลาออกงาน','ชั่วโมง OT','สถานะ','ออกไปทำธุระ','กลับ','ทำธุระ (นาที)']];
+  [...att].sort((a,b)=>a.work_date<b.work_date?-1:1).forEach(a=>{
+    const ot=(Array.isArray(a.ot_records)?a.ot_records:[a.ot_records]).filter(Boolean)
+      .sort((x,y)=>(Number(y.ot_hours)||0)-(Number(x.ot_hours)||0))[0];
+    const lv=Array.isArray(a.personal_leaves)?a.personal_leaves[0]:a.personal_leaves;
+    const noWork = a.status==='absent' || a.status==='leave' || !a.clock_in_time;
+    days.push([a.work_date, noWork?'-':hm(a.clock_in_time), a.late_minutes||0,
+      noWork?'-':((ot&&ot.ot_clock_out_time?hm(ot.ot_clock_out_time):hm(a.normal_close_time))||'-'),
+      ot&&ot.ot_hours>0?Number(ot.ot_hours):0, stLabel(a),
+      lv?hm(lv.leave_out_time):'', lv?(lv.return_time?hm(lv.return_time):'ยังไม่กลับ'):'', lv&&lv.return_time?(lv.leave_minutes||0):'']);
+  });
+  return { summary, days };
+}
+function downloadPersonStats(fmt){
+  if(!statExport){ showMsg('st_msg',false,'กรุณากด "ดูสถิติ" ก่อนดาวน์โหลด'); return; }
+  const { summary, days } = personStatsAOA();
+  const code = statExport.emp ? statExport.emp.employee_code : 'employee';
+  const fname = 'stats_'+code+'_'+statExport.start+'_to_'+statExport.end+'.'+fmt;
+  if(fmt==='xlsx'){
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), 'สรุป');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(days), 'รายวัน');
+    XLSX.writeFile(wb, fname);
+  }else{
+    const aoa = [...summary, [], ...days];
+    const csv = String.fromCharCode(0xFEFF)+aoa.map(row=>row.map(csvEscape).join(',')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
+    const a = document.createElement('a'); a.href=url; a.download=fname; a.click();
+    URL.revokeObjectURL(url);
+  }
 }
 // ตารางรายวันของพนักงานคนนั้น + ปุ่มดูรูป (เข้า/ออก OT/ออกไปทำธุระ)
 function renderPersonDays(att){
@@ -1823,7 +1956,7 @@ async function loadPendingCases(){
     const escColor = ageDays>=30 ? 'var(--red)' : (ageDays>=7 ? 'var(--tan2)' : 'var(--muted)');
     const ageLabel = ageDays<=0 ? 'วันนี้' : (ageDays+' วัน');
     const btn = locked
-      ? '<span style="color:var(--muted);font-size:12px">รอเจ้าของปิด</span>'
+      ? '<span style="color:var(--muted);font-size:12px">รอแอดมินปิด</span>'
       : `<button class="ebtn" onclick="resolvePending('${r.id}')">ปิดเคส</button>`;
     const editBtn = `<button class="ebtn" onclick="jumpToAttendance('${r.opened_date}','${r.employee_id}')">แก้ไขเวลางาน</button>`;
     h+=`<tr><td>${e.employee_code||'-'}</td><td>${empName(e)}</td><td>${SRC_LABEL[r.source]||r.source}</td>`+

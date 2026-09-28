@@ -288,7 +288,7 @@ async function loadMe(){
 async function route(){
   if(!me){ show('s-login'); return; }
   if(me.role!=='staff'){
-    msg('l_msg','warn','บัญชีนี้เป็นผู้ดูแล (HR/เจ้าของ) — กรุณาใช้เว็บแอดมิน HR');
+    msg('l_msg','warn','บัญชีนี้เป็นผู้ดูแล (HR/แอดมิน) ลงเวลาเข้างานไม่ได้ — กรุณาใช้เว็บแอดมิน HR');
     await db.auth.signOut(); show('s-login'); return;
   }
   if(me.status!=='active'){
