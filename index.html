@@ -1198,7 +1198,7 @@ function canManageEmp(e){
 function empRow(e){
   const manage = canManageEmp(e);
   const editBtn = manage ? `<button class="ebtn" onclick="editEmployee('${e.employee_id}')">แก้ไข</button> ` : '';
-  const deactBtn = (manage && e.employee_id!==currentEmpId && e.employee_code!=='OWNER01') ? `<button class="ebtn del" onclick="deactivateEmployee('${e.employee_id}')">ปิดใช้งาน</button>` : '';
+  const deactBtn = (manage && e.employee_id!==currentEmpId && e.employee_code!=='ADMIN01') ? `<button class="ebtn del" onclick="deactivateEmployee('${e.employee_id}')">ปิดใช้งาน</button>` : '';
   return `<tr><td>${esc(e.employee_code)}</td><td>${esc(e.first_name)} ${esc(e.last_name)} (${esc(e.nickname||'')})</td><td>${esc(e.phone)}</td><td>${e.branches?esc(e.branches.name):'-'}</td><td>`+
     `<button class="ebtn" onclick="showDetail('${e.employee_id}')">ดูข้อมูล</button> ${editBtn}${deactBtn}</td></tr>`;
 }
@@ -1305,11 +1305,12 @@ async function addEmployee(){
   if(editEmpId){
     ({ data:updData, error } = await db.from('employees').update({first_name:first,last_name:last,nickname:nick,phone,home_branch_id:branch,role,updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('employee_id',editEmpId).select());
   } else {
-    const prefix = role==='hr' ? 'HR' : 'EMP';
+    const prefix = role==='hr' ? 'HR' : role==='owner' ? 'ADMIN' : 'EMP';
     let seqQ = db.from('employees').select('*',{count:'exact',head:true});
     if(role==='hr') seqQ = seqQ.eq('role','hr');   // นับแยก HR ต่างหาก ไม่ปนกับเลขรัน EMP
+    if(role==='owner') seqQ = seqQ.eq('role','owner');   // แอดมินใช้รหัส ADMIN01, ADMIN02, …
     const { count } = await seqQ;
-    code=prefix+String((count||0)+1).padStart(6,'0');
+    code=prefix+String((count||0)+1).padStart(role==='owner'?2:6,'0');
     ({ error } = await db.from('employees').insert({employee_code:code,first_name:first,last_name:last,nickname:nick,phone,home_branch_id:branch,role,created_by:currentEmpId,updated_by:currentEmpId}));
   }
   if(error){
@@ -1379,7 +1380,7 @@ async function reactivateBranch(id){
 async function deactivateEmployee(id){
   const e=employeesData.find(x=>x.employee_id===id); if(!e)return;
   if(id===currentEmpId){ showMsg('e_msg',false,'ปิดใช้งานบัญชีตัวเองไม่ได้ (จะเข้าระบบไม่ได้ทันที) — ให้คนอื่นปิดให้แทน'); return; }
-  if(e.employee_code==='OWNER01'){ showMsg('e_msg',false,'ปิดใช้งานบัญชี OWNER01 ไม่ได้ — เป็นบัญชีแอดมินหลักที่ระบบป้องกันไว้'); return; }
+  if(e.employee_code==='ADMIN01'){ showMsg('e_msg',false,'ปิดใช้งานบัญชี ADMIN01 ไม่ได้ — เป็นบัญชีแอดมินหลักที่ระบบป้องกันไว้'); return; }
   if(!confirm('ปิดใช้งานพนักงาน "'+e.first_name+' '+e.last_name+'" ?\n(เช่น ลาออก — ข้อมูลไม่ถูกลบจริง)'))return;
   const { data:updData, error } = await db.from('employees').update({status:'inactive',updated_at:new Date().toISOString(),updated_by:currentEmpId}).eq('employee_id',id).select();
   if(error){showMsg('e_msg',false,'ปิดใช้งานไม่ได้: '+error.message);return;}
