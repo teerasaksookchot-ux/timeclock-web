@@ -233,6 +233,8 @@
           <div><label>เวลาออก</label><input id="bd_leaveout" type="time"></div>
           <div><label>เวลากลับ</label><input id="bd_leavereturn" type="time"></div>
         </div>
+        <label style="margin-top:12px">หมายเหตุ <span style="color:var(--red)">* บังคับ</span></label>
+        <textarea id="bd_note" rows="2" placeholder="เช่น พนักงานลืมกดเข้างาน แจ้งทางไลน์ / มือถือเสีย" style="width:100%;resize:vertical"></textarea>
         <button class="btn" onclick="addBackdated()">บันทึกย้อนหลัง</button>
         <div id="bd_msg" class="msg"></div>
       </div>
@@ -411,7 +413,8 @@
         </div>
         <div style="font-size:11.5px;color:var(--muted);margin-top:4px">เว้น "เวลากลับ" ว่างถ้ายังไม่กลับ · ระบบคิดนาทีที่ออกใหม่อัตโนมัติ</div>
       </div>
-      <label style="margin-top:12px">หมายเหตุการแก้ไข (ไม่บังคับ)</label>
+      <label style="margin-top:12px">หมายเหตุการแก้ไข <span style="color:var(--red)">* บังคับ</span></label>
+      <div id="ae_prevnote" style="font-size:11.5px;color:var(--muted);margin-bottom:4px;display:none"></div>
       <textarea id="ae_note" rows="2" placeholder="เช่น พนักงานลืมกดออก แจ้งทางไลน์ / แก้ตามใบลา" style="width:100%;resize:vertical"></textarea>
       <button class="btn" onclick="saveAttEdit()">บันทึกการแก้ไข</button>
       <button class="btn" onclick="closeAttEdit()" style="background:#8C8479;margin-top:8px">ยกเลิก</button>
@@ -796,7 +799,11 @@ function openAttEdit(id){
   const toHM = iso => iso ? new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Bangkok'}) : '';
   document.getElementById('ae_leaveout').value = lv ? toHM(lv.leave_out_time) : '';
   document.getElementById('ae_leavereturn').value = lv ? toHM(lv.return_time) : '';
-  document.getElementById('ae_note').value = r.hr_edit_note || '';
+  // หมายเหตุต้องพิมพ์ใหม่ทุกครั้งที่แก้ — โชว์ของเดิมไว้ให้ดูอ้างอิงเท่านั้น
+  document.getElementById('ae_note').value = '';
+  const prevNote = document.getElementById('ae_prevnote');
+  prevNote.textContent = r.hr_edit_note ? 'หมายเหตุครั้งก่อน: '+r.hr_edit_note : '';
+  prevNote.style.display = r.hr_edit_note ? 'block' : 'none';
   aeToggleTime();
   document.getElementById('ae_msg').className='msg'; document.getElementById('ae_msg').textContent='';
   document.getElementById('att_modal').style.display='flex';
@@ -816,13 +823,14 @@ async function saveAttEdit(){
   if(diff<0 || diff>60){ showMsg('ae_msg',false,'แก้ไขย้อนหลังได้เฉพาะช่วง 0-60 วันเท่านั้น'); return; }
   const status=document.getElementById('ae_status').value;
   const hhmm=document.getElementById('ae_time').value;
+  const editNote = document.getElementById('ae_note').value.trim();
+  if(!editNote){ showMsg('ae_msg',false,'กรุณาใส่หมายเหตุการแก้ไขก่อนบันทึก'); document.getElementById('ae_note').focus(); return; }
   let payload;
   if(status==='absent'){ payload={status:'absent', clock_in_time:null, late_minutes:0}; }
   else if(status==='leave'){ payload={status:'leave', clock_in_time:null, late_minutes:0}; }
   else { if(!hhmm){ showMsg('ae_msg',false,'กรุณาใส่เวลาเข้างาน'); return; }
          payload={status, clock_in_time:bkkTimestamp(day,hhmm), late_minutes:calcLate(day,hhmm)}; }
-  const editNote = document.getElementById('ae_note').value.trim();
-  payload.hr_edit_note = editNote || null;
+  payload.hr_edit_note = editNote;
   payload.updated_at = new Date().toISOString(); payload.updated_by = currentEmpId;
   const { error } = await db.from('attendance_records').update(payload).eq('id',attEditId);
   if(error){ showMsg('ae_msg',false,'บันทึกไม่สำเร็จ: '+error.message); return; }
@@ -882,11 +890,13 @@ async function addBackdated(){
   const otHHMM=document.getElementById('bd_ottime').value;
   if(!empId){ showMsg('bd_msg',false,'เลือกพนักงานก่อน'); return; }
   if(!hhmm){ showMsg('bd_msg',false,'ใส่เวลาเข้างาน'); return; }
+  const bdNote=document.getElementById('bd_note').value.trim();
+  if(!bdNote){ showMsg('bd_msg',false,'กรุณาใส่หมายเหตุก่อนบันทึก'); document.getElementById('bd_note').focus(); return; }
   const emp=employeesData.find(x=>x.employee_id===empId);
   const { data:newAtt, error } = await db.from('attendance_records').insert({
     employee_id:empId, work_date:day, clock_in_time:bkkTimestamp(day,hhmm),
     working_branch_id: emp?emp.home_branch_id:null, status:'normal', late_minutes:calcLate(day,hhmm),
-    updated_at:new Date().toISOString(), updated_by:currentEmpId }).select().single();
+    hr_edit_note:bdNote, updated_at:new Date().toISOString(), updated_by:currentEmpId }).select().single();
   if(error){
     showMsg('bd_msg',false, /duplicate|unique/i.test(error.message)?'มีบันทึกของคนนี้ในวันนี้แล้ว — ใช้ปุ่ม "แก้ไข" ในตารางแทน':('บันทึกไม่สำเร็จ: '+error.message));
     return;
@@ -914,13 +924,14 @@ async function addBackdated(){
     if(lvErr){ showMsg('bd_msg',false,'บันทึกออกไปทำธุระไม่สำเร็จ: '+lvErr.message); return; }
   }
   await db.from('audit_logs').insert({ actor_id:currentEmpId, action:'hr_backdate_attendance', target_ref:empId,
-    detail:{ work_date:day, time:hhmm, ot_time:otHHMM||null, leave_out:leaveOutHM||null, leave_return:leaveRetHM||null } });
+    detail:{ work_date:day, time:hhmm, ot_time:otHHMM||null, leave_out:leaveOutHM||null, leave_return:leaveRetHM||null, note:bdNote } });
   await resolveRelatedPendingCases(empId, newAtt.id, day);
   showMsg('bd_msg',true,'เพิ่มบันทึกย้อนหลังแล้ว');
   document.getElementById('bd_time').value='';
   document.getElementById('bd_leaveout').value='';
   document.getElementById('bd_leavereturn').value='';
   document.getElementById('bd_ottime').value='';
+  document.getElementById('bd_note').value='';
   await loadAttendance();
 }
 // existingRecords (ถ้ามี) = บันทึกของวันที่กำลังเลือกอยู่ (ไม่กรองสาขา) ใช้ตัด
