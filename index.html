@@ -323,6 +323,7 @@
         <p style="font-size:13px;color:var(--muted);margin-bottom:10px">เลือกช่วงวันที่ → ระบบรวมข้อมูลเข้างาน/OT/ลากิจให้ · <b>ไม่คำนวณเงินจริง</b> (ไม่มีเงินเดือนฐาน/คอมมิชชัน) เอาไฟล์นี้ไปคิดต่อเองได้ (DL-46/DL-48)</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
           <button class="ebtn" type="button" onclick="setPayrollRange('month')">เดือนนี้</button>
+          <button class="ebtn" type="button" onclick="setPayrollRange('lastmonth')">เดือนที่แล้ว</button>
           <button class="ebtn" type="button" onclick="setPayrollRange('7d')">7 วันที่ผ่านมา</button>
         </div>
         <div class="grid2">
@@ -1386,19 +1387,11 @@ function calcRegularHours(workDate, clockInISO, otOutISO){
   return ms>0 ? Math.round((ms/3600000)*100)/100 : 0;
 }
 
-// ปุ่มลัดช่วงวันที่ในหน้าส่งออกเงินเดือน — เดือนนี้ / 7 วันที่ผ่านมา (นับถึงวันนี้)
+// ปุ่มลัดช่วงวันที่ในหน้าส่งออกเงินเดือน — เดือนนี้ / เดือนที่แล้ว / 7 วันที่ผ่านมา (นับถึงวันนี้)
 function setPayrollRange(kind){
-  const today = bkkToday();               // YYYY-MM-DD (Asia/Bangkok)
-  let start;
-  if(kind==='month'){
-    start = today.slice(0,8)+'01';        // วันที่ 1 ของเดือนปัจจุบัน
-  }else{                                   // '7d' = 7 วันที่ผ่านมา (รวมวันนี้)
-    const d = new Date(today+'T00:00:00+07:00');
-    d.setDate(d.getDate()-6);
-    start = d.toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'});
-  }
-  document.getElementById('pr_start').value = start;
-  document.getElementById('pr_end').value = today;
+  const r=presetRange(kind);
+  document.getElementById('pr_start').value = r.start;
+  document.getElementById('pr_end').value = r.end;
 }
 
 // ---------- ช่วงวันที่สำเร็จรูป (ใช้ร่วม: เข้างาน + สถิติรายคน) ----------
