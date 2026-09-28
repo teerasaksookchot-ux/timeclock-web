@@ -735,9 +735,10 @@ async function loadAttendance(){
     const otRec = Array.isArray(r.ot_records) ? r.ot_records[0] : r.ot_records;
     const outT = otRec && otRec.ot_clock_out_time
       ? new Date(otRec.ot_clock_out_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}) + (otRec.ot_hours>0 ? ' (OT '+otRec.ot_hours+' ชม.)' : '')
-      : (r.clock_in_time && r.normal_close_time
+      : !r.clock_in_time ? '-'            // ยังไม่เข้างาน (ขาด/ลา/ค้าง) → ไม่มีเวลาออกให้แสดง
+      : r.normal_close_time
           ? new Date(r.normal_close_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})
-          : '<span style="color:var(--muted)">ยังไม่ออก</span>');
+          : '<span style="color:var(--muted)">ยังไม่ออก</span>';
     const stTxt = r.status==='pending' ? '<span style="color:var(--red)">รอยืนยัน</span>'
                 : r.status==='absent' ? '<span style="color:var(--red)">ขาด</span>'
                 : r.status==='leave' ? '<span style="color:var(--muted)">ลา</span>'
