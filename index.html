@@ -301,7 +301,7 @@
       <div class="card"><h2>แอดมิน (Admin)</h2><div id="e_list_owner"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div></div>
       <div class="card"><h2>ผู้ดูแล HR</h2><div id="e_list_hr"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div></div>
       <div class="card"><h2>พนักงาน</h2><div id="e_list_staff"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div></div>
-      <div class="card"><h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>พนักงานที่ปิดใช้งานแล้ว</span><button class="ebtn" onclick="loadInactiveEmployees()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> แสดง</button></h2><div id="e_list_inactive"><div class="empty">กดปุ่ม "แสดง" เพื่อดูรายชื่อ</div></div></div>
+      <div class="card"><h2>พนักงานที่ปิดใช้งานแล้ว <span id="e_inactive_count" style="font-size:13px;color:var(--muted);font-weight:500"></span></h2><div id="e_list_inactive"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div></div>
     </div>
 
     <div class="panel" id="p-roles">
@@ -1184,6 +1184,9 @@ async function loadEmployees(){
   const { data, error } = await db.from('employees').select('*, branches:home_branch_id(name)').eq('status','active').order('employee_code');
   if(error){ ['e_list_owner','e_list_hr','e_list_staff'].forEach(id=>document.getElementById(id).innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'); return; }
   employeesData=data||[];
+  // แสดงพนักงานที่ปิดใช้งานตลอด อัปเดตพร้อมรายชื่อหลักทุกครั้ง (เหมือนสาขา)
+  // เรียกหลังโหลด employeesData แล้ว ช่อง "ปิดใช้งานโดย" จะได้แสดงชื่อคนปิดได้ถูก — สาขาก็โหลดซ้ำด้วยเหตุผลเดียวกัน
+  loadInactiveEmployees(); loadInactiveBranches();
   renderRoleList('owner','e_list_owner');
   renderRoleList('hr','e_list_hr');
   renderRoleList('staff','e_list_staff');
@@ -1407,6 +1410,7 @@ async function loadInactiveEmployees(){
   box.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>';
   const { data, error } = await db.from('employees').select('*, branches:home_branch_id(name)').eq('status','inactive').order('employee_code');
   if(error){ box.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
+  document.getElementById('e_inactive_count').textContent = data && data.length ? '('+data.length+' คน)' : '';
   if(!data||!data.length){ box.innerHTML='<div class="empty">ไม่มีพนักงานที่ปิดใช้งาน</div>'; return; }
   let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เบอร์</th><th>สิทธิ์เดิม</th><th>ปิดใช้งานโดย</th><th></th></tr>';
   data.forEach(e=>{
@@ -1439,7 +1443,7 @@ async function reactivateEmployee(id){
       }
     }catch(err){ /* ไม่บล็อกการเปิดใช้งานพนักงาน แม้กู้บัญชี login จะพลาด */ }
   }
-  await loadEmployees(); loadDashboard(); await loadInactiveEmployees();
+  await loadEmployees(); loadDashboard();
 }
 // ---------- Payroll Export (DL-45..48) ----------
 let payrollRows=[], payrollPeriod=null;
