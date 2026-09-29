@@ -1729,7 +1729,7 @@ function renderPersonDays(att){
   if(!att || !att.length){ box.innerHTML='<div class="empty">ไม่มีบันทึกในช่วงนี้</div>'; return; }
   const hm = iso => iso ? new Date(iso).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}) : '';
   const photo = (p,txt) => p ? `<button class="ebtn" onclick="viewSelfie('${p}')">${txt}</button> ` : '';
-  let h='<table><tr><th>วันที่</th><th>เข้า</th><th>เวลาออกงาน</th><th>ชั่วโมง OT</th><th>สถานะ</th><th>ออกไปทำธุระ</th><th>รูป</th></tr>';
+  let h='<table><tr><th>วันที่</th><th>เข้า</th><th>เวลาออกงาน</th><th>ชั่วโมง OT</th><th>สถานะ</th><th>ออกไปทำธุระ</th><th>รูปเข้างาน</th><th>รูปออกงาน</th><th>รูปออกไปทำธุระ</th><th>รูปกลับจากทำธุระ</th></tr>';
   att.forEach(a=>{
     const ot=(Array.isArray(a.ot_records)?a.ot_records:[a.ot_records]).filter(Boolean)
       .sort((x,y)=>(Number(y.ot_hours)||0)-(Number(x.ot_hours)||0))[0];
@@ -1743,9 +1743,10 @@ function renderPersonDays(att){
                 : a.late_minutes>0 ? '<span style="color:var(--amber)">สาย</span>'
                 : '<span style="color:var(--green)">ปกติ</span>';
     const lvTxt = !lv ? '-' : (hm(lv.leave_out_time)+' → '+(lv.return_time?hm(lv.return_time):'ยังไม่กลับ')+(lv.return_time?` (${lv.leave_minutes||0} น.)`:''));
-    const pics = (photo(a.selfie_path,'เข้า') + photo(ot&&ot.selfie_path,'ออก')
-      + photo(lv&&lv.selfie_path,'ธุระ-ออก') + photo(lv&&lv.return_selfie_path,'ธุระ-กลับ')) || '-';
-    h+=`<tr><td>${thShortDate(a.work_date)}</td><td>${inTxt}</td><td>${closeTxt}</td><td>${otTxt}</td><td>${stTxt}</td><td>${esc(lvTxt)}</td><td>${pics}</td></tr>`;
+    // แยกรูปเป็น 4 ช่อง — ช่องไหนไม่มีรูปขึ้น "-" จะได้รู้ทันทีว่ารูปไหนขาด
+    const pic = p => photo(p,'ดูรูป') || '-';
+    const pics = `<td>${pic(a.selfie_path)}</td><td>${pic(ot&&ot.selfie_path)}</td><td>${pic(lv&&lv.selfie_path)}</td><td>${pic(lv&&lv.return_selfie_path)}</td>`;
+    h+=`<tr><td>${thShortDate(a.work_date)}</td><td>${inTxt}</td><td>${closeTxt}</td><td>${otTxt}</td><td>${stTxt}</td><td>${esc(lvTxt)}</td>${pics}</tr>`;
   });
   box.innerHTML=h+'</table>';
 }
