@@ -163,7 +163,10 @@
       <h2 style="font-size:15px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ล่วงเวลา (OT)</h2>
       <div id="ot_box"></div>
       <h2 style="font-size:15px;margin-top:18px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25"/></svg> ออกไปทำธุระ</h2>
+      <div style="font-size:13px;font-weight:600;margin:4px 0 6px">ธุระส่วนตัว <span style="font-weight:400;color:var(--muted)">(หักตามนาทีที่ออกไป)</span></div>
       <div id="leave_box"></div>
+      <div style="font-size:13px;font-weight:600;margin:14px 0 6px">ธุระของร้าน <span style="font-weight:400;color:var(--muted)">(ไม่หักเวลา)</span></div>
+      <div id="shop_box"></div>
     </div>
     <div class="card" id="h_stats">
       <h2 style="font-size:15px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg> สถิติการเข้างานเดือนนี้</h2>
@@ -211,7 +214,7 @@
 
 <script>
 let db=null, me=null, authUser=null, branches=[], gpsPromise=null, camStream=null, pickResolve=null;
-let camMode='clockin', todayAttendance=null, todayLeave=null, todayWaiver=null;
+let camMode='clockin', todayAttendance=null, todayLeave=null, todayWaiver=null, todayShopErrand=null, shopPurpose='';
 
 function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
@@ -468,6 +471,10 @@ async function renderExtra(){
   const { data: leave } = await db.from('personal_leaves')
     .select('id,leave_out_time,return_time,status').eq('employee_id', me.employee_id).eq('leave_date', bkkDate()).maybeSingle();
   todayLeave = (leave && leave.status==='open') ? leave : null;
+  const { data: shopRows } = await db.from('shop_errands')
+    .select('id,purpose,out_time,return_time,status').eq('employee_id', me.employee_id).eq('errand_date', bkkDate())
+    .order('out_time',{ascending:true});
+  todayShopErrand = (shopRows||[]).find(s=>s.status==='open') || null;
   const leaveBox=document.getElementById('leave_box');
   if(leave && leave.status==='open'){
     const t=new Date(leave.leave_out_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
@@ -477,8 +484,27 @@ async function renderExtra(){
     leaveBox.innerHTML = `<div class="msg ok">วันนี้ใช้สิทธิ์ออกไปทำธุระแล้ว (กลับมาเมื่อ ${t} น.)</div>`;
   }else if(otRec){
     leaveBox.innerHTML = `<div class="msg" style="display:block">ออกงานไปแล้ว — ออกไปทำธุระไม่ได้</div>`;
+  }else if(todayShopErrand){
+    leaveBox.innerHTML = `<div class="msg" style="display:block">กำลังทำธุระของร้านอยู่ — กด "กลับมาแล้ว" ของธุระร้านก่อน</div>`;
   }else{
-    leaveBox.innerHTML = `<button class="btn ghost" onclick="startLeaveOut()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25"/></svg> ออกไปทำธุระ (1 ครั้ง/วัน)</button>`;
+    leaveBox.innerHTML = `<button class="btn ghost" onclick="startLeaveOut()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25"/></svg> ออกไปทำธุระส่วนตัว (1 ครั้ง/วัน)</button>`;
+  }
+
+  // --- ธุระของร้าน (ไม่หักเวลา · ไม่จำกัดครั้ง แต่ต้องกลับก่อนออกรอบใหม่) ---
+  const shopBox=document.getElementById('shop_box');
+  const hmTxt = iso => new Date(iso).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
+  const doneList = (shopRows||[]).filter(s=>s.status!=='open')
+    .map(s=>`<div style="font-size:12.5px;color:var(--muted)">• ${hmTxt(s.out_time)}–${s.return_time?hmTxt(s.return_time):'-'} น. ${esc(s.purpose)}</div>`).join('');
+  if(todayShopErrand){
+    shopBox.innerHTML = `<div class="msg warn">ออกไปทำธุระร้านตั้งแต่ ${hmTxt(todayShopErrand.out_time)} น. — ${esc(todayShopErrand.purpose)}</div><button class="btn" onclick="returnFromShopErrand()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/></svg> กลับมาแล้ว (ธุระร้าน)</button>` + doneList;
+  }else if(otRec){
+    shopBox.innerHTML = `<div class="msg" style="display:block">ออกงานไปแล้ว — ออกไปทำธุระร้านไม่ได้</div>` + doneList;
+  }else if(todayLeave){
+    shopBox.innerHTML = `<div class="msg" style="display:block">กำลังทำธุระส่วนตัวอยู่ — กด "กลับมาแล้ว" ก่อน</div>` + doneList;
+  }else{
+    shopBox.innerHTML = `<input id="shop_purpose" maxlength="200" placeholder="ไปทำอะไรให้ร้าน เช่น ไปส่งของสาขา…, ไปธนาคาร" value="${esc(shopPurpose)}">`
+      + `<button class="btn ghost" style="margin-top:8px" onclick="startShopErrandOut()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72"/></svg> ออกไปทำธุระของร้าน</button>`
+      + `<div id="shop_msg" class="msg"></div>` + doneList;
   }
 }
 
@@ -514,6 +540,20 @@ async function startLeaveOut(){
   camMode='leave_out';
   gpsPromise = getGPS();
   await openCameraScreen('ถ่ายรูปและออกไปทำธุระ');
+}
+// ---------- ออกไปทำธุระของร้าน (Face + GPS เหมือนธุระส่วนตัว · ต้องพิมพ์ว่าไปทำอะไร) ----------
+async function startShopErrandOut(){
+  const p = (document.getElementById('shop_purpose').value||'').trim();
+  if(p.length < 3){ msg('shop_msg','err','กรุณาพิมพ์ว่าไปทำธุระอะไรให้ร้าน (อย่างน้อย 3 ตัวอักษร)'); return; }
+  shopPurpose = p;
+  camMode='shop_out';
+  gpsPromise = getGPS();
+  await openCameraScreen('ถ่ายรูปและออกไปทำธุระร้าน');
+}
+async function returnFromShopErrand(){
+  if(!todayShopErrand) return;
+  camMode='shop_return';
+  await openCameraScreen('ถ่ายรูปและกดกลับเข้างาน');
 }
 function stopCamera(){
   if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
@@ -561,6 +601,13 @@ async function capture(){
     msg('cam_msg','warn','กำลังตรวจตำแหน่งและบันทึกออกไปทำธุระ…');
     const gps = await gpsPromise;
     await processLeaveOut(blob, gps);
+  }else if(camMode==='shop_out'){
+    msg('cam_msg','warn','กำลังตรวจตำแหน่งและบันทึกออกไปทำธุระร้าน…');
+    const gps = await gpsPromise;
+    await processShopErrandOut(blob, gps);
+  }else if(camMode==='shop_return'){
+    msg('cam_msg','warn','กำลังบันทึกกลับเข้างาน…');
+    await processShopErrandReturn(blob);
   }else{
     msg('cam_msg','warn','กำลังตรวจตำแหน่งและบันทึกการเข้างาน…');
     const gps = await gpsPromise;
@@ -661,6 +708,54 @@ async function processLeaveReturn(blob){
   const rows=[
     ['เวลากลับ', new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' น.'],
     ['นาทีที่ออกไป', ((rec && rec.leave_minutes) || 0)+' นาที'],
+    ['รูปเซลฟี่', selfieErr ? ('อัปไม่สำเร็จ: '+selfieErr) : 'บันทึกแล้ว']
+  ];
+  showResult('ok','<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>','กลับเข้างานแล้ว','บันทึกเรียบร้อยแล้ว', rows);
+}
+
+// ---------- ธุระของร้าน — บันทึกผ่าน fn_shop_errand_out / fn_shop_errand_return เท่านั้น ----------
+async function processShopErrandOut(blob, gps){
+  const { path:selfiePath, err:selfieErr } = await uploadSelfie('shop', blob);
+  const { data:rec, error } = await db.rpc('fn_shop_errand_out', { p_attendance: todayAttendance.id, p_purpose: shopPurpose, p_selfie_path: selfiePath });
+  if(error){
+    if(/duplicate|unique/i.test(error.message||'')){
+      showResult('warn','<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/></svg>','ยังไม่ได้กดกลับรอบก่อน','กด "กลับมาแล้ว (ธุระร้าน)" ก่อน แล้วค่อยออกรอบใหม่',[]);
+    }else{
+      msg('cam_msg','err','บันทึกไม่สำเร็จ: '+error.message);
+      const b=document.getElementById('cap_btn'); b.disabled=false; b.textContent='ลองอีกครั้ง';
+    }
+    return;
+  }
+  shopPurpose='';
+  await db.from('gps_logs').insert({
+    attendance_id: todayAttendance.id,
+    latitude: gps.ok? gps.lat:null, longitude: gps.ok? gps.lng:null,
+    accuracy: gps.ok? gps.acc:null, passed: gps.ok, fail_reason: gps.ok?null:gps.reason
+  });
+  if(!gps.ok){
+    await db.from('pending_cases').insert({ employee_id: me.employee_id, source:'anomaly', related_attendance_id: todayAttendance.id });
+  }
+  const rows=[
+    ['ธุระของร้าน', rec.purpose],
+    ['เวลาออก', new Date(rec.out_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' น.'],
+    ['รูปเซลฟี่', selfieErr ? ('อัปไม่สำเร็จ: '+selfieErr) : 'บันทึกแล้ว']
+  ];
+  if(!gps.ok) rows.push(['ตำแหน่ง','ตรวจไม่ได้ — แจ้ง HR ตรวจสอบแล้ว']);
+  showResult('ok','<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>','ออกไปทำธุระร้านแล้ว','ไม่หักเวลา · อย่าลืมกด "กลับมาแล้ว" เมื่อกลับถึงร้าน', rows);
+}
+async function processShopErrandReturn(blob){
+  const { path:selfiePath, err:selfieErr } = await uploadSelfie('shop_return', blob);
+  const { data:rec, error } = await db.rpc('fn_shop_errand_return', { p_errand: todayShopErrand.id, p_return_selfie_path: selfiePath });
+  if(error){
+    msg('cam_msg','err','บันทึกกลับไม่สำเร็จ: '+error.message);
+    const b=document.getElementById('cap_btn'); b.disabled=false; b.textContent='ลองอีกครั้ง';
+    return;
+  }
+  const mins = Math.max(0, Math.floor((new Date(rec.return_time)-new Date(rec.out_time))/60000));
+  const rows=[
+    ['ธุระของร้าน', rec.purpose],
+    ['เวลากลับ', new Date(rec.return_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' น.'],
+    ['ใช้เวลา', mins+' นาที (ไม่หักเวลา)'],
     ['รูปเซลฟี่', selfieErr ? ('อัปไม่สำเร็จ: '+selfieErr) : 'บันทึกแล้ว']
   ];
   showResult('ok','<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>','กลับเข้างานแล้ว','บันทึกเรียบร้อยแล้ว', rows);
