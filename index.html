@@ -173,6 +173,7 @@
       <button type="button" class="tab" data-t="employees"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"/></svg> พนักงาน</button>
       <button type="button" class="tab" data-t="roles"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z"/></svg> สิทธิ์</button>
       <button type="button" class="tab" data-t="payroll"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> ส่งออกเงินเดือน</button>
+      <button type="button" class="tab" data-t="salary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z"/></svg> คำนวณเงินเดือน</button>
       <button type="button" class="tab" data-t="stats"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg> สถิติรายคน</button>
     </nav>
     <div class="who"><span id="whoami"></span> <button type="button" class="logout" onclick="openChangePw(false)" title="เปลี่ยนรหัสผ่านของตัวเอง">เปลี่ยนรหัสผ่าน</button><button class="logout" onclick="doLogout()">ออกจากระบบ</button></div>
@@ -366,6 +367,54 @@
       </div>
     </div>
 
+    <div class="panel" id="p-salary">
+      <div class="card">
+        <h2>คำนวณเงินเดือน</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:10px">ค่าแรง 347 บาท/วัน × วันที่มาทำงาน · OT ชม.ละ 65 บาท <b>จ่ายงวดถัดไป</b> · สาย/ออกนอกเวลา/กลับก่อน 16:00 หักนาทีละ 1 บาท · ลืมกดเข้างาน (HR ใส่เวลาให้) ครั้งละ 20 บาท<br>ช่อง<b>สีเทา</b> ระบบคิดให้ · ช่อง<b>สีขาว</b> HR กรอกเอง แล้วกด "บันทึก"</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div style="min-width:180px"><label>งวดเดือน</label><input id="sc_month" type="month" onchange="loadSalary()"></div>
+          <button class="ebtn" style="height:42px" onclick="loadSalary()">โหลดใหม่</button>
+        </div>
+        <div id="sc_status" class="msg"></div>
+      </div>
+      <div class="card" id="sc_resultcard" style="display:none">
+        <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <span id="sc_title">งวด</span>
+          <span style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="ebtn" id="sc_savebtn" onclick="saveSalaryLines()">บันทึก</button>
+            <button class="ebtn" id="sc_closebtn" onclick="closeSalaryPeriod()">ปิดงวด (ล็อก)</button>
+            <button class="ebtn del" id="sc_reopenbtn" onclick="reopenSalaryPeriod()" style="display:none">เปิดงวดกลับ (แอดมิน)</button>
+            <button class="ebtn" onclick="downloadSalary()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> Excel</button>
+          </span>
+        </h2>
+        <div class="kpis" id="sc_kpis" style="margin-bottom:14px"></div>
+        <div id="sc_table" style="overflow-x:auto"></div>
+        <div id="sc_msg" class="msg"></div>
+      </div>
+      <div class="card">
+        <h2>เบี้ยเลี้ยง (นับสต็อกต่างจังหวัด)</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:6px">บันทึกรายวัน พร้อมหมายเหตุไว้ติดตาม · ยอดรวมเข้าช่อง "เบี้ยเลี้ยง" ของงวดเดือนนั้นอัตโนมัติ</p>
+        <div class="grid2">
+          <div><label>พนักงาน</label><select id="al_emp"></select></div>
+          <div><label>วันที่</label><input id="al_date" type="date"></div>
+        </div>
+        <div class="grid2">
+          <div><label>หมายเหตุ <span style="color:var(--red)">*</span></label><input id="al_note" maxlength="200" placeholder="เช่น นับสต็อกสาขาเชียงราย"></div>
+          <div><label>จำนวนเงิน (บาท)</label><input id="al_amount" type="number" min="1" step="1" value="200"></div>
+        </div>
+        <button class="btn" onclick="addAllowance()">+ เพิ่มเบี้ยเลี้ยง</button>
+        <div id="al_msg" class="msg"></div>
+        <div id="al_list" style="overflow-x:auto;margin-top:12px"></div>
+      </div>
+      <div class="card">
+        <h2>ตั้งค่ารายคน</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:6px">ตั้งครั้งเดียว ใช้ทุกงวด · ประกันงานหักทุกเดือน คืนตอนลาออก (กรอกในช่อง "คืนเงินประกัน" ของงวดสุดท้าย) · "ยอดยกมา" = ประกันงานที่หักสะสมไว้ก่อนเริ่มใช้ระบบ</p>
+        <div id="sp_list" style="overflow-x:auto"></div>
+        <button class="btn" onclick="saveSalaryProfiles()">บันทึกการตั้งค่า</button>
+        <div id="sp_msg" class="msg"></div>
+      </div>
+    </div>
+
     <div class="panel" id="p-stats">
       <div class="card">
         <h2>สถิติการเข้างานรายบุคคล</h2>
@@ -531,6 +580,7 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   if(t.dataset.t==='attend'){ const d=document.getElementById('at_date'); if(!d.value) d.value=bkkToday(); loadAtFilters(); atRefresh(); }
   if(t.dataset.t==='approvals') loadApprovals();
   if(t.dataset.t==='payroll') loadPrFilters();
+  if(t.dataset.t==='salary') openSalaryTab();
   if(t.dataset.t==='stats') loadStatFilters();
   toggleNav(false);
 });
@@ -1458,6 +1508,326 @@ async function reactivateEmployee(id){
   }
   await loadEmployees(); loadDashboard();
 }
+// ---------- คำนวณเงินเดือน (แทนชีท "ระบบคำนวนเงินเดือน") ----------
+// กติกา Owner 5 ต.ค. 2569: ค่าแรงเท่ากันทุกคน · หักทุกวันที่ไม่มา (รวมลา) · OT จ่ายงวดถัดไป
+// สาย/ออกนอกเวลา (ธุระส่วนตัว)/กลับก่อน 16:00 นาทีละ 1 บาท · ลืมกดเข้างาน (HR ใส่เวลาให้ = ไม่มีเซลฟี่) ครั้งละ 20
+const SAL = { DAILY:347, OT_RATE:65, FORGOT:20, SSO:750 };
+// ช่องที่ HR กรอกเอง (payroll_lines) — [คอลัมน์, หัวตาราง, 'inc'|'ded']
+const SAL_MANUAL = [
+  ['diligence','เบี้ยขยัน','inc'], ['commission','คอมพิเศษ','inc'], ['fuel','ค่าน้ำมัน','inc'],
+  ['target_bonus','เป้าแตก','inc'], ['extra_income','รายได้พิเศษ','inc'], ['lost_refund','คืนของหาย','inc'],
+  ['deposit_refund','คืนเงินประกัน','inc'],
+  ['advance','หักเบิกเงิน 10/20','ded'], ['lost_item','หักของหาย','ded'], ['credit','ลงเครดิต','ded'], ['rule_fine','ผิดกฎระเบียบ','ded'],
+];
+let sal = null;   // { month, start, end, closed, rows:[{emp, auto, line}], dirty:Set }
+
+function salMonthRange(ym){
+  const [y,m] = ym.split('-').map(Number);
+  const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const pad = n => String(n).padStart(2,'0');
+  const prevY = m===1 ? y-1 : y, prevM = m===1 ? 12 : m-1;
+  const prevDays = new Date(Date.UTC(prevY, prevM, 0)).getUTCDate();
+  return { start:`${y}-${pad(m)}-01`, end:`${y}-${pad(m)}-${pad(days)}`, days,
+           prevStart:`${prevY}-${pad(prevM)}-01`, prevEnd:`${prevY}-${pad(prevM)}-${pad(prevDays)}` };
+}
+const r2 = n => Math.round((Number(n)||0)*100)/100;
+const fmtB = n => r2(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+async function openSalaryTab(){
+  const el=document.getElementById('sc_month');
+  if(!el.value){
+    const t=bkkToday(); let [y,m,d]=t.split('-').map(Number);
+    if(d<=15){ m--; if(m===0){ m=12; y--; } }      // ต้นเดือน = มักทำเงินเดือนของเดือนที่แล้ว
+    el.value = y+'-'+String(m).padStart(2,'0');
+  }
+  await loadSalary();
+}
+
+// คิดยอดของ 1 คน จากข้อมูลอัตโนมัติ (auto) + ช่องที่ HR กรอก (line) + ตั้งค่ารายคน (prof)
+function salCompute(auto, line, prof){
+  const L = line||{}, P = prof||{};
+  const forgot = (L.forgot_override!=null && L.forgot_override!=='') ? Number(L.forgot_override) : auto.forgotAuto;
+  const otPrev = (L.ot_prev_override!=null && L.ot_prev_override!=='') ? Number(L.ot_prev_override) : auto.otPrevPay;
+  const c = {
+    salary: SAL.DAILY*auto.days, workDays: auto.workDays, offDays: auto.days-auto.workDays,
+    offDed: SAL.DAILY*(auto.days-auto.workDays), daily: SAL.DAILY*auto.workDays,
+    otHours: auto.otHours, otPay: r2(auto.otHours*SAL.OT_RATE), otPrev: r2(otPrev),
+    lateMin: auto.lateMin, outMin: auto.outMin, earlyMin: auto.earlyMin,
+    forgot, forgotDed: forgot*SAL.FORGOT,
+    // ไม่ได้มาทำงานเลยทั้งงวด (เช่น ลาออกแล้ว แต่ยังมี OT ค้างจ่าย) → ไม่หักประกันสังคม/ประกันงาน
+    sso: (P.sso && auto.workDays>0) ? SAL.SSO : 0, deposit: auto.workDays>0 ? (Number(P.deposit_monthly ?? 500)||0) : 0,
+    position: Number(P.position_allowance)||0, allowance: auto.allowance,
+  };
+  SAL_MANUAL.forEach(([k])=> c[k] = Number(L[k])||0);
+  c.totalDed = r2(c.lateMin + c.outMin + c.earlyMin + c.forgotDed + c.sso + c.deposit
+             + SAL_MANUAL.filter(x=>x[2]==='ded').reduce((s,[k])=>s+c[k],0));
+  c.totalInc = r2(c.otPrev + c.position + c.allowance
+             + SAL_MANUAL.filter(x=>x[2]==='inc').reduce((s,[k])=>s+c[k],0));
+  c.net = r2(c.daily + c.totalInc - c.totalDed);
+  return c;
+}
+
+async function loadSalary(){
+  const ym=document.getElementById('sc_month').value;
+  if(!ym){ showMsg('sc_status',false,'เลือกเดือนก่อน'); return; }
+  const R=salMonthRange(ym);
+  const box=document.getElementById('sc_table');
+  document.getElementById('sc_resultcard').style.display='block';
+  box.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังคำนวณ…</div>';
+  try{
+    const [att, leaves, waivers, allow, lines, profiles, periodRes, emps] = await Promise.all([
+      prFetchAll(()=> db.from('attendance_records')
+        .select('employee_id,work_date,status,late_minutes,clock_in_time,selfie_path,ot_records(ot_hours,ot_status,ot_clock_out_time)')
+        .gte('work_date', R.prevStart).lte('work_date', R.end)),
+      prFetchAll(()=> db.from('personal_leaves').select('employee_id,leave_minutes,leave_date').gte('leave_date', R.start).lte('leave_date', R.end)),
+      prFetchAll(()=> db.from('ot_waiver_requests').select('employee_id,request_date').eq('status','approved').gte('request_date', R.prevStart).lte('request_date', R.end)),
+      prFetchAll(()=> db.from('allowance_entries').select('id,employee_id,entry_date,amount,note').gte('entry_date', R.start).lte('entry_date', R.end).order('entry_date')),
+      prFetchAll(()=> db.from('payroll_lines').select('*').eq('period_month', R.start)),
+      prFetchAll(()=> db.from('payroll_profiles').select('*')),
+      db.from('payroll_periods').select('*').eq('period_month', R.start).maybeSingle(),
+      prFetchAll(()=> db.from('employees').select('employee_id,employee_code,first_name,last_name,nickname,role,status,home_branch_id').eq('role','staff').order('employee_code')),
+    ]);
+    if(periodRes.error) throw periodRes.error;
+    const period = periodRes.data;
+    const waived = new Set(waivers.map(w=>w.employee_id+'|'+w.request_date));
+    const profBy = {}; profiles.forEach(p=>profBy[p.employee_id]=p);
+    const lineBy = {}; lines.forEach(l=>lineBy[l.employee_id]=l);
+
+    const blank = () => ({ days:R.days, workDays:0, lateMin:0, outMin:0, earlyMin:0, forgotAuto:0, otHours:0, otPrevHours:0, otPrevPay:0, allowance:0, hasData:false });
+    const A = {};
+    const get = id => A[id] || (A[id]=blank());
+    att.forEach(a=>{
+      const g=get(a.employee_id); const inMonth = a.work_date>=R.start;
+      const ot=prPickOt(a.ot_records);
+      const otH = (ot && ot.ot_status==='YES' && !waived.has(a.employee_id+'|'+a.work_date)) ? (Number(ot.ot_hours)||0) : 0;
+      if(!inMonth){ g.otPrevHours += otH; if(otH) g.hasData=true; return; }
+      g.hasData=true;
+      const worked = !!a.clock_in_time && a.status!=='absent' && a.status!=='leave';
+      if(!worked) return;
+      g.workDays++;
+      g.lateMin += Number(a.late_minutes)||0;
+      g.otHours += otH;
+      if(!a.selfie_path) g.forgotAuto++;                       // HR ใส่เวลาเข้างานให้ (พนักงานไม่ได้กดเอง)
+      if(ot && ot.ot_clock_out_time){                           // ออกงานก่อน 16:00
+        const four=new Date(a.work_date+'T16:00:00+07:00'), out=new Date(ot.ot_clock_out_time);
+        if(out<four) g.earlyMin += Math.floor((four-out)/60000);
+      }
+    });
+    leaves.forEach(l=>{ const g=get(l.employee_id); g.outMin += Number(l.leave_minutes)||0; g.hasData=true; });
+    allow.forEach(x=>{ const g=get(x.employee_id); g.allowance += Number(x.amount)||0; g.hasData=true; });
+    Object.values(A).forEach(g=>{ g.otPrevPay = r2(g.otPrevHours*SAL.OT_RATE); g.otHours=r2(g.otHours); });
+
+    const rows = emps
+      .filter(e => e.status==='active' || (A[e.employee_id] && A[e.employee_id].hasData) || lineBy[e.employee_id])
+      .map(e => ({ emp:e, auto:A[e.employee_id]||blank(), line:{...(lineBy[e.employee_id]||{})}, prof:profBy[e.employee_id]||null }));
+
+    sal = { ym, R, closed: period && period.status==='closed', period, rows, allow, profBy, dirty:new Set() };
+    salAllowEmps(emps);
+    renderSalary();
+    renderAllowances();
+    renderSalaryProfiles(emps);
+    const unfinished = R.end >= bkkToday();
+    if(sal.closed) showMsg('sc_status',true,'งวดนี้ปิดแล้ว (ล็อก) — แสดงยอด ณ ตอนปิดงวด '+fmtTime(period.closed_at));
+    else if(unfinished) showMsg('sc_status',false,'เดือนนี้ยังไม่จบ — วันที่ยังไม่ถึงจะถูกนับเป็น "หยุดเกิน" ไปก่อน ตัวเลขจะถูกต้องเมื่อจบเดือน');
+    else { const m=document.getElementById('sc_status'); m.className='msg'; m.textContent=''; }
+  }catch(err){
+    box.innerHTML='<div class="empty">คำนวณไม่สำเร็จ: '+esc(err.message||err)+'</div>';
+  }
+}
+
+// แถวที่จะแสดง/ส่งออก — งวดที่ปิดแล้วใช้ snapshot ที่เก็บไว้ตอนปิด (ไม่คิดใหม่)
+function salRows(){
+  if(sal.closed && sal.period && Array.isArray(sal.period.snapshot)) return sal.period.snapshot;
+  return sal.rows.map(r=>({ employee_id:r.emp.employee_id, code:r.emp.employee_code,
+    name:(r.emp.nickname?r.emp.nickname+'-':'')+r.emp.first_name, first:r.emp.first_name, last:r.emp.last_name||'',
+    ...salCompute(r.auto, r.line, r.prof), note:r.line.note||'' }));
+}
+
+function renderSalary(){
+  const rows=salRows(), ro=sal.closed;
+  document.getElementById('sc_title').textContent='งวด '+thMonthLabel(sal.ym)+(ro?' · ปิดงวดแล้ว 🔒':'');
+  document.getElementById('sc_savebtn').style.display = ro?'none':'';
+  document.getElementById('sc_closebtn').style.display = ro?'none':'';
+  document.getElementById('sc_reopenbtn').style.display = (ro && currentRole==='owner')?'':'none';
+  const sum = k => rows.reduce((s,r)=>s+(Number(r[k])||0),0);
+  document.getElementById('sc_kpis').innerHTML =
+    `<div class="kpi"><div class="n">${rows.length}</div><div class="l">คน</div></div>`+
+    `<div class="kpi"><div class="n" id="sc_k_net">${fmtB(sum('net'))}</div><div class="l">รายได้รวมทั้งหมด (บาท)</div></div>`+
+    `<div class="kpi"><div class="n">${fmtB(sum('otPay'))}</div><div class="l">OT เดือนนี้ (จ่ายงวดหน้า)</div></div>`;
+  const gray='background:var(--paper);color:var(--ink2)';
+  const inp = (i,k,v) => `<input type="number" step="0.01" style="width:90px;padding:6px 8px" value="${v?esc(v):''}" ${ro?'disabled':''} oninput="salEdit(${i},'${k}',this.value)">`;
+  let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>วันทำงาน</th><th>หยุดเกิน</th><th>รวมรายวัน</th>'
+    +'<th>สาย</th><th>ออกนอกเวลา</th><th>กลับก่อน</th><th>ลืมกดเข้า (ครั้ง)</th><th>ประกันสังคม</th><th>ประกันงาน</th>'
+    +'<th>OT เดือนก่อน</th><th>ค่าตำแหน่ง</th><th>เบี้ยเลี้ยง</th>'
+    + SAL_MANUAL.map(([,t])=>`<th>${t}</th>`).join('')
+    +'<th>หมายเหตุ</th><th>รวมรับ</th><th>รวมหัก</th><th>รายได้รวม</th></tr>';
+  rows.forEach((r,i)=>{
+    const otCell = ro ? fmtB(r.otPrev)
+      : `<input type="number" step="0.01" style="width:90px;padding:6px 8px" placeholder="${r.otPrev}" value="${sal.rows[i].line.ot_prev_override??''}" title="ว่าง = ใช้ค่าจากระบบ" oninput="salEdit(${i},'ot_prev_override',this.value)">`;
+    const fgCell = ro ? r.forgot
+      : `<input type="number" min="0" step="1" style="width:70px;padding:6px 8px" placeholder="${sal.rows[i].auto.forgotAuto}" value="${sal.rows[i].line.forgot_override??''}" title="ว่าง = ใช้จำนวนที่ระบบนับ" oninput="salEdit(${i},'forgot_override',this.value)">`;
+    h+=`<tr><td>${esc(r.code)}</td><td>${esc(r.name)}</td>`
+      +`<td style="${gray}">${r.workDays}</td><td style="${gray}">${r.offDays} <span style="font-size:11px">(-${fmtB(r.offDed)})</span></td><td style="${gray}">${fmtB(r.daily)}</td>`
+      +`<td style="${gray}">${r.lateMin}</td><td style="${gray}">${r.outMin}</td><td style="${gray}">${r.earlyMin}</td><td>${fgCell}</td>`
+      +`<td style="${gray}">${r.sso}</td><td style="${gray}">${r.deposit}</td>`
+      +`<td>${otCell}</td><td style="${gray}">${fmtB(r.position)}</td><td style="${gray}">${fmtB(r.allowance)}</td>`
+      + SAL_MANUAL.map(([k])=>`<td>${ro?fmtB(r[k]):inp(i,k,sal.rows[i].line[k])}</td>`).join('')
+      +`<td>${ro?esc(r.note):`<input style="width:140px;padding:6px 8px" maxlength="200" value="${esc(sal.rows[i].line.note||'')}" oninput="salEdit(${i},'note',this.value)">`}</td>`
+      +`<td id="sc_inc_${i}">${fmtB(r.totalInc)}</td><td id="sc_ded_${i}">${fmtB(r.totalDed)}</td><td id="sc_net_${i}"><b>${fmtB(r.net)}</b></td></tr>`;
+  });
+  box_set('sc_table', h+'</table>');
+}
+function box_set(id,html){ document.getElementById(id).innerHTML=html; }
+function thMonthLabel(ym){ const [y,m]=ym.split('-').map(Number); return ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'][m-1]+' '+(y+543); }
+
+function salEdit(i,k,v){
+  const r=sal.rows[i];
+  r.line[k] = (k==='note') ? v : (v===''? (k.endsWith('_override')?null:0) : Number(v));
+  sal.dirty.add(i);
+  const c=salCompute(r.auto, r.line, r.prof);
+  document.getElementById('sc_inc_'+i).textContent=fmtB(c.totalInc);
+  document.getElementById('sc_ded_'+i).textContent=fmtB(c.totalDed);
+  document.getElementById('sc_net_'+i).innerHTML='<b>'+fmtB(c.net)+'</b>';
+  document.getElementById('sc_k_net').textContent=fmtB(salRows().reduce((s,x)=>s+x.net,0));
+}
+
+async function saveSalaryLines(silent){
+  if(!sal || sal.closed) return true;
+  if(!sal.dirty.size){ if(!silent) showMsg('sc_msg',true,'ไม่มีอะไรเปลี่ยน'); return true; }
+  const payload=[...sal.dirty].map(i=>{
+    const r=sal.rows[i], o={ period_month:sal.R.start, employee_id:r.emp.employee_id,
+      note:(r.line.note||'').trim()||null, ot_prev_override:r.line.ot_prev_override??null,
+      forgot_override:r.line.forgot_override??null, updated_at:new Date().toISOString(), updated_by:currentEmpId };
+    SAL_MANUAL.forEach(([k])=> o[k]=Number(r.line[k])||0);
+    return o;
+  });
+  const { error } = await db.from('payroll_lines').upsert(payload, { onConflict:'period_month,employee_id' });
+  if(error){ showMsg('sc_msg',false,'บันทึกไม่สำเร็จ: '+error.message); return false; }
+  sal.dirty.clear();
+  if(!silent) showMsg('sc_msg',true,'บันทึกแล้ว '+payload.length+' คน');
+  return true;
+}
+
+async function closeSalaryPeriod(){
+  if(!sal || sal.closed) return;
+  if(!confirm('ปิดงวด '+thMonthLabel(sal.ym)+'?\nหลังปิดแล้วยอดจะถูกล็อก แก้ไขไม่ได้ (เปิดกลับได้เฉพาะแอดมิน)')) return;
+  if(!(await saveSalaryLines(true))) return;
+  const snapshot = salRows();
+  const { error } = await db.from('payroll_periods').upsert({ period_month:sal.R.start, status:'closed', snapshot,
+    closed_at:new Date().toISOString(), closed_by:currentEmpId }, { onConflict:'period_month' });
+  if(error){ showMsg('sc_msg',false,'ปิดงวดไม่สำเร็จ: '+error.message); return; }
+  await loadSalary();
+  showMsg('sc_msg',true,'ปิดงวดเรียบร้อย');
+}
+async function reopenSalaryPeriod(){
+  if(!sal || !sal.closed || currentRole!=='owner') return;
+  if(!confirm('เปิดงวด '+thMonthLabel(sal.ym)+' กลับมาแก้ไข?\nยอดจะถูกคำนวณใหม่จากข้อมูลล่าสุด')) return;
+  const { error } = await db.from('payroll_periods').update({ status:'draft', snapshot:null, closed_at:null, closed_by:null }).eq('period_month', sal.R.start);
+  if(error){ showMsg('sc_msg',false,'เปิดงวดไม่สำเร็จ: '+error.message); return; }
+  await loadSalary();
+  showMsg('sc_msg',true,'เปิดงวดกลับแล้ว');
+}
+
+// ส่งออก Excel — เรียงคอลัมน์ใกล้เคียงชีทเดิม + แถวรวมท้าย
+function downloadSalary(){
+  if(!sal){ return; }
+  const rows=salRows();
+  const H=['งวด','รหัสพนักงาน','ชื่อเล่น-ชื่อจริง','ชื่อ','นามสกุล','เงินเดือน','ชม.OT เดือนนี้','OT เดือนนี้ (จ่ายงวดหน้า)','วันทำงาน','เบี้ยขยัน','หยุดเกิน','หักหยุดเกิน','รวมรายวัน',
+    'สาย','หักสาย','ออกนอกเวลา','กลับก่อน','ลืมกดเข้างาน (ครั้ง)','หักลืมกดเข้างาน','หักประกันสังคม','หักประกันงาน','หักเบิกเงิน 10/20','หักของหาย','ลงเครดิต','ผิดกฎระเบียบ','รวมหัก',
+    'OT (เดือนก่อน)','คอมพิเศษ','เบี้ยเลี้ยง','ค่าน้ำมัน','เป้าแตก','ค่าตำแหน่ง','รายได้พิเศษ','คืนของหาย','คืนเงินประกัน','รวมรับ','รายได้รวม','หมายเหตุ'];
+  const line = r => [thMonthLabel(sal.ym), r.code, r.name, r.first, r.last, r.salary, r.otHours, r.otPay, r.workDays, r.diligence, r.offDays, r.offDed, r.daily,
+    r.lateMin, r.lateMin, r.outMin, r.earlyMin, r.forgot, r.forgotDed, r.sso, r.deposit, r.advance, r.lost_item, r.credit, r.rule_fine, r.totalDed,
+    r.otPrev, r.commission, r.allowance, r.fuel, r.target_bonus, r.position, r.extra_income, r.lost_refund, r.deposit_refund, r.totalInc, r.net, r.note||''];
+  const aoa=[H, ...rows.map(line)];
+  const tot = H.map((_,ci)=> (ci<5||ci===H.length-1) ? '' : r2(aoa.slice(1).reduce((s,x)=>s+(Number(x[ci])||0),0)));
+  tot[0]='รวม '+thMonthLabel(sal.ym);
+  aoa.push(tot);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Summary');
+  XLSX.writeFile(wb, 'salary_'+sal.ym+(sal.closed?'':'_draft')+'.xlsx');
+}
+
+// ---------- เบี้ยเลี้ยง ----------
+function salAllowEmps(emps){
+  const s=document.getElementById('al_emp'), cur=s.value;
+  s.innerHTML='<option value="">— เลือกพนักงาน —</option>'+emps.filter(e=>e.status==='active')
+    .map(e=>`<option value="${e.employee_id}">${esc(e.employee_code)} · ${esc((e.nickname?e.nickname+'-':'')+e.first_name)}</option>`).join('');
+  if(cur) s.value=cur;
+  const d=document.getElementById('al_date');
+  if(!d.value || d.value<sal.R.start || d.value>sal.R.end) d.value = (bkkToday()<=sal.R.end && bkkToday()>=sal.R.start) ? bkkToday() : sal.R.start;
+}
+function renderAllowances(){
+  const box=document.getElementById('al_list'), list=sal.allow;
+  const nameOf = id => { const r=sal.rows.find(x=>x.emp.employee_id===id); return r ? r.emp.employee_code+' · '+((r.emp.nickname?r.emp.nickname+'-':'')+r.emp.first_name) : id; };
+  if(!list.length){ box.innerHTML='<div class="empty">'+thMonthLabel(sal.ym)+': ยังไม่มีเบี้ยเลี้ยง</div>'; return; }
+  box.innerHTML='<table><tr><th>วันที่</th><th>พนักงาน</th><th>หมายเหตุ</th><th>บาท</th><th></th></tr>'
+    + list.map(x=>`<tr><td>${thShortDate(x.entry_date)}</td><td>${esc(nameOf(x.employee_id))}</td><td>${esc(x.note)}</td><td>${fmtB(x.amount)}</td>`
+      +`<td>${sal.closed?'':`<button class="ebtn del" onclick="deleteAllowance('${x.id}')">ลบ</button>`}</td></tr>`).join('')
+    + '</table>';
+}
+async function addAllowance(){
+  const emp=document.getElementById('al_emp').value, d=document.getElementById('al_date').value;
+  const note=document.getElementById('al_note').value.trim(), amt=Number(document.getElementById('al_amount').value);
+  if(!emp){ showMsg('al_msg',false,'เลือกพนักงานก่อน'); return; }
+  if(!d){ showMsg('al_msg',false,'ใส่วันที่'); return; }
+  if(note.length<2){ showMsg('al_msg',false,'กรุณาใส่หมายเหตุ (ไปนับสต็อกที่ไหน)'); return; }
+  if(!(amt>0)){ showMsg('al_msg',false,'จำนวนเงินต้องมากกว่า 0'); return; }
+  const { error } = await db.from('allowance_entries').insert({ employee_id:emp, entry_date:d, amount:amt, note, created_by:currentEmpId });
+  if(error){ showMsg('al_msg',false, /row-level security/i.test(error.message) ? 'งวดของวันที่นี้ปิดไปแล้ว — เพิ่มไม่ได้' : ('เพิ่มไม่สำเร็จ: '+error.message)); return; }
+  document.getElementById('al_note').value='';
+  if(!(await saveSalaryLines(true))) return;
+  const ym=d.slice(0,7);
+  if(ym!==sal.ym) document.getElementById('sc_month').value=ym;
+  await loadSalary();
+  showMsg('al_msg',true,'เพิ่มเบี้ยเลี้ยงแล้ว');
+}
+async function deleteAllowance(id){
+  if(!confirm('ลบรายการเบี้ยเลี้ยงนี้?')) return;
+  const { error } = await db.from('allowance_entries').delete().eq('id', id);
+  if(error){ showMsg('al_msg',false,'ลบไม่สำเร็จ: '+error.message); return; }
+  if(!(await saveSalaryLines(true))) return;
+  await loadSalary();
+  showMsg('al_msg',true,'ลบแล้ว');
+}
+
+// ---------- ตั้งค่ารายคน ----------
+let spEmps=[];
+async function renderSalaryProfiles(emps){
+  spEmps = emps.filter(e=>e.status==='active');
+  // ประกันงานสะสม = ยอดยกมา + ที่หักไปในงวดที่ปิดแล้วทั้งหมด − ที่คืนไปแล้ว
+  const { data: closed } = await db.from('payroll_periods').select('snapshot').eq('status','closed');
+  const paid={};
+  (closed||[]).forEach(p=>(p.snapshot||[]).forEach(r=>{ paid[r.employee_id]=(paid[r.employee_id]||0)+(Number(r.deposit)||0)-(Number(r.deposit_refund)||0); }));
+  const box=document.getElementById('sp_list');
+  if(!spEmps.length){ box.innerHTML='<div class="empty">ยังไม่มีพนักงาน</div>'; return; }
+  box.innerHTML='<table><tr><th>รหัส</th><th>ชื่อ</th><th>หักประกันสังคม 750</th><th>ค่าตำแหน่ง</th><th>ประกันงาน/เดือน</th><th>ยอดยกมา</th><th>ประกันงานสะสม</th></tr>'
+    + spEmps.map(e=>{
+      const p=sal.profBy[e.employee_id]||{ sso:false, position_allowance:0, deposit_monthly:500, deposit_opening:0 };
+      const acc=(Number(p.deposit_opening)||0)+(paid[e.employee_id]||0);
+      return `<tr data-emp="${e.employee_id}"><td>${esc(e.employee_code)}</td><td>${esc((e.nickname?e.nickname+'-':'')+e.first_name)}</td>`
+        +`<td><input type="checkbox" class="sp_sso" style="width:auto" ${p.sso?'checked':''}></td>`
+        +`<td><input type="number" min="0" step="0.01" class="sp_pos" style="width:100px;padding:6px 8px" value="${Number(p.position_allowance)||0}"></td>`
+        +`<td><input type="number" min="0" step="0.01" class="sp_dep" style="width:90px;padding:6px 8px" value="${Number(p.deposit_monthly??500)}"></td>`
+        +`<td><input type="number" min="0" step="0.01" class="sp_open" style="width:100px;padding:6px 8px" value="${Number(p.deposit_opening)||0}"></td>`
+        +`<td>${fmtB(acc)}</td></tr>`;
+    }).join('') + '</table>';
+}
+async function saveSalaryProfiles(){
+  const rows=[...document.querySelectorAll('#sp_list tr[data-emp]')].map(tr=>({
+    employee_id: tr.dataset.emp,
+    sso: tr.querySelector('.sp_sso').checked,
+    position_allowance: Math.max(0, Number(tr.querySelector('.sp_pos').value)||0),
+    deposit_monthly: Math.max(0, Number(tr.querySelector('.sp_dep').value)||0),
+    deposit_opening: Math.max(0, Number(tr.querySelector('.sp_open').value)||0),
+    updated_at: new Date().toISOString(), updated_by: currentEmpId }));
+  if(!rows.length) return;
+  const { error } = await db.from('payroll_profiles').upsert(rows, { onConflict:'employee_id' });
+  if(error){ showMsg('sp_msg',false,'บันทึกไม่สำเร็จ: '+error.message); return; }
+  if(!(await saveSalaryLines(true))) return;
+  await loadSalary();
+  showMsg('sp_msg',true,'บันทึกการตั้งค่าแล้ว '+rows.length+' คน');
+}
+
 // ---------- Payroll Export (DL-45..48) ----------
 let payrollRows=[], payrollPeriod=null;
 const PR_HEADERS=['รหัสพนักงาน','ชื่อ-สกุล','สาขาประจำ','สาขาที่ทำงาน','วันทำงาน','ชั่วโมงทำงาน','สถานะ OT','ชั่วโมง OT','สายรวม (นาที)','ลากิจรวม (นาที)'];
