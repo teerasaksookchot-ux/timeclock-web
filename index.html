@@ -249,7 +249,8 @@
 
     <div class="panel" id="p-approvals">
       <div class="card">
-        <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>ขอไม่ทำ OT (รออนุมัติ)</span><button class="ebtn" onclick="loadApprovals()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> รีเฟรช</button></h2>
+        <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>ขอไม่ทำ OT (คำขอเก่าที่ค้างอยู่)</span><button class="ebtn" onclick="loadApprovals()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> รีเฟรช</button></h2>
+        <p style="font-size:12.5px;color:var(--muted);margin:-6px 0 10px">ตั้งแต่ 8 ต.ค. 2569 ยกเลิกปุ่ม "ขอไม่ทำ OT" ในแอปพนักงานแล้ว — พนักงานกดถ่ายรูปออกงานได้ตลอด OT นับตามเวลาออกจริงตั้งแต่ 16:30 น. · ช่องนี้เหลือไว้จัดการคำขอเก่าที่ค้างเท่านั้น</p>
         <div id="wv_list"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div>
       </div>
       <div class="card">
@@ -859,11 +860,15 @@ async function loadAttendance(){
     const t=r.clock_in_time? new Date(r.clock_in_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}):'-';
     const lateTxt=r.late_minutes>0? ' (สาย '+r.late_minutes+' น.)':'';
     const otRec = Array.isArray(r.ot_records) ? r.ot_records[0] : r.ot_records;
+    // ตั้งแต่ 8 ต.ค. 2569 พนักงานต้องกดถ่ายรูปออกงานทุกคน (ปุ่มเปิดตลอด) — normal_close_time ที่ cron ใส่ 16:00 ให้ทุกคน
+    // ไม่ได้แปลว่าออกแล้ว: วันนี้ยังไม่กด = "ยังไม่ออก" · วันก่อน ๆ ไม่กด = แสดง 16:00 พร้อมป้าย "ไม่ได้กดออก"
+    const outEarly = otRec && otRec.ot_clock_out_time && new Date(otRec.ot_clock_out_time) < new Date(day+'T16:00:00+07:00');
     const outT = otRec && otRec.ot_clock_out_time
       ? new Date(otRec.ot_clock_out_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}) + (otRec.ot_hours>0 ? ' (OT '+otRec.ot_hours+' ชม.)' : '')
+        + (outEarly ? ' <span style="color:var(--red);font-size:12px">ออกก่อนเวลา</span>' : '')
       : !r.clock_in_time ? '-'            // ยังไม่เข้างาน (ขาด/ลา/ค้าง) → ไม่มีเวลาออกให้แสดง
-      : r.normal_close_time
-          ? new Date(r.normal_close_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})
+      : (day < bkkToday() && r.normal_close_time)
+          ? new Date(r.normal_close_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}) + ' <span style="color:var(--amber);font-size:12px">ไม่ได้กดออก</span>'
           : '<span style="color:var(--muted)">ยังไม่ออก</span>';
     const stTxt = r.status==='pending' ? '<span style="color:var(--red)">รอยืนยัน</span>'
                 : r.status==='absent' ? '<span style="color:var(--red)">ขาด</span>'
@@ -2124,7 +2129,10 @@ function renderPersonDays(att){
       .sort((x,y)=>(Number(y.ot_hours)||0)-(Number(x.ot_hours)||0))[0];
     const lv=Array.isArray(a.personal_leaves)?a.personal_leaves[0]:a.personal_leaves;
     const inTxt = a.status==='absent' ? '-' : (hm(a.clock_in_time)||'-') + (a.late_minutes>0?` <span style="color:var(--amber)">(สาย ${a.late_minutes}น.)</span>`:'');
-    const closeTxt = (ot && ot.ot_clock_out_time ? hm(ot.ot_clock_out_time) : hm(a.normal_close_time)) || '-';
+    const closeTxt = ot && ot.ot_clock_out_time ? hm(ot.ot_clock_out_time)
+      : !a.clock_in_time ? '-'
+      : a.work_date >= bkkToday() ? '<span style="color:var(--muted)">ยังไม่ออก</span>'   // วันนี้ยังไม่กดออก (cron ใส่ 16:00 ไว้ แต่ยังไม่ได้ออกจริง)
+      : (hm(a.normal_close_time)||'-') + ' <span style="color:var(--amber);font-size:12px">ไม่ได้กดออก</span>';
     const otTxt = ot && ot.ot_hours>0 ? `${ot.ot_hours} ชม.` : '-';
     const stTxt = a.status==='pending' ? '<span style="color:var(--red)">รอยืนยัน</span>'
                 : a.status==='absent' ? '<span style="color:var(--red)">ขาด</span>'
