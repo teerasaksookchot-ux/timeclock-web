@@ -856,7 +856,7 @@ async function loadAttendance(){
     `<div class="kpi"><div class="n">${pend}</div><div class="l">รอ HR ยืนยัน</div></div>`;
   let h='<table><tr><th>รหัส</th><th>ชื่อ</th><th>เวลาเข้า</th><th>เวลาออก</th><th>สาขา</th><th>สถานะ</th><th>เข้างาน</th><th>ออกงาน</th><th>ออกไปทำธุระ</th><th>นาทีที่ออก</th><th>ธุระร้าน (ไม่หัก)</th><th>แก้ไขล่าสุด</th><th></th></tr>';
   data.forEach(r=>{
-    const e=r.employees||{}; const name=(e.first_name||'')+' '+(e.last_name||'');
+    const e=r.employees||{}; const name=(e.first_name||'')+' '+(e.last_name||'')+(e.nickname?' ('+e.nickname+')':'');
     const t=r.clock_in_time? new Date(r.clock_in_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}):'-';
     const lateTxt=r.late_minutes>0? ' (สาย '+r.late_minutes+' น.)':'';
     const otRec = Array.isArray(r.ot_records) ? r.ot_records[0] : r.ot_records;
@@ -1951,7 +1951,7 @@ async function loadAttendanceRange(){
     leaves.forEach(l=>{ if(byEmp[l.employee_id]) byEmp[l.employee_id].lv.push(l); });
     const rows = Object.keys(byEmp).map(id=>{
       const g=byEmp[id], s=computeAttStats(g.att, g.lv);
-      return { id, code:g.e.employee_code||'-', name:((g.e.first_name||'')+' '+(g.e.last_name||'')).trim()||'(ไม่พบชื่อ)', ...s };
+      return { id, code:g.e.employee_code||'-', name:((g.e.first_name||'')+' '+(g.e.last_name||'')+(g.e.nickname?' ('+g.e.nickname+')':'')).trim()||'(ไม่พบชื่อ)', ...s };
     }).sort((a,b)=>String(a.code).localeCompare(String(b.code)));
     kpi.innerHTML =
       `<div class="kpi"><div class="n" style="font-size:20px">${thDateRangeLabel(start,end)}</div><div class="l">${label}</div></div>`+
