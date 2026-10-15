@@ -121,6 +121,10 @@
   .msg.ok{background:var(--green-bg);color:var(--green);display:block}
   .msg.err{background:var(--red-bg);color:var(--red);display:block}
   .empty{color:var(--muted);font-size:13px;padding:14px 0}
+  .nbadge{display:inline-block;min-width:18px;padding:0 5px;margin-left:5px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center}
+  .lralert{background:var(--amber-bg);border:1px solid #ecd9a6;border-radius:13px;padding:12px 16px;margin-bottom:16px}
+  .lralert .row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid #ecd9a6;font-size:14px}
+  .lralert .row:last-child{border-bottom:none}
   /* login */
   .login{position:fixed;inset:0;background:var(--paper);display:flex;align-items:center;justify-content:center;z-index:10;padding:20px}
   .loginbox{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:34px;max-width:380px;width:100%;box-shadow:0 12px 40px rgba(28,26,23,.12)}
@@ -168,7 +172,7 @@
     <nav class="tabs" id="mainNav" aria-label="เมนูหลัก">
       <button type="button" class="tab on" data-t="dash" aria-current="page"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg> ภาพรวม</button>
       <button type="button" class="tab" data-t="attend"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> เข้างานวันนี้</button>
-      <button type="button" class="tab" data-t="approvals"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> อนุมัติ/เคสค้าง</button>
+      <button type="button" class="tab" data-t="approvals"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> อนุมัติ/เคสค้าง<span id="lr_badge" class="nbadge" style="display:none"></span></button>
       <button type="button" class="tab" data-t="branches"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75h-3.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z"/></svg> สาขา</button>
       <button type="button" class="tab" data-t="employees"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"/></svg> พนักงาน</button>
       <button type="button" class="tab" data-t="roles"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z"/></svg> สิทธิ์</button>
@@ -180,6 +184,7 @@
   </div>
   <div class="wrap">
     <div class="panel on" id="p-dash">
+      <div id="lr_today" class="lralert" style="display:none"></div>
       <div class="card">
         <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
           <span>สถานะรายสาขา</span>
@@ -248,6 +253,13 @@
     </div>
 
     <div class="panel" id="p-approvals">
+      <div class="card">
+        <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg> คำขอลาล่วงหน้า (รออนุมัติ)</span><button class="ebtn" onclick="loadApprovals()">รีเฟรช</button></h2>
+        <p style="font-size:12.5px;color:var(--muted);margin:-6px 0 10px">พนักงานยื่นจากแอป (ลากิจ / ลาป่วย) ล่วงหน้าอย่างน้อย 1 วัน · อนุมัติแล้ววันนั้นจะลงเป็น "ลา" ให้เอง (ไม่ขึ้นแดง) · ถ้ายังไม่อนุมัติ วันนั้นยังนับเป็น "ขาด"</p>
+        <div id="lr_pending"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div>
+        <h3 style="font-size:14px;margin:16px 0 6px">อนุมัติแล้ว (วันนี้เป็นต้นไป)</h3>
+        <div id="lr_upcoming"><div class="empty"><span class="spin dark"></span>กำลังโหลด…</div></div>
+      </div>
       <div class="card">
         <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span>ขอไม่ทำ OT (คำขอเก่าที่ค้างอยู่)</span><button class="ebtn" onclick="loadApprovals()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> รีเฟรช</button></h2>
         <p style="font-size:12.5px;color:var(--muted);margin:-6px 0 10px">ตั้งแต่ 8 ต.ค. 2569 ยกเลิกปุ่ม "ขอไม่ทำ OT" ในแอปพนักงานแล้ว — พนักงานกดถ่ายรูปออกงานได้ตลอด OT นับตามเวลาออกจริงตั้งแต่ 16:30 น. · ช่องนี้เหลือไว้จัดการคำขอเก่าที่ค้างเท่านั้น</p>
@@ -577,7 +589,7 @@ function jumpToBranchAttendance(branchId){
 }
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   switchTab(t.dataset.t);
-  if(t.dataset.t==='dash'){ loadDashboard(); bgRefresh(); }
+  if(t.dataset.t==='dash'){ loadDashboard(); bgRefresh(); loadLeaveAlerts(); }
   if(t.dataset.t==='attend'){ const d=document.getElementById('at_date'); if(!d.value) d.value=bkkToday(); loadAtFilters(); atRefresh(); }
   if(t.dataset.t==='approvals') loadApprovals();
   if(t.dataset.t==='payroll') loadPrFilters();
@@ -633,7 +645,7 @@ async function afterLogin(){
   document.getElementById('login').style.display='none';
   document.getElementById('appshell').style.display='block';
   document.getElementById('whoami').textContent='สวัสดี, '+(emp.first_name||user.email)+' · '+roleLabel(emp.role);
-  await loadRegions(); await loadBranches(); await loadEmployees(); loadDashboard(); loadBranchGrid();
+  await loadRegions(); await loadBranches(); await loadEmployees(); loadDashboard(); loadBranchGrid(); loadLeaveAlerts();
   // HR ที่แอดมินเพิ่งสร้าง/รีเซตรหัสให้ (รหัสชั่วคราว) → บังคับตั้งรหัสใหม่ก่อนใช้งาน
   // (ไม่บังคับแอดมิน: แถวแอดมินเดิมมีค่าเริ่มต้น must_change_password=true ค้างอยู่ — เปลี่ยนเองได้ที่ปุ่มมุมขวาบน)
   if(emp.role==='hr' && emp.must_change_password) openChangePw(true);
@@ -716,6 +728,9 @@ async function loadBranchGrid(){
     .select('employee_id,working_branch_id,status,late_minutes').eq('work_date', day);
   if(error){ grid.innerHTML='<div class="empty">โหลดไม่ได้: '+error.message+'</div>'; return; }
   const attByEmp={}; (att||[]).forEach(r=>attByEmp[r.employee_id]=r);
+  // ลาที่อนุมัติล่วงหน้าแล้ว แต่ระบบยังไม่ลงบันทึก (ก่อน 08:10 น. / วันในอนาคต) → นับเป็น "ลา" ไม่ใช่ "ขาด"
+  const { data: lvApproved } = await db.from('leave_requests').select('employee_id').eq('leave_date', day).eq('status','approved');
+  const leaveOk=new Set((lvApproved||[]).map(r=>r.employee_id));
   const staff=employeesData.filter(e=>e.role==='staff');
   const b={}; branchesData.forEach(br=>b[br.branch_id]={br,on_time:0,late:0,pending:0,absent:0,leave:0,notyet:0,total:0});
   staff.forEach(s=>{
@@ -726,7 +741,8 @@ async function loadBranchGrid(){
       else if(rec.status==='pending'){ bid=rec.working_branch_id||s.home_branch_id; bucket='pending'; }
       else if(rec.late_minutes>0){ bid=rec.working_branch_id||s.home_branch_id; bucket='late'; }
       else { bid=rec.working_branch_id||s.home_branch_id; bucket='on_time'; }
-    } else { bid=s.home_branch_id; bucket=(day<today || (day===today && bkkNowHM()>='08:00'))?'absent':'notyet'; }   // หลัง 08:00 ปุ่มเข้างานกดไม่ได้แล้ว (LATE_CUTOFF) — ยังไม่เข้า = ขาดทันที ไม่ต้องรอสิ้นวัน
+    } else if(leaveOk.has(s.employee_id)){ bid=s.home_branch_id; bucket='leave'; }
+    else { bid=s.home_branch_id; bucket=(day<today || (day===today && bkkNowHM()>='08:00'))?'absent':'notyet'; }   // หลัง 08:00 ปุ่มเข้างานกดไม่ได้แล้ว (LATE_CUTOFF) — ยังไม่เข้า = ขาดทันที ไม่ต้องรอสิ้นวัน
     if(!bid||!b[bid]) return;
     b[bid][bucket]++; b[bid].total++;
   });
@@ -2311,7 +2327,82 @@ const SRC_LABEL={gps_fail:'GPS ไม่ผ่าน',ot_forgot:'ลืมกด
 function caseAgeDays(openedDate){ return Math.floor((Date.now() - new Date(openedDate+'T00:00:00'))/86400000); }
 function empName(e){ if(!e) return '(ไม่พบชื่อ)'; return esc((e.first_name||'')+' '+(e.last_name||'')+(e.nickname?' ('+e.nickname+')':'')); }
 
-async function loadApprovals(){ await loadWaivers(); await loadPendingCases(); }
+async function loadApprovals(){ await loadLeaveRequests(); await loadWaivers(); await loadPendingCases(); }
+
+// ---------- คำขอลาล่วงหน้า (ลากิจ/ลาป่วย) — DL-97..101 ----------
+const LR_TYPE={personal:'ลากิจ', sick:'ลาป่วย'};
+const LR_SEL='id,employee_id,leave_date,leave_type,reason,status,requested_at,employees!leave_requests_employee_id_fkey(employee_code,first_name,last_name,nickname,home_branch_id)';
+const LR_ICON='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>';
+function lrShortName(e){ e=e||{}; return esc(e.nickname || e.first_name || '(ไม่พบชื่อ)'); }
+function lrBranchName(e){ const b=e&&branchesData.find(x=>x.branch_id===e.home_branch_id); return b?esc(b.name):'-'; }
+function lrDate(iso){ return new Date(iso+'T00:00:00+07:00').toLocaleDateString('th-TH',{weekday:'short',day:'numeric',month:'short',year:'2-digit',timeZone:'Asia/Bangkok'}); }
+function lrErr(e){ return (e&&e.message||String(e)).replace(/^[A-Z_]+:\s*/,''); }
+function lrDecideBtns(id){
+  return `<button class="ebtn" onclick="decideLeave('${id}',true)">อนุมัติ</button> `+
+         `<button class="ebtn del" onclick="decideLeave('${id}',false)">ไม่อนุมัติ</button>`;
+}
+// กล่องแจ้งเตือนบนหน้าภาพรวม: ใครลาวันนี้ + คำขอที่รออนุมัติทั้งหมด + ตัวเลขบนแท็บ "อนุมัติ/เคสค้าง"
+async function loadLeaveAlerts(){
+  const box=document.getElementById('lr_today'), badge=document.getElementById('lr_badge');
+  const today=bkkToday();
+  const [{ data: todayRows, error: e1 }, { count: pendingCount, error: e2 }] = await Promise.all([
+    db.from('leave_requests').select(LR_SEL).eq('leave_date', today).in('status',['pending','approved']),
+    db.from('leave_requests').select('id',{count:'exact',head:true}).eq('status','pending')
+  ]);
+  if(e1||e2){ box.style.display='block'; box.innerHTML='<div class="row">โหลดคำขอลาไม่ได้: '+esc(lrErr(e1||e2))+'</div>'; return; }
+  const n=pendingCount||0;
+  badge.style.display = n ? 'inline-block' : 'none'; badge.textContent = n;
+  const rows=(todayRows||[]).sort((a,b)=>(a.status===b.status?0:a.status==='pending'?-1:1));
+  if(!rows.length && !n){ box.style.display='none'; box.innerHTML=''; return; }
+  let h=`<div style="font-weight:700;margin-bottom:4px">${LR_ICON} ลาวันนี้ (${lrDate(today)})</div>`;
+  if(!rows.length) h+='<div class="row" style="color:var(--muted)">วันนี้ไม่มีใครลา</div>';
+  rows.forEach(r=>{
+    const e=r.employees||{};
+    const what = r.status==='pending'
+      ? `รออนุมัติวันลาหยุด (${LR_TYPE[r.leave_type]||'ลา'}) · <span style="color:var(--red);font-weight:600">รอ HR ยืนยันวันหยุด</span>`
+      : `${LR_TYPE[r.leave_type]||'ลา'} · <span style="color:var(--green);font-weight:600">อนุมัติแล้ว</span>`;
+    h+=`<div class="row"><span><b>${lrShortName(e)}</b> <span style="color:var(--muted);font-size:12.5px">(${lrBranchName(e)})</span> — ${what}</span>`+
+       (r.status==='pending' ? `<span>${lrDecideBtns(r.id)}</span>` : '')+`</div>`;
+  });
+  if(n) h+=`<div class="row"><span>มีคำขอลารออนุมัติทั้งหมด <b>${n}</b> รายการ</span><button class="ebtn" onclick="switchTab('approvals');loadApprovals();">ไปหน้าอนุมัติ</button></div>`;
+  box.innerHTML=h; box.style.display='block';
+}
+async function loadLeaveRequests(){
+  const pbox=document.getElementById('lr_pending'), ubox=document.getElementById('lr_upcoming');
+  const today=bkkToday();
+  const [{ data: pend, error: e1 }, { data: up, error: e2 }] = await Promise.all([
+    db.from('leave_requests').select(LR_SEL).eq('status','pending').order('leave_date',{ascending:true}).limit(500),
+    db.from('leave_requests').select(LR_SEL).eq('status','approved').gte('leave_date', today).order('leave_date',{ascending:true}).limit(500)
+  ]);
+  const head='<table><tr><th>รหัส</th><th>ชื่อ</th><th>สาขา</th><th>วันที่ลา</th><th>ประเภท</th><th>เหตุผล</th><th>ยื่นเมื่อ</th><th></th></tr>';
+  const row=(r,btns)=>{ const e=r.employees||{};
+    const when = r.leave_date<today ? ' <span style="color:var(--red);font-size:12px">(เลยวันแล้ว)</span>' : r.leave_date===today ? ' <span style="color:var(--amber);font-size:12px">(วันนี้)</span>' : '';
+    return `<tr><td>${esc(e.employee_code)||'-'}</td><td>${empName(e)}</td><td>${lrBranchName(e)}</td><td>${lrDate(r.leave_date)}${when}</td>`+
+           `<td>${LR_TYPE[r.leave_type]||'-'}</td><td style="font-size:12.5px">${esc(r.reason)||'-'}</td><td style="font-size:12px">${fmtTime(r.requested_at)}</td><td style="white-space:nowrap">${btns}</td></tr>`; };
+  if(e1) pbox.innerHTML='<div class="empty">โหลดไม่ได้: '+esc(lrErr(e1))+'</div>';
+  else if(!pend||!pend.length) pbox.innerHTML='<div class="empty">ไม่มีคำขอลารออนุมัติ</div>';
+  else pbox.innerHTML=head+pend.map(r=>row(r, lrDecideBtns(r.id))).join('')+'</table>';
+  if(e2) ubox.innerHTML='<div class="empty">โหลดไม่ได้: '+esc(lrErr(e2))+'</div>';
+  else if(!up||!up.length) ubox.innerHTML='<div class="empty">ยังไม่มีวันลาที่อนุมัติแล้ว</div>';
+  else ubox.innerHTML=head+up.map(r=>row(r, `<button class="ebtn del" onclick="decideLeave('${r.id}',false,true)">ถอนการอนุมัติ</button>`)).join('')+'</table>';
+  loadLeaveAlerts();
+}
+async function decideLeave(id, approve, revoke){
+  let note=null;
+  if(approve){
+    if(!confirm('ยืนยันอนุมัติวันลานี้?\n(วันนั้นจะลงเป็น "ลา" ไม่ขึ้นแดง · ถ้าระบบลง "ขาด" ไปแล้วจะเปลี่ยนเป็น "ลา" ให้ทันที)')) return;
+  }else{
+    note = prompt(revoke
+      ? 'ถอนการอนุมัติวันลานี้ — ถ้าพนักงานไม่มาทำงาน วันนั้นจะนับเป็น "ขาด"\nใส่เหตุผลให้พนักงานเห็น (ไม่บังคับ):'
+      : 'ไม่อนุมัติวันลานี้ — ใส่เหตุผลให้พนักงานเห็น (ไม่บังคับ):', '');
+    if(note===null) return;   // กดยกเลิก
+  }
+  const { error } = await db.rpc('fn_leave_request_decide', { p_id:id, p_approve:!!approve, p_note:note });
+  if(error){ alert('บันทึกไม่สำเร็จ: '+lrErr(error)); return; }
+  if(document.getElementById('p-approvals').classList.contains('on')) await loadLeaveRequests();
+  else await loadLeaveAlerts();
+  if(document.getElementById('p-dash').classList.contains('on')) bgRefresh();
+}
 
 async function loadWaivers(){
   const box=document.getElementById('wv_list'); box.innerHTML='<div class="empty"><span class="spin dark"></span>กำลังโหลด…</div>';
