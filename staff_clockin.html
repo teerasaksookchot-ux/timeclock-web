@@ -229,7 +229,7 @@
 
 <script>
 let db=null, me=null, authUser=null, branches=[], gpsPromise=null, camStream=null, pickResolve=null;
-let camMode='clockin', todayAttendance=null, todayLeave=null, todayWaiver=null, todayShopErrand=null, shopPurpose='';
+let camMode='clockin', todayAttendance=null, todayLeave=null, todayWaiver=null, todayShopErrand=null, shopPurpose='', leavePurpose='';
 
 function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
@@ -376,7 +376,10 @@ async function loadMyStats(){
     if(error) throw error;
     const { data: lv } = await db.from('personal_leaves')
       .select('leave_minutes').eq('employee_id', me.employee_id).gte('leave_date', start).lte('leave_date', today);
+    const { data: se } = await db.from('shop_errands')
+      .select('out_time,return_time').eq('employee_id', me.employee_id).gte('errand_date', start).lte('errand_date', today);
     const s = computeAttStats(att||[], lv||[]);
+    const shopMin = (se||[]).reduce((n,x)=>n+(x.return_time?Math.max(0,Math.floor((new Date(x.return_time)-new Date(x.out_time))/60000)):0),0);
     box.className='';
     box.innerHTML =
       `<div style="font-size:12px;color:var(--muted);margin-bottom:6px">1 ${thMonth(today)} – วันนี้</div>`+
@@ -385,7 +388,8 @@ async function loadMyStats(){
       statRow('ขาดงาน', s.absentDays+' วัน')+
       statRow('ลา', s.leaveDays+' วัน')+
       statRow('ชั่วโมง OT รวม', s.otHours+' ชม.')+
-      statRow('ออกไปทำธุระ', s.leaveMin+' นาที');
+      statRow('ธุระส่วนตัว (หักเวลา)', (lv||[]).length+' ครั้ง · '+s.leaveMin+' นาที')+
+      statRow('ธุระของร้าน (ไม่หัก)', (se||[]).length+' ครั้ง · '+shopMin+' นาที');
   }catch(e){
     box.className='msg err'; box.textContent='โหลดสถิติไม่ได้: '+(e.message||e);
   }
@@ -542,27 +546,32 @@ async function renderExtra(){
       + `<div class="msg" style="display:block;margin-top:6px;font-size:12px">เลิกงานปกติ 16:00 น. · OT นับตั้งแต่ 16:30 น. ขั้นละครึ่งชั่วโมง (เช่น ออก 17:30 = OT 1 ชม.)</div>`;
   }
 
-  // --- Personal Leave (DL-20..24) ---
-  const { data: leave } = await db.from('personal_leaves')
-    .select('id,leave_out_time,return_time,status').eq('employee_id', me.employee_id).eq('leave_date', bkkDate()).maybeSingle();
-  todayLeave = (leave && leave.status==='open') ? leave : null;
+  // --- ธุระส่วนตัว (หักเวลา) — ออกได้หลายรอบ/วัน แต่ต้องกลับก่อนออกรอบใหม่ (DL-102..105) ---
+  const { data: leaveRows } = await db.from('personal_leaves')
+    .select('id,leave_out_time,return_time,leave_minutes,status,purpose').eq('employee_id', me.employee_id).eq('leave_date', bkkDate())
+    .order('leave_out_time',{ascending:true});
+  todayLeave = (leaveRows||[]).find(l=>l.status==='open') || null;
   const { data: shopRows } = await db.from('shop_errands')
     .select('id,purpose,out_time,return_time,status').eq('employee_id', me.employee_id).eq('errand_date', bkkDate())
     .order('out_time',{ascending:true});
   todayShopErrand = (shopRows||[]).find(s=>s.status==='open') || null;
   const leaveBox=document.getElementById('leave_box');
-  if(leave && leave.status==='open'){
-    const t=new Date(leave.leave_out_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
-    leaveBox.innerHTML = `<div class="msg warn">ออกไปทำธุระตั้งแต่ ${t} น.</div><button class="btn" onclick="returnFromLeave()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/></svg> กลับมาแล้ว</button>`;
-  }else if(leave && leave.status!=='open'){
-    const t=leave.return_time? new Date(leave.return_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}) : '-';
-    leaveBox.innerHTML = `<div class="msg ok">วันนี้ใช้สิทธิ์ออกไปทำธุระแล้ว (กลับมาเมื่อ ${t} น.)</div>`;
+  const hmL = iso => new Date(iso).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
+  const doneLeaves = (leaveRows||[]).filter(l=>l.status!=='open');
+  const leaveSum = doneLeaves.length
+    ? `<div style="font-size:12.5px;margin-top:6px">วันนี้ออกไปแล้ว ${doneLeaves.length} ครั้ง · รวม ${doneLeaves.reduce((n,l)=>n+(Number(l.leave_minutes)||0),0)} นาที (หักเวลา)</div>`
+      + doneLeaves.map(l=>`<div style="font-size:12.5px;color:var(--muted)">• ${hmL(l.leave_out_time)}–${l.return_time?hmL(l.return_time):'-'} น. (${l.leave_minutes||0} นาที)${l.purpose?' '+esc(l.purpose):''}</div>`).join('')
+    : '';
+  if(todayLeave){
+    leaveBox.innerHTML = `<div class="msg warn">ออกไปทำธุระตั้งแต่ ${hmL(todayLeave.leave_out_time)} น.${todayLeave.purpose?' — '+esc(todayLeave.purpose):''}</div><button class="btn" onclick="returnFromLeave()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/></svg> กลับมาแล้ว</button>` + leaveSum;
   }else if(otRec){
-    leaveBox.innerHTML = `<div class="msg" style="display:block">ออกงานไปแล้ว — ออกไปทำธุระไม่ได้</div>`;
+    leaveBox.innerHTML = `<div class="msg" style="display:block">ออกงานไปแล้ว — ออกไปทำธุระไม่ได้</div>` + leaveSum;
   }else if(todayShopErrand){
-    leaveBox.innerHTML = `<div class="msg" style="display:block">กำลังทำธุระของร้านอยู่ — กด "กลับมาแล้ว" ของธุระร้านก่อน</div>`;
+    leaveBox.innerHTML = `<div class="msg" style="display:block">กำลังทำธุระของร้านอยู่ — กด "กลับมาแล้ว" ของธุระร้านก่อน</div>` + leaveSum;
   }else{
-    leaveBox.innerHTML = `<button class="btn ghost" onclick="startLeaveOut()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25"/></svg> ออกไปทำธุระส่วนตัว (1 ครั้ง/วัน)</button>`;
+    leaveBox.innerHTML = `<input id="leave_purpose" maxlength="200" placeholder="ไปทำธุระอะไร เช่น ไปธนาคาร, ไปหาหมอ" value="${esc(leavePurpose)}">`
+      + `<button class="btn ghost" style="margin-top:8px" onclick="startLeaveOut()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25"/></svg> ออกไปทำธุระส่วนตัว</button>`
+      + `<div id="leave_msg" class="msg"></div>` + leaveSum;
   }
 
   // --- ธุระของร้าน (ไม่หักเวลา · ไม่จำกัดครั้ง แต่ต้องกลับก่อนออกรอบใหม่) ---
@@ -626,6 +635,9 @@ async function startOtClockOut(){
 }
 // ---------- ออกไปทำธุระ (DL-22: Face + GPS Verify เหมือนเข้างาน) ----------
 async function startLeaveOut(){
+  const p = (document.getElementById('leave_purpose').value||'').trim();
+  if(p.length < 3){ msg('leave_msg','err','กรุณาพิมพ์ว่าไปทำธุระอะไร (อย่างน้อย 3 ตัวอักษร)'); return; }
+  leavePurpose = p;
   camMode='leave_out';
   gpsPromise = getGPS();
   await openCameraScreen('ถ่ายรูปและออกไปทำธุระ');
@@ -742,19 +754,17 @@ async function processOtClockOut(blob){
 // ---------- ออกไปทำธุระ (DL-20..24) ----------
 async function processLeaveOut(blob, gps){
   const { path:selfiePath, err:selfieErr } = await uploadSelfie('leave', blob);
-  const { data:rec, error } = await db.from('personal_leaves').insert({
-    attendance_id: todayAttendance.id, employee_id: me.employee_id,
-    leave_date: bkkDate(), leave_out_time: new Date().toISOString(), selfie_path: selfiePath
-  }).select().single();
+  const { data:rec, error } = await db.rpc('fn_personal_leave_out', { p_attendance: todayAttendance.id, p_purpose: leavePurpose, p_selfie_path: selfiePath });
   if(error){
-    if(/duplicate|unique/i.test(error.message||'')){
-      showResult('warn','<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/></svg>','วันนี้ใช้สิทธิ์ไปแล้ว','ออกไปทำธุระได้วันละ 1 ครั้ง (DL-21)',[]);
+    if(/LEAVE_OPEN|duplicate|unique/i.test(error.message||'')){
+      showResult('warn','<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/></svg>','ยังไม่ได้กดกลับรอบก่อน','กด "กลับมาแล้ว" ก่อน แล้วค่อยออกรอบใหม่',[]);
     }else{
-      msg('cam_msg','err','บันทึกไม่สำเร็จ: '+error.message);
+      msg('cam_msg','err','บันทึกไม่สำเร็จ: '+(error.message||'').replace(/^[A-Z_]+:\s*/,''));
       const b=document.getElementById('cap_btn'); b.disabled=false; b.textContent='ลองอีกครั้ง';
     }
     return;
   }
+  leavePurpose='';
   await db.from('gps_logs').insert({
     attendance_id: todayAttendance.id,
     latitude: gps.ok? gps.lat:null, longitude: gps.ok? gps.lng:null,
@@ -764,6 +774,7 @@ async function processLeaveOut(blob, gps){
     await db.from('pending_cases').insert({ employee_id: me.employee_id, source:'anomaly', related_attendance_id: todayAttendance.id });
   }
   const rows=[
+    ['ไปทำธุระ', rec.purpose||'-'],
     ['เวลาออก', new Date(rec.leave_out_time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' น.'],
     ['รูปเซลฟี่', selfieErr ? ('อัปไม่สำเร็จ: '+selfieErr) : 'บันทึกแล้ว']
   ];
